@@ -1,0 +1,135 @@
+# =============================================================================
+# BIBLIA CHAT - .gitignore
+# =============================================================================
+
+# =============================================================================
+# Environment & Secrets
+# =============================================================================
+.env
+.env.local
+.env.*.local
+*.env
+!.env.example
+
+# =============================================================================
+# Flutter / Dart
+# =============================================================================
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.buildlog/
+.history
+.svn/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code
+.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+app_flutter/.dart_tool/
+app_flutter/.packages
+app_flutter/.pub-cache/
+app_flutter/.pub/
+app_flutter/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio
+app_flutter/android/.gradle/
+app_flutter/android/captures/
+app_flutter/android/gradlew
+app_flutter/android/gradlew.bat
+app_flutter/android/local.properties
+app_flutter/android/**/GeneratedPluginRegistrant.*
+app_flutter/android/key.properties
+app_flutter/android/**/*.keystore
+app_flutter/android/**/*.jks
+
+# iOS/XCode
+app_flutter/ios/.generated/
+app_flutter/ios/Flutter/App.framework
+app_flutter/ios/Flutter/Flutter.framework
+app_flutter/ios/Flutter/Flutter.podspec
+app_flutter/ios/Flutter/Generated.xcconfig
+app_flutter/ios/Flutter/ephemeral
+app_flutter/ios/Flutter/app.flx
+app_flutter/ios/Flutter/app.zip
+app_flutter/ios/Flutter/flutter_assets/
+app_flutter/ios/Flutter/flutter_export_environment.sh
+app_flutter/ios/ServiceDefinitions.json
+app_flutter/ios/Runner/GeneratedPluginRegistrant.*
+**/Pods/
+**/ios/*.xcworkspace
+
+# macOS
+app_flutter/macos/Flutter/GeneratedPluginRegistrant.swift
+app_flutter/macos/Flutter/ephemeral
+
+# Coverage
+coverage/
+*.lcov
+
+# =============================================================================
+# Supabase
+# =============================================================================
+supabase/.branches/
+supabase/.temp/
+supabase/.supabase/
+
+# =============================================================================
+# Node (for Supabase Edge Functions if using npm)
+# =============================================================================
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# =============================================================================
+# OS Generated
+# =============================================================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# =============================================================================
+# IDE
+# =============================================================================
+*.sublime-workspace
+*.sublime-project
+.idea/
+*.swp
+*.swo
+*~
+
+# =============================================================================
+# Build outputs
+# =============================================================================
+*.apk
+*.aab
+*.ipa
+*.app
