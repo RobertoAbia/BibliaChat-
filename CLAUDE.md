@@ -115,6 +115,15 @@ BibliaChat/
     - StudyScreen (7 planes de estudio)
     - SettingsScreen (perfil, preferencias, logout)
 
+- [x] Documentación BBDD actualizada (`docs/04.BBDD.md`)
+  - Diagrama ERD en Mermaid válido
+  - SQL de todas las tablas implementadas
+  - Datos seed (versiones Biblia, temas chat, badges, planes)
+  - Políticas RLS documentadas
+  - Índices de performance
+  - Triggers de auth
+  - Notas funcionales (timezone, constraints, orden prompt IA)
+
 ### Próximos Pasos
 - [ ] T-0003: Configurar proyecto Supabase (prod)
 - [ ] T-0301: Auth flow completo (email upgrade)
