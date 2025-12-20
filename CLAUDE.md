@@ -82,12 +82,45 @@ BibliaChat/
   - Estructura de carpetas creada
   - Archivos base (.gitignore, README, .env.example)
 
+- [x] T-0002: Configurar proyecto Supabase (dev)
+  - Proyecto: `biblia-chat-dev`
+  - URL: `https://popqvhrgsokuviwtscid.supabase.co`
+  - Auth anónimo habilitado
+  - Credenciales en `.env` (root)
+
+- [x] T-0101: Crear tablas core en BD
+  - 9 migraciones SQL creadas y ejecutadas:
+    - ENUMs (denomination, origin_group, age_group, etc.)
+    - Tablas de catálogo (bible_versions, chat_topics, badges)
+    - Tablas de usuario (user_profiles, user_devices, user_entitlements, etc.)
+    - Tablas de chat (chats, chat_messages, saved_messages)
+    - Tablas de contenido (daily_verses, devotions, etc.)
+    - Tablas de planes (plans, plan_days, user_plans, etc.)
+    - Políticas RLS completas
+    - Índices de rendimiento
+    - Trigger para creación automática de perfil
+
+- [x] T-0201: Setup Flutter project
+  - Proyecto Flutter creado (`app_flutter`)
+  - Clean Architecture implementada
+  - Dependencias instaladas (supabase_flutter, riverpod, go_router, etc.)
+  - Navegación con GoRouter + ShellRoute (bottom navigation)
+  - Tema Material 3 (light/dark)
+  - Pantallas creadas:
+    - SplashScreen (auth anónimo automático)
+    - OnboardingScreen (3 páginas)
+    - HomeScreen (racha, versículo, devoción, oración)
+    - ChatListScreen (10 temas)
+    - ChatScreen (interfaz de chat)
+    - StudyScreen (7 planes de estudio)
+    - SettingsScreen (perfil, preferencias, logout)
+
 ### Próximos Pasos
-- [ ] T-0002: Configurar proyecto Supabase (dev)
 - [ ] T-0003: Configurar proyecto Supabase (prod)
-- [ ] T-0004: Pipeline de migraciones SQL
-- [ ] T-0101: Crear tablas core en BD
-- [ ] T-0201: Setup Flutter project + flavors
+- [ ] T-0301: Auth flow completo (email upgrade)
+- [ ] T-0401: Integrar RevenueCat
+- [ ] T-0501: Edge Function para chat IA
+- [ ] T-0701: Conectar pantallas con Supabase (datos reales)
 
 ## Comandos Útiles
 ```bash
