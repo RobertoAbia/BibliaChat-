@@ -18,6 +18,7 @@ class UserProfileModel extends UserProfile {
     super.timezone,
     super.onboardingCompleted,
     super.theme,
+    super.rcAppUserId,
     required super.createdAt,
     required super.updatedAt,
   });
@@ -42,6 +43,7 @@ class UserProfileModel extends UserProfile {
       timezone: json['timezone'] as String? ?? 'America/New_York',
       onboardingCompleted: json['onboarding_completed'] as bool? ?? false,
       theme: json['theme'] as String? ?? 'auto',
+      rcAppUserId: json['rc_app_user_id'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
     );
@@ -66,6 +68,7 @@ class UserProfileModel extends UserProfile {
       'timezone': timezone,
       'onboarding_completed': onboardingCompleted,
       'theme': theme,
+      if (rcAppUserId != null) 'rc_app_user_id': rcAppUserId,
     };
   }
 
@@ -85,6 +88,7 @@ class UserProfileModel extends UserProfile {
     String? timezone,
     bool? onboardingCompleted,
     String? theme,
+    String? rcAppUserId,
   }) {
     final map = <String, dynamic>{};
 
@@ -106,6 +110,7 @@ class UserProfileModel extends UserProfile {
       map['onboarding_completed'] = onboardingCompleted;
     }
     if (theme != null) map['theme'] = theme;
+    if (rcAppUserId != null) map['rc_app_user_id'] = rcAppUserId;
 
     return map;
   }
@@ -128,6 +133,7 @@ class UserProfileModel extends UserProfile {
       timezone: entity.timezone,
       onboardingCompleted: entity.onboardingCompleted,
       theme: entity.theme,
+      rcAppUserId: entity.rcAppUserId,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
     );

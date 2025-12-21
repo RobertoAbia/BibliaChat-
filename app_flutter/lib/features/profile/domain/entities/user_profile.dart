@@ -15,6 +15,7 @@ class UserProfile {
   final String timezone;
   final bool onboardingCompleted;
   final String theme;
+  final String? rcAppUserId; // RevenueCat ID para restaurar compras + datos
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -34,6 +35,7 @@ class UserProfile {
     this.timezone = 'America/New_York',
     this.onboardingCompleted = false,
     this.theme = 'auto',
+    this.rcAppUserId,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -54,6 +56,7 @@ class UserProfile {
     String? timezone,
     bool? onboardingCompleted,
     String? theme,
+    String? rcAppUserId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -73,6 +76,7 @@ class UserProfile {
       timezone: timezone ?? this.timezone,
       onboardingCompleted: onboardingCompleted ?? this.onboardingCompleted,
       theme: theme ?? this.theme,
+      rcAppUserId: rcAppUserId ?? this.rcAppUserId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
