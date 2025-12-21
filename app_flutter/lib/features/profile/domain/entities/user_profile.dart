@@ -2,6 +2,7 @@
 class UserProfile {
   final String userId;
   final String? name;
+  final GenderType? gender;
   final Denomination? denomination;
   final OriginGroup? origin;
   final AgeGroup? ageGroup;
@@ -22,6 +23,7 @@ class UserProfile {
   const UserProfile({
     required this.userId,
     this.name,
+    this.gender,
     this.denomination,
     this.origin,
     this.ageGroup,
@@ -43,6 +45,7 @@ class UserProfile {
   UserProfile copyWith({
     String? userId,
     String? name,
+    GenderType? gender,
     Denomination? denomination,
     OriginGroup? origin,
     AgeGroup? ageGroup,
@@ -63,6 +66,7 @@ class UserProfile {
     return UserProfile(
       userId: userId ?? this.userId,
       name: name ?? this.name,
+      gender: gender ?? this.gender,
       denomination: denomination ?? this.denomination,
       origin: origin ?? this.origin,
       ageGroup: ageGroup ?? this.ageGroup,
@@ -80,6 +84,35 @@ class UserProfile {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
+  }
+}
+
+/// Género del usuario
+enum GenderType {
+  male,
+  female;
+
+  String get displayName {
+    switch (this) {
+      case GenderType.male:
+        return 'Hombre';
+      case GenderType.female:
+        return 'Mujer';
+    }
+  }
+
+  String get dbValue => name;
+
+  static GenderType? fromString(String? value) {
+    if (value == null) return null;
+    switch (value) {
+      case 'male':
+        return GenderType.male;
+      case 'female':
+        return GenderType.female;
+      default:
+        return null;
+    }
   }
 }
 

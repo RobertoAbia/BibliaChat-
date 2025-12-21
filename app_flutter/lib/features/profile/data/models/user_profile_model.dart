@@ -5,6 +5,7 @@ class UserProfileModel extends UserProfile {
   const UserProfileModel({
     required super.userId,
     super.name,
+    super.gender,
     super.denomination,
     super.origin,
     super.ageGroup,
@@ -28,6 +29,7 @@ class UserProfileModel extends UserProfile {
     return UserProfileModel(
       userId: json['user_id'] as String,
       name: json['name'] as String?,
+      gender: GenderType.fromString(json['gender'] as String?),
       denomination: Denomination.fromString(json['denomination'] as String?),
       origin: OriginGroup.fromString(json['origin'] as String?),
       ageGroup: AgeGroup.fromString(json['age_group'] as String?),
@@ -54,6 +56,7 @@ class UserProfileModel extends UserProfile {
     return {
       'user_id': userId,
       if (name != null) 'name': name,
+      if (gender != null) 'gender': gender!.dbValue,
       if (denomination != null) 'denomination': denomination!.dbValue,
       if (origin != null) 'origin': origin!.dbValue,
       if (ageGroup != null) 'age_group': ageGroup!.dbValue,
@@ -75,6 +78,7 @@ class UserProfileModel extends UserProfile {
   /// Convierte un Map de actualización parcial (solo campos modificados)
   static Map<String, dynamic> toUpdateJson({
     String? name,
+    GenderType? gender,
     Denomination? denomination,
     OriginGroup? origin,
     AgeGroup? ageGroup,
@@ -93,6 +97,7 @@ class UserProfileModel extends UserProfile {
     final map = <String, dynamic>{};
 
     if (name != null) map['name'] = name;
+    if (gender != null) map['gender'] = gender.dbValue;
     if (denomination != null) map['denomination'] = denomination.dbValue;
     if (origin != null) map['origin'] = origin.dbValue;
     if (ageGroup != null) map['age_group'] = ageGroup.dbValue;
@@ -120,6 +125,7 @@ class UserProfileModel extends UserProfile {
     return UserProfileModel(
       userId: entity.userId,
       name: entity.name,
+      gender: entity.gender,
       denomination: entity.denomination,
       origin: entity.origin,
       ageGroup: entity.ageGroup,

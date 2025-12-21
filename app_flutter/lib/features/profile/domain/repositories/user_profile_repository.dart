@@ -12,6 +12,7 @@ abstract class UserProfileRepository {
   Future<UserProfile> completeOnboarding({
     required String userId,
     String? name,
+    GenderType? gender,
     AgeGroup? ageGroup,
     Denomination? denomination,
     String? bibleVersionCode,

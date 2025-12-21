@@ -31,6 +31,7 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
   Future<UserProfile> completeOnboarding({
     required String userId,
     String? name,
+    GenderType? gender,
     AgeGroup? ageGroup,
     Denomination? denomination,
     String? bibleVersionCode,
@@ -39,6 +40,7 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
   }) async {
     final updateData = UserProfileModel.toUpdateJson(
       name: name,
+      gender: gender,
       ageGroup: ageGroup,
       denomination: denomination,
       bibleVersionCode: bibleVersionCode,

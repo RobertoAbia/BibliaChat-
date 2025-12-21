@@ -40,7 +40,7 @@ final hasCompletedOnboardingProvider = FutureProvider<bool>((ref) async {
 class OnboardingState {
   final String? name;
   final String? ageGroup;
-  final String? gender; // No se guarda en BD, solo UI
+  final String? gender;
   final String? denomination;
   final String? bibleVersionCode;
   final String? supportType;
@@ -101,6 +101,9 @@ class OnboardingState {
 
   /// Convierte denomination string a Denomination enum
   Denomination? get denominationEnum => Denomination.fromString(denomination);
+
+  /// Convierte gender string a GenderType enum
+  GenderType? get genderEnum => GenderType.fromString(gender);
 }
 
 /// Notifier para manejar el estado del onboarding
@@ -149,6 +152,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
       await _repository.completeOnboarding(
         userId: userId,
+        gender: state.genderEnum,
         ageGroup: state.ageGroupEnum,
         denomination: state.denominationEnum,
         bibleVersionCode: state.bibleVersionCode,
