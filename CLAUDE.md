@@ -89,8 +89,8 @@ BibliaChat/
   - Credenciales en `.env` (root)
 
 - [x] T-0101: Crear tablas core en BD
-  - 9 migraciones SQL creadas y ejecutadas:
-    - ENUMs (denomination, origin_group, age_group, etc.)
+  - 11 migraciones SQL creadas y ejecutadas:
+    - ENUMs (denomination, origin_group, age_group, gender_type, etc.)
     - Tablas de catálogo (bible_versions, chat_topics, badges)
     - Tablas de usuario (user_profiles, user_devices, user_entitlements, etc.)
     - Tablas de chat (chats, chat_messages, saved_messages)
@@ -99,6 +99,8 @@ BibliaChat/
     - Políticas RLS completas
     - Índices de rendimiento
     - Trigger para creación automática de perfil
+    - **00010:** Columna `rc_app_user_id` para restaurar compras sin registro
+    - **00011:** Columna `gender` + enum `gender_type`
 
 - [x] T-0201: Setup Flutter project
   - Proyecto Flutter creado (`app_flutter`)
@@ -108,7 +110,7 @@ BibliaChat/
   - Tema Material 3 (light/dark)
   - Pantallas creadas:
     - SplashScreen (auth anónimo automático)
-    - OnboardingScreen (3 páginas)
+    - OnboardingScreen (10 páginas: Welcome → Edad → Género → País → Denominación → Biblia → Motivo → Corazón → Análisis → Ready)
     - HomeScreen (racha, versículo, devoción, oración)
     - ChatListScreen (10 temas)
     - ChatScreen (interfaz de chat)
@@ -154,7 +156,7 @@ BibliaChat/
 
 - [x] T-0302 + T-0303: Onboarding conectado con Supabase
   - **Clean Architecture para perfil de usuario:**
-    - Entity: `UserProfile` con enums (Denomination, OriginGroup, AgeGroup, MotiveType)
+    - Entity: `UserProfile` con enums (Denomination, OriginGroup, AgeGroup, MotiveType, GenderType)
     - Repository interface + implementación
     - Model con serialización JSON para Supabase
     - Datasource remoto con operaciones CRUD
@@ -164,9 +166,17 @@ BibliaChat/
     - `userProfileStreamProvider` - Cambios en tiempo real
     - `hasCompletedOnboardingProvider` - Verificación onboarding
     - `onboardingProvider` - StateNotifier para formulario onboarding
-  - **Pantallas modificadas:**
-    - `OnboardingScreen` - Ahora usa Riverpod, guarda datos en Supabase
-    - `SplashScreen` - Verifica onboarding_completed antes de navegar
+  - **Pantallas de onboarding (10 páginas):**
+    - Welcome (nombre)
+    - Edad (age_group)
+    - Género (gender) - Hombre/Mujer
+    - País (origin) - Dropdown 21 países hispanohablantes → mapea a origin_group
+    - Denominación
+    - Versión Biblia
+    - Motivo (tipo de apoyo)
+    - Corazón (primer mensaje libre)
+    - Análisis (animación)
+    - Ready (confirmación)
   - **Flujo de navegación:**
     - Usuario nuevo → Auth anónimo → Onboarding → Home
     - Usuario existente sin onboarding → Onboarding
@@ -178,6 +188,7 @@ BibliaChat/
     - `lib/features/profile/data/datasources/user_profile_remote_datasource.dart`
     - `lib/features/profile/data/repositories/user_profile_repository_impl.dart`
     - `lib/features/profile/presentation/providers/user_profile_provider.dart`
+    - `lib/features/onboarding/presentation/widgets/onboarding_country_page.dart`
 
 ### Próximos Pasos
 - [ ] T-0003: Configurar proyecto Supabase (prod)

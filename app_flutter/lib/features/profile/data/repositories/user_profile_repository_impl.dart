@@ -32,6 +32,7 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
     required String userId,
     String? name,
     GenderType? gender,
+    OriginGroup? origin,
     AgeGroup? ageGroup,
     Denomination? denomination,
     String? bibleVersionCode,
@@ -41,6 +42,7 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
     final updateData = UserProfileModel.toUpdateJson(
       name: name,
       gender: gender,
+      origin: origin,
       ageGroup: ageGroup,
       denomination: denomination,
       bibleVersionCode: bibleVersionCode,

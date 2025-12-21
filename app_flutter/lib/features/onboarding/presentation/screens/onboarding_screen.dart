@@ -7,6 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../widgets/onboarding_welcome_page.dart';
 import '../widgets/onboarding_selection_page.dart';
+import '../widgets/onboarding_country_page.dart';
 import '../widgets/onboarding_text_input_page.dart';
 import '../widgets/onboarding_analyzing_page.dart';
 import '../widgets/onboarding_ready_page.dart';
@@ -21,7 +22,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 9;
+  final int _totalPages = 10; // Añadida página de país
 
   @override
   void dispose() {
@@ -66,10 +67,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       case 2:
         return state.gender != null;
       case 3:
-        return state.denomination != null;
+        return state.origin != null;
       case 4:
-        return state.bibleVersionCode != null;
+        return state.denomination != null;
       case 5:
+        return state.bibleVersionCode != null;
+      case 6:
         return state.supportType != null;
       default:
         return true;
@@ -152,7 +155,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 3: Denomination selection
+                    // Page 3: Country selection
+                    Builder(
+                      builder: (context) {
+                        final notifier = ref.read(onboardingProvider.notifier);
+                        return OnboardingCountryPage(
+                          onSelect: (originGroup) => notifier.setOrigin(originGroup),
+                          onNext: _canProceed() ? _nextPage : null,
+                        );
+                      },
+                    ),
+
+                    // Page 4: Denomination selection
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -195,7 +209,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 4: Bible version
+                    // Page 5: Bible version
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -233,7 +247,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 5: Support type
+                    // Page 6: Support type
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -261,7 +275,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 6: Heart input
+                    // Page 7: Heart input
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -277,12 +291,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 7: Analyzing
+                    // Page 8: Analyzing
                     OnboardingAnalyzingPage(
                       onComplete: _nextPage,
                     ),
 
-                    // Page 8: Ready
+                    // Page 9: Ready
                     OnboardingReadyPage(
                       onStart: _completeOnboarding,
                     ),

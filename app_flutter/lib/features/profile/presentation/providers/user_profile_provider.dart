@@ -41,6 +41,7 @@ class OnboardingState {
   final String? name;
   final String? ageGroup;
   final String? gender;
+  final String? origin; // origin_group de la BD
   final String? denomination;
   final String? bibleVersionCode;
   final String? supportType;
@@ -52,6 +53,7 @@ class OnboardingState {
     this.name,
     this.ageGroup,
     this.gender,
+    this.origin,
     this.denomination,
     this.bibleVersionCode,
     this.supportType,
@@ -64,6 +66,7 @@ class OnboardingState {
     String? name,
     String? ageGroup,
     String? gender,
+    String? origin,
     String? denomination,
     String? bibleVersionCode,
     String? supportType,
@@ -75,6 +78,7 @@ class OnboardingState {
       name: name ?? this.name,
       ageGroup: ageGroup ?? this.ageGroup,
       gender: gender ?? this.gender,
+      origin: origin ?? this.origin,
       denomination: denomination ?? this.denomination,
       bibleVersionCode: bibleVersionCode ?? this.bibleVersionCode,
       supportType: supportType ?? this.supportType,
@@ -104,6 +108,9 @@ class OnboardingState {
 
   /// Convierte gender string a GenderType enum
   GenderType? get genderEnum => GenderType.fromString(gender);
+
+  /// Convierte origin string a OriginGroup enum
+  OriginGroup? get originEnum => OriginGroup.fromString(origin);
 }
 
 /// Notifier para manejar el estado del onboarding
@@ -118,6 +125,10 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
   void setGender(String value) {
     state = state.copyWith(gender: value);
+  }
+
+  void setOrigin(String value) {
+    state = state.copyWith(origin: value);
   }
 
   void setDenomination(String value) {
@@ -153,6 +164,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
       await _repository.completeOnboarding(
         userId: userId,
         gender: state.genderEnum,
+        origin: state.originEnum,
         ageGroup: state.ageGroupEnum,
         denomination: state.denominationEnum,
         bibleVersionCode: state.bibleVersionCode,
