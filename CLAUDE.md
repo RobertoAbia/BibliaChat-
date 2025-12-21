@@ -124,6 +124,34 @@ BibliaChat/
   - Triggers de auth
   - Notas funcionales (timezone, constraints, orden prompt IA)
 
+- [x] UI Premium Modernizada (Glassmorphism + Lottie + Shimmer)
+  - **Widgets reutilizables creados:**
+    - `GlassContainer` - Efecto glassmorphism con BackdropFilter
+    - `ShimmerLoading` - Skeletons de carga (text, avatar, card, list)
+    - `LottieHelper` - Helper para animaciones Lottie
+  - **Assets Lottie añadidos** (`assets/animations/`):
+    - cross_glow.json, loading_dots.json, success_check.json
+    - typing_indicator.json, praying_hands.json, celebration.json
+  - **Pantallas modernizadas:**
+    - SplashScreen: partículas flotantes, gradiente animado, Lottie cruz
+    - OnboardingWelcomePage: logo Lottie, glass cards, shimmer button
+    - OnboardingSelectionPage: tiles glass con glow al seleccionar
+    - OnboardingReadyPage: features con iconos, CTA con gradiente
+    - HomeScreen: calendario glass, verse card premium, content cards
+    - ChatListScreen: topics con gradientes únicos, glass tiles
+    - ChatScreen: burbujas glass, typing Lottie, input glass
+    - StudyScreen: plan activo con progress animado, glass cards
+  - **Paleta de colores:**
+    - Fondo: Azul Noche (#1A1A2E, #16162A)
+    - Primario: Dorado (#D4AF37, #E8C967, #B8963A)
+    - Superficies: #252540, #2D2D4A
+  - **Efectos implementados:**
+    - BackdropFilter blur (8-12px)
+    - Gradientes dorados con sombras glow
+    - Animaciones staggered en listas
+    - Tap feedback con escala
+    - Transiciones suaves entre estados
+
 ### Próximos Pasos
 - [ ] T-0003: Configurar proyecto Supabase (prod)
 - [ ] T-0301: Auth flow completo (email upgrade)
@@ -153,3 +181,11 @@ supabase functions serve
 - `openai_conversation_id` existe pero NO se usa en runtime MVP
 - Prompt ordenado: base → dinámico → ai_memory → context_summary → últimos 12 mensajes
 - La IA no debe inventar datos que no estén en ai_memory o historial
+
+## Notas Técnicas Flutter
+- **Flutter version:** 3.35.3 (stable)
+- **Dart version:** 3.5.4
+- En ThemeData usar `CardTheme()` (NO `CardThemeData`)
+- BackdropFilter puede ser pesado en Android antiguos - usar con moderación
+- Los widgets glass usan `ImageFilter.blur(sigmaX: 8-12, sigmaY: 8-12)`
+- Paquetes UI instalados: `shimmer`, `lottie`, `flutter_animate`

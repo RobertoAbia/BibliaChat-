@@ -14,9 +14,9 @@ class BibliaChatApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'Biblia Chat',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
+      theme: AppTheme.darkTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.dark, // App usa tema oscuro siempre
       routerConfig: router,
     );
   }
