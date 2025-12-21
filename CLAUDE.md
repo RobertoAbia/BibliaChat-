@@ -185,7 +185,9 @@ supabase functions serve
 ## Notas Técnicas Flutter
 - **Flutter version:** 3.35.3 (stable)
 - **Dart version:** 3.5.4
-- En ThemeData usar `CardTheme()` (NO `CardThemeData`)
+- **IMPORTANTE CardTheme:** En ThemeData usar `CardThemeData()` (NO `CardTheme`)
+  - El analizador de WSL puede mostrar error falso, ignorar
+  - El compilador de Windows requiere `CardThemeData`
 - BackdropFilter puede ser pesado en Android antiguos - usar con moderación
 - Los widgets glass usan `ImageFilter.blur(sigmaX: 8-12, sigmaY: 8-12)`
 - Paquetes UI instalados: `shimmer`, `lottie`, `flutter_animate`
