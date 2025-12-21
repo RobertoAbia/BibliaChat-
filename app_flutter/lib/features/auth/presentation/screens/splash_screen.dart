@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,15 +9,16 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/lottie_helper.dart';
+import '../../../profile/presentation/providers/user_profile_provider.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _fadeController;
   late AnimationController _pulseController;
@@ -98,8 +100,10 @@ class _SplashScreenState extends State<SplashScreen>
     final session = Supabase.instance.client.auth.currentSession;
 
     if (session != null) {
-      context.go(RouteConstants.home);
+      // Usuario autenticado - verificar si completó onboarding
+      await _checkOnboardingAndNavigate();
     } else {
+      // Usuario nuevo - crear sesión anónima
       try {
         await Supabase.instance.client.auth.signInAnonymously();
         if (mounted) {
@@ -109,6 +113,26 @@ class _SplashScreenState extends State<SplashScreen>
         if (mounted) {
           context.go(RouteConstants.onboarding);
         }
+      }
+    }
+  }
+
+  Future<void> _checkOnboardingAndNavigate() async {
+    try {
+      final repository = ref.read(userProfileRepositoryProvider);
+      final hasCompletedOnboarding = await repository.hasCompletedOnboarding();
+
+      if (!mounted) return;
+
+      if (hasCompletedOnboarding) {
+        context.go(RouteConstants.home);
+      } else {
+        context.go(RouteConstants.onboarding);
+      }
+    } catch (e) {
+      // En caso de error, ir al home (el usuario puede completar onboarding después)
+      if (mounted) {
+        context.go(RouteConstants.home);
       }
     }
   }

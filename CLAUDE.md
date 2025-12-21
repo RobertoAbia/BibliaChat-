@@ -152,6 +152,33 @@ BibliaChat/
     - Tap feedback con escala
     - Transiciones suaves entre estados
 
+- [x] T-0302 + T-0303: Onboarding conectado con Supabase
+  - **Clean Architecture para perfil de usuario:**
+    - Entity: `UserProfile` con enums (Denomination, OriginGroup, AgeGroup, MotiveType)
+    - Repository interface + implementación
+    - Model con serialización JSON para Supabase
+    - Datasource remoto con operaciones CRUD
+  - **Riverpod providers:**
+    - `userProfileRepositoryProvider` - Repositorio inyectado
+    - `currentUserProfileProvider` - Perfil actual (FutureProvider)
+    - `userProfileStreamProvider` - Cambios en tiempo real
+    - `hasCompletedOnboardingProvider` - Verificación onboarding
+    - `onboardingProvider` - StateNotifier para formulario onboarding
+  - **Pantallas modificadas:**
+    - `OnboardingScreen` - Ahora usa Riverpod, guarda datos en Supabase
+    - `SplashScreen` - Verifica onboarding_completed antes de navegar
+  - **Flujo de navegación:**
+    - Usuario nuevo → Auth anónimo → Onboarding → Home
+    - Usuario existente sin onboarding → Onboarding
+    - Usuario con onboarding completo → Home directo
+  - **Archivos creados:**
+    - `lib/features/profile/domain/entities/user_profile.dart`
+    - `lib/features/profile/domain/repositories/user_profile_repository.dart`
+    - `lib/features/profile/data/models/user_profile_model.dart`
+    - `lib/features/profile/data/datasources/user_profile_remote_datasource.dart`
+    - `lib/features/profile/data/repositories/user_profile_repository_impl.dart`
+    - `lib/features/profile/presentation/providers/user_profile_provider.dart`
+
 ### Próximos Pasos
 - [ ] T-0003: Configurar proyecto Supabase (prod)
 - [ ] T-0301: Auth flow completo (email upgrade)
