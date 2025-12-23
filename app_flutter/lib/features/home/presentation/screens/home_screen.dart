@@ -7,6 +7,8 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart';
+import '../../../profile/domain/entities/user_profile.dart';
+import '../../../profile/presentation/providers/user_profile_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -400,6 +402,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _buildGospelCard() {
     final gospelAsync = ref.watch(dailyGospelProvider);
+    final profileAsync = ref.watch(currentUserProfileProvider);
+
+    // Determine label based on denomination
+    final isCatholic = profileAsync.whenOrNull(
+      data: (profile) => profile?.denomination == Denomination.catolica,
+    ) ?? false;
+
+    final label = isCatholic ? 'EVANGELIO DEL DÍA' : 'VERSÍCULO DEL DÍA';
 
     return gospelAsync.when(
       loading: () => const ShimmerVerseCard(),
@@ -409,11 +419,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       data: (gospel) {
         if (gospel == null) {
           return _GospelErrorCard(
-            message: 'No hay evangelio disponible',
+            message: 'No hay contenido disponible',
             onRetry: () => ref.invalidate(dailyGospelProvider),
           );
         }
         return _VerseCard(
+          label: label,
           reference: gospel.reference,
           text: gospel.text,
         );
@@ -427,10 +438,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 // ============================================
 
 class _VerseCard extends StatefulWidget {
+  final String label;
   final String reference;
   final String text;
 
   const _VerseCard({
+    required this.label,
     required this.reference,
     required this.text,
   });
@@ -526,7 +539,7 @@ class _VerseCardState extends State<_VerseCard>
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'EVANGELIO DEL DÍA',
+                            widget.label,
                             style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                   color: AppTheme.primaryColor,
                                   fontWeight: FontWeight.w600,
