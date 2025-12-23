@@ -83,13 +83,13 @@ const bookMapping: Record<string, { spanish: string; apiId: string }> = {
   "Revelation": { spanish: "Apocalipsis", apiId: "REV" },
 };
 
-// IDs de Biblias en español de API.Bible (se actualizarán con IDs reales)
-// Estos son placeholders - necesitamos verificar los IDs exactos
+// IDs de Biblias en español de API.Bible (plan gratuito)
+// Endpoint: https://rest.api.bible
 const BIBLE_VERSIONS: Record<string, string> = {
-  "RVR1960": "592420522e16049f-01", // Placeholder - verificar ID real
-  "NVI": "592420522e16049f-02",      // Placeholder
-  "NTV": "592420522e16049f-03",      // Placeholder
-  "LBLA": "592420522e16049f-04",     // Placeholder
+  "RVR1909": "592420522e16049f-01",  // Reina Valera 1909 (única versión completa gratuita)
+  "RVR1960": "592420522e16049f-01",  // Fallback a RVR1909 (no hay RVR1960 gratis)
+  "BES": "b32b9d1b64b4ef29-01",      // La Biblia en Español Sencillo
+  "VBL": "482ddd53705278cc-02",      // Versión Biblia Libre
 };
 
 interface CatholicReadingsResponse {
@@ -122,7 +122,7 @@ function parseReference(reference: string): { book: string; chapter: number; ver
   };
 }
 
-// Convierte referencia a formato API.Bible (ej: "LUK.1.57-66")
+// Convierte referencia a formato API.Bible (ej: "LUK.1.57-LUK.1.66")
 function toApiBibleFormat(reference: string): string | null {
   const parsed = parseReference(reference);
   if (!parsed) return null;
@@ -130,8 +130,15 @@ function toApiBibleFormat(reference: string): string | null {
   const bookInfo = bookMapping[parsed.book];
   if (!bookInfo) return null;
 
-  // Formato: BOOK.CHAPTER.VERSE o BOOK.CHAPTER.VERSE-VERSE
-  return `${bookInfo.apiId}.${parsed.chapter}.${parsed.verses}`;
+  // Manejar rangos de versículos: "57-66" -> "LUK.1.57-LUK.1.66"
+  const verseRange = parsed.verses;
+  if (verseRange.includes("-")) {
+    const [startVerse, endVerse] = verseRange.split("-");
+    return `${bookInfo.apiId}.${parsed.chapter}.${startVerse}-${bookInfo.apiId}.${parsed.chapter}.${endVerse}`;
+  }
+
+  // Versículo único: "LUK.1.57"
+  return `${bookInfo.apiId}.${parsed.chapter}.${verseRange}`;
 }
 
 // Convierte referencia en inglés a español
@@ -171,13 +178,14 @@ async function fetchCatholicReadings(date: Date): Promise<CatholicReadingsRespon
   }
 }
 
-// Obtiene el texto de un pasaje de API.Bible
+// Obtiene el texto de un pasaje de API.Bible usando el endpoint de verses
 async function fetchBiblePassage(
   passageId: string,
   bibleId: string,
   apiKey: string
 ): Promise<ApiBiblePassage | null> {
-  const url = `https://api.scripture.api.bible/v1/bibles/${bibleId}/passages/${passageId}?content-type=text&include-notes=false&include-titles=false&include-chapter-numbers=false&include-verse-numbers=true`;
+  // Usar endpoint de verses con content-type=text para obtener texto limpio
+  const url = `https://rest.api.bible/v1/bibles/${bibleId}/verses/${passageId}?content-type=text`;
 
   try {
     const response = await fetch(url, {
@@ -199,11 +207,12 @@ async function fetchBiblePassage(
   }
 }
 
-// Limpia el HTML del contenido de API.Bible
-function cleanHtmlContent(content: string): string {
+// Limpia el contenido de API.Bible (remueve números de versículos y normaliza espacios)
+function cleanContent(content: string): string {
   return content
-    .replace(/<[^>]*>/g, "") // Remove HTML tags
-    .replace(/\s+/g, " ")    // Normalize whitespace
+    .replace(/<[^>]*>/g, "")        // Remove HTML tags (por si acaso)
+    .replace(/\[\d+\]\s*/g, "")     // Remove verse numbers like [57]
+    .replace(/\s+/g, " ")           // Normalize whitespace
     .trim();
 }
 
@@ -285,7 +294,8 @@ serve(async (req) => {
     }
 
     // Fetch text for each Bible version
-    const versionsToFetch = ["RVR1960"]; // Start with main version
+    // Note: RVR1909 es la única versión completa gratuita, se guarda también como RVR1960 para compatibilidad
+    const versionsToFetch = ["RVR1909"];
     const results: Record<string, string> = {};
 
     for (const versionCode of versionsToFetch) {
@@ -294,10 +304,10 @@ serve(async (req) => {
 
       const passage = await fetchBiblePassage(apiBiblePassageId, bibleId, apiBibleKey);
       if (passage) {
-        const cleanText = cleanHtmlContent(passage.content);
+        const cleanText = cleanContent(passage.content);
         results[versionCode] = cleanText;
 
-        // Insert into daily_verse_texts
+        // Insert into daily_verse_texts for this version
         const { error: textError } = await supabase
           .from("daily_verse_texts")
           .upsert({
@@ -308,6 +318,22 @@ serve(async (req) => {
 
         if (textError) {
           console.error(`Error inserting text for ${versionCode}:`, textError.message);
+        }
+
+        // Also save as RVR1960 for backwards compatibility (app default)
+        if (versionCode === "RVR1909") {
+          const { error: rvr1960Error } = await supabase
+            .from("daily_verse_texts")
+            .upsert({
+              verse_date: dateStr,
+              bible_version_code: "RVR1960",
+              verse_text: cleanText,
+            });
+
+          if (rvr1960Error) {
+            console.error(`Error inserting text for RVR1960:`, rvr1960Error.message);
+          }
+          results["RVR1960"] = cleanText;
         }
       }
     }
