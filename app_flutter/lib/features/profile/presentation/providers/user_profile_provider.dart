@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../data/datasources/user_profile_remote_datasource.dart';
@@ -46,6 +48,9 @@ class OnboardingState {
   final String? bibleVersionCode;
   final String? supportType;
   final String? heartMessage;
+  final bool reminderEnabled;
+  final TimeOfDay reminderTime;
+  final bool? persistenceSelfReport;
   final bool isLoading;
   final String? error;
 
@@ -58,6 +63,9 @@ class OnboardingState {
     this.bibleVersionCode,
     this.supportType,
     this.heartMessage,
+    this.reminderEnabled = false,
+    this.reminderTime = const TimeOfDay(hour: 8, minute: 0),
+    this.persistenceSelfReport,
     this.isLoading = false,
     this.error,
   });
@@ -71,6 +79,9 @@ class OnboardingState {
     String? bibleVersionCode,
     String? supportType,
     String? heartMessage,
+    bool? reminderEnabled,
+    TimeOfDay? reminderTime,
+    bool? persistenceSelfReport,
     bool? isLoading,
     String? error,
   }) {
@@ -83,6 +94,9 @@ class OnboardingState {
       bibleVersionCode: bibleVersionCode ?? this.bibleVersionCode,
       supportType: supportType ?? this.supportType,
       heartMessage: heartMessage ?? this.heartMessage,
+      reminderEnabled: reminderEnabled ?? this.reminderEnabled,
+      reminderTime: reminderTime ?? this.reminderTime,
+      persistenceSelfReport: persistenceSelfReport ?? this.persistenceSelfReport,
       isLoading: isLoading ?? this.isLoading,
       error: error,
     );
@@ -147,6 +161,24 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     state = state.copyWith(heartMessage: value);
   }
 
+  void setReminderEnabled(bool value) {
+    state = state.copyWith(reminderEnabled: value);
+  }
+
+  void setReminderTime(TimeOfDay value) {
+    state = state.copyWith(reminderTime: value);
+  }
+
+  void setPersistenceSelfReport(bool value) {
+    state = state.copyWith(persistenceSelfReport: value);
+  }
+
+  /// Convierte TimeOfDay a DateTime para guardar en BD
+  DateTime? _timeOfDayToDateTime(TimeOfDay time) {
+    final now = DateTime.now();
+    return DateTime(now.year, now.month, now.day, time.hour, time.minute);
+  }
+
   /// Completa el onboarding guardando los datos en Supabase
   Future<bool> completeOnboarding() async {
     state = state.copyWith(isLoading: true, error: null);
@@ -161,6 +193,15 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
         return false;
       }
 
+      // Auto-detectar timezone
+      String? timezone;
+      try {
+        timezone = await FlutterTimezone.getLocalTimezone();
+      } catch (e) {
+        // Si falla, usar default America/New_York
+        timezone = 'America/New_York';
+      }
+
       await _repository.completeOnboarding(
         userId: userId,
         gender: state.genderEnum,
@@ -170,6 +211,12 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
         bibleVersionCode: state.bibleVersionCode,
         motive: state.motive,
         firstMessage: state.heartMessage,
+        reminderEnabled: state.reminderEnabled,
+        reminderTime: state.reminderEnabled
+            ? _timeOfDayToDateTime(state.reminderTime)
+            : null,
+        persistenceSelfReport: state.persistenceSelfReport,
+        timezone: timezone,
       );
 
       state = state.copyWith(isLoading: false);

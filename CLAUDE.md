@@ -110,7 +110,7 @@ BibliaChat/
   - Tema Material 3 (light/dark)
   - Pantallas creadas:
     - SplashScreen (auth anónimo automático)
-    - OnboardingScreen (10 páginas: Welcome → Edad → Género → País → Denominación → Biblia → Motivo → Corazón → Análisis → Ready)
+    - OnboardingScreen (12 páginas: Welcome → Edad → Género → País → Denominación → Biblia → Motivo → Recordatorio → Persistencia → Corazón → Análisis → Ready)
     - HomeScreen (racha, versículo, devoción, oración)
     - ChatListScreen (10 temas)
     - ChatScreen (interfaz de chat)
@@ -166,17 +166,22 @@ BibliaChat/
     - `userProfileStreamProvider` - Cambios en tiempo real
     - `hasCompletedOnboardingProvider` - Verificación onboarding
     - `onboardingProvider` - StateNotifier para formulario onboarding
-  - **Pantallas de onboarding (10 páginas):**
-    - Welcome (nombre)
-    - Edad (age_group)
-    - Género (gender) - Hombre/Mujer
-    - País (origin) - Dropdown 21 países hispanohablantes → mapea a origin_group
-    - Denominación
-    - Versión Biblia
-    - Motivo (tipo de apoyo)
-    - Corazón (primer mensaje libre)
-    - Análisis (animación)
-    - Ready (confirmación)
+  - **Pantallas de onboarding (12 páginas):**
+    - 0: Welcome (nombre)
+    - 1: Edad (age_group)
+    - 2: Género (gender) - Hombre/Mujer
+    - 3: País (origin) - Dropdown 21 países hispanohablantes → mapea a origin_group
+    - 4: Denominación
+    - 5: Versión Biblia
+    - 6: Motivo (tipo de apoyo)
+    - 7: Recordatorio (reminder_enabled, reminder_time) - Toggle + Time picker
+    - 8: Persistencia (persistence_self_report) - Sí/No para recomendar planes
+    - 9: Corazón (primer mensaje libre)
+    - 10: Análisis (animación)
+    - 11: Ready (confirmación + auto-detección timezone)
+  - **Auto-detección de timezone:**
+    - Usa `flutter_timezone` para detectar zona horaria del dispositivo
+    - Se guarda en `user_profiles.timezone` al completar onboarding
   - **Flujo de navegación:**
     - Usuario nuevo → Auth anónimo → Onboarding → Home
     - Usuario existente sin onboarding → Onboarding
@@ -189,6 +194,8 @@ BibliaChat/
     - `lib/features/profile/data/repositories/user_profile_repository_impl.dart`
     - `lib/features/profile/presentation/providers/user_profile_provider.dart`
     - `lib/features/onboarding/presentation/widgets/onboarding_country_page.dart`
+    - `lib/features/onboarding/presentation/widgets/onboarding_reminder_page.dart`
+    - `lib/features/onboarding/presentation/widgets/onboarding_persistence_page.dart`
 
 ### Próximos Pasos
 - [ ] T-0003: Configurar proyecto Supabase (prod)

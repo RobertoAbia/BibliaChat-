@@ -19,6 +19,10 @@ abstract class UserProfileRepository {
     String? bibleVersionCode,
     MotiveType? motive,
     String? firstMessage,
+    bool? reminderEnabled,
+    DateTime? reminderTime,
+    bool? persistenceSelfReport,
+    String? timezone,
   });
 
   /// Verifica si el usuario ha completado el onboarding

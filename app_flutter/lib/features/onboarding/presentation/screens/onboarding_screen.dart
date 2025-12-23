@@ -8,6 +8,8 @@ import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../widgets/onboarding_welcome_page.dart';
 import '../widgets/onboarding_selection_page.dart';
 import '../widgets/onboarding_country_page.dart';
+import '../widgets/onboarding_reminder_page.dart';
+import '../widgets/onboarding_persistence_page.dart';
 import '../widgets/onboarding_text_input_page.dart';
 import '../widgets/onboarding_analyzing_page.dart';
 import '../widgets/onboarding_ready_page.dart';
@@ -22,7 +24,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 10; // Añadida página de país
+  final int _totalPages = 12; // Welcome + 9 preguntas + Analyzing + Ready
 
   @override
   void dispose() {
@@ -62,18 +64,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _canProceed() {
     final state = ref.watch(onboardingProvider);
     switch (_currentPage) {
-      case 1:
+      case 1: // Age
         return state.ageGroup != null;
-      case 2:
+      case 2: // Gender
         return state.gender != null;
-      case 3:
+      case 3: // Country
         return state.origin != null;
-      case 4:
+      case 4: // Denomination
         return state.denomination != null;
-      case 5:
+      case 5: // Bible version
         return state.bibleVersionCode != null;
-      case 6:
+      case 6: // Support type
         return state.supportType != null;
+      case 7: // Reminder - optional, always can proceed
+        return true;
+      case 8: // Persistence - requires selection
+        return state.persistenceSelfReport != null;
       default:
         return true;
     }
@@ -275,7 +281,35 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 7: Heart input
+                    // Page 7: Reminder
+                    Builder(
+                      builder: (context) {
+                        final state = ref.watch(onboardingProvider);
+                        final notifier = ref.read(onboardingProvider.notifier);
+                        return OnboardingReminderPage(
+                          reminderEnabled: state.reminderEnabled,
+                          reminderTime: state.reminderTime,
+                          onToggle: (value) => notifier.setReminderEnabled(value),
+                          onTimeChanged: (value) => notifier.setReminderTime(value),
+                          onNext: _nextPage,
+                        );
+                      },
+                    ),
+
+                    // Page 8: Persistence
+                    Builder(
+                      builder: (context) {
+                        final state = ref.watch(onboardingProvider);
+                        final notifier = ref.read(onboardingProvider.notifier);
+                        return OnboardingPersistencePage(
+                          selectedValue: state.persistenceSelfReport,
+                          onSelect: (value) => notifier.setPersistenceSelfReport(value),
+                          onNext: _canProceed() ? _nextPage : null,
+                        );
+                      },
+                    ),
+
+                    // Page 9: Heart input
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -291,12 +325,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 8: Analyzing
+                    // Page 10: Analyzing
                     OnboardingAnalyzingPage(
                       onComplete: _nextPage,
                     ),
 
-                    // Page 9: Ready
+                    // Page 11: Ready
                     OnboardingReadyPage(
                       onStart: _completeOnboarding,
                     ),

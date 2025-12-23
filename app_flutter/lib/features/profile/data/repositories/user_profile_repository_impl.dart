@@ -38,6 +38,10 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
     String? bibleVersionCode,
     MotiveType? motive,
     String? firstMessage,
+    bool? reminderEnabled,
+    DateTime? reminderTime,
+    bool? persistenceSelfReport,
+    String? timezone,
   }) async {
     final updateData = UserProfileModel.toUpdateJson(
       name: name,
@@ -48,6 +52,10 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
       bibleVersionCode: bibleVersionCode,
       motive: motive,
       firstMessage: firstMessage,
+      reminderEnabled: reminderEnabled,
+      reminderTime: reminderTime,
+      persistenceSelfReport: persistenceSelfReport,
+      timezone: timezone,
       onboardingCompleted: true,
     );
 
