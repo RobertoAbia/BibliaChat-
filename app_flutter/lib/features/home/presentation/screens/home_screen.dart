@@ -1,24 +1,25 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
+import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
+class _HomeScreenState extends ConsumerState<HomeScreen>
     with SingleTickerProviderStateMixin {
   // TODO: Get from Supabase
   int _streakDays = 0;
   int _todayProgress = 0; // 0-100
-  bool _isLoading = false;
 
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
@@ -77,46 +78,36 @@ class _HomeScreenState extends State<HomeScreen>
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Column(
                       children: [
-                        // Verse Card
-                        _isLoading
-                            ? const ShimmerVerseCard()
-                            : _VerseCard(
-                                reference: 'Proverbios 3:5-6',
-                                text:
-                                    'Confía en Jehová de todo tu corazón, y no te apoyes en tu propia prudencia. Reconócelo en todos tus caminos, y él enderezará tus veredas.',
-                              ),
+                        // Gospel Card (Evangelio del Día)
+                        _buildGospelCard(),
 
                         const SizedBox(height: 16),
 
                         // Devotional Card
-                        _isLoading
-                            ? const ShimmerContentCard()
-                            : _ContentCard(
-                                label: 'DEVOCIONAL PERSONALIZADO',
-                                duration: '3 MIN',
-                                title: 'El Regalo de la Paz',
-                                icon: Icons.auto_stories,
-                                delay: 100,
-                                onTap: () {
-                                  // TODO: Navigate to devotional
-                                },
-                              ),
+                        _ContentCard(
+                          label: 'DEVOCIONAL PERSONALIZADO',
+                          duration: '3 MIN',
+                          title: 'El Regalo de la Paz',
+                          icon: Icons.auto_stories,
+                          delay: 100,
+                          onTap: () {
+                            // TODO: Navigate to devotional
+                          },
+                        ),
 
                         const SizedBox(height: 16),
 
                         // Prayer Card
-                        _isLoading
-                            ? const ShimmerContentCard()
-                            : _ContentCard(
-                                label: 'MI ORACIÓN',
-                                duration: '2 MIN',
-                                title: 'Momento de conexión con Dios',
-                                icon: Icons.favorite_outline,
-                                delay: 200,
-                                onTap: () {
-                                  // TODO: Navigate to prayer
-                                },
-                              ),
+                        _ContentCard(
+                          label: 'MI ORACIÓN',
+                          duration: '2 MIN',
+                          title: 'Momento de conexión con Dios',
+                          icon: Icons.favorite_outline,
+                          delay: 200,
+                          onTap: () {
+                            // TODO: Navigate to prayer
+                          },
+                        ),
 
                         const SizedBox(height: 32),
                       ],
@@ -406,6 +397,29 @@ class _HomeScreenState extends State<HomeScreen>
     ];
     return '${now.day} de ${months[now.month - 1]}';
   }
+
+  Widget _buildGospelCard() {
+    final gospelAsync = ref.watch(dailyGospelProvider);
+
+    return gospelAsync.when(
+      loading: () => const ShimmerVerseCard(),
+      error: (error, stack) => _GospelErrorCard(
+        onRetry: () => ref.invalidate(dailyGospelProvider),
+      ),
+      data: (gospel) {
+        if (gospel == null) {
+          return _GospelErrorCard(
+            message: 'No hay evangelio disponible',
+            onRetry: () => ref.invalidate(dailyGospelProvider),
+          );
+        }
+        return _VerseCard(
+          reference: gospel.reference,
+          text: gospel.text,
+        );
+      },
+    );
+  }
 }
 
 // ============================================
@@ -512,7 +526,7 @@ class _VerseCardState extends State<_VerseCard>
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            'VERSÍCULO DEL DÍA',
+                            'EVANGELIO DEL DÍA',
                             style: Theme.of(context).textTheme.labelSmall?.copyWith(
                                   color: AppTheme.primaryColor,
                                   fontWeight: FontWeight.w600,
@@ -721,6 +735,82 @@ class _ContentCardState extends State<_ContentCard>
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GospelErrorCard extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _GospelErrorCard({
+    this.message = 'Error al cargar el evangelio',
+    required this.onRetry,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.surfaceDark.withOpacity(0.6),
+                AppTheme.surfaceDark.withOpacity(0.4),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: AppTheme.surfaceLight.withOpacity(0.2),
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                Icons.cloud_off_outlined,
+                color: AppTheme.textTertiary,
+                size: 40,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                message,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: AppTheme.textSecondary,
+                    ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: onRetry,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppTheme.primaryColor.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Text(
+                    'Reintentar',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.primaryColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
