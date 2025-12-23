@@ -236,3 +236,4 @@ supabase functions serve
 - BackdropFilter puede ser pesado en Android antiguos - usar con moderación
 - Los widgets glass usan `ImageFilter.blur(sigmaX: 8-12, sigmaY: 8-12)`
 - Paquetes UI instalados: `shimmer`, `lottie`, `flutter_animate`
+- Paquete timezone: `flutter_timezone` - para auto-detectar zona horaria del dispositivo
