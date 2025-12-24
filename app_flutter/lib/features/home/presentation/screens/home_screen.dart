@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
+import '../../../chat/presentation/screens/chat_screen.dart';
 import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart';
 import '../../../profile/domain/entities/user_profile.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
@@ -404,12 +405,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final gospelAsync = ref.watch(dailyGospelProvider);
     final profileAsync = ref.watch(currentUserProfileProvider);
 
-    // Determine label based on denomination
+    // Determine label and topic based on denomination
     final isCatholic = profileAsync.whenOrNull(
       data: (profile) => profile?.denomination == Denomination.catolica,
     ) ?? false;
 
-    final label = isCatholic ? 'EVANGELIO DEL DÍA' : 'VERSÍCULO DEL DÍA';
+    final label = isCatholic ? 'EVANGELIO DEL DÍA' : 'LECTURA DEL DÍA';
+    final topicKey = isCatholic ? 'evangelio_del_dia' : 'lectura_del_dia';
 
     return gospelAsync.when(
       loading: () => const ShimmerVerseCard(),
@@ -423,10 +425,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             onRetry: () => ref.invalidate(dailyGospelProvider),
           );
         }
-        return _VerseCard(
+        return _GospelCardCompact(
           label: label,
           reference: gospel.reference,
-          text: gospel.text,
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => ChatScreen(
+                  topicKey: topicKey,
+                  initialGospelText: gospel.text,
+                  initialGospelReference: gospel.reference,
+                ),
+              ),
+            );
+          },
         );
       },
     );
@@ -437,38 +449,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 // WIDGETS
 // ============================================
 
-class _VerseCard extends StatefulWidget {
+class _GospelCardCompact extends StatefulWidget {
   final String label;
   final String reference;
-  final String text;
+  final VoidCallback onTap;
 
-  const _VerseCard({
+  const _GospelCardCompact({
     required this.label,
     required this.reference,
-    required this.text,
+    required this.onTap,
   });
 
   @override
-  State<_VerseCard> createState() => _VerseCardState();
+  State<_GospelCardCompact> createState() => _GospelCardCompactState();
 }
 
-class _VerseCardState extends State<_VerseCard>
+class _GospelCardCompactState extends State<_GospelCardCompact>
     with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
+  late AnimationController _scaleController;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 600),
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 150),
       vsync: this,
     );
-    _controller.forward();
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
+    );
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _scaleController.dispose();
     super.dispose();
   }
 
@@ -487,57 +502,76 @@ class _VerseCardState extends State<_VerseCard>
           ),
         );
       },
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppTheme.primaryColor.withOpacity(0.15),
-                  AppTheme.surfaceDark.withOpacity(0.5),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: AppTheme.primaryColor.withOpacity(0.25),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryColor.withOpacity(0.1),
-                  blurRadius: 20,
-                  spreadRadius: 0,
+      child: GestureDetector(
+        onTapDown: (_) => _scaleController.forward(),
+        onTapUp: (_) => _scaleController.reverse(),
+        onTapCancel: () => _scaleController.reverse(),
+        onTap: widget.onTap,
+        child: AnimatedBuilder(
+          animation: _scaleController,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: child,
+            );
+          },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppTheme.primaryColor.withOpacity(0.15),
+                      AppTheme.surfaceDark.withOpacity(0.5),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppTheme.primaryColor.withOpacity(0.25),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      blurRadius: 20,
+                      spreadRadius: 0,
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+                child: Row(
                   children: [
+                    // Icon
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      width: 52,
+                      height: 52,
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: AppTheme.primaryColor.withOpacity(0.3),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.auto_awesome,
-                            color: AppTheme.primaryColor,
-                            size: 14,
+                        gradient: AppTheme.goldGradient,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryColor.withOpacity(0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
                           ),
-                          const SizedBox(width: 6),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.menu_book_rounded,
+                        color: AppTheme.textOnPrimary,
+                        size: 26,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    // Content
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
                           Text(
                             widget.label,
                             style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -546,42 +580,33 @@ class _VerseCardState extends State<_VerseCard>
                                   letterSpacing: 0.5,
                                 ),
                           ),
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.reference,
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: AppTheme.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 18),
-                Text(
-                  '"${widget.text}"',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppTheme.textPrimary,
-                        fontStyle: FontStyle.italic,
-                        height: 1.7,
-                      ),
-                ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
+                    // Chevron
                     Container(
-                      width: 3,
-                      height: 16,
+                      padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        gradient: AppTheme.goldGradient,
-                        borderRadius: BorderRadius.circular(2),
+                        color: AppTheme.primaryColor.withOpacity(0.2),
+                        shape: BoxShape.circle,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      widget.reference,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.primaryColor,
-                            fontWeight: FontWeight.w600,
-                          ),
+                      child: Icon(
+                        Icons.chevron_right,
+                        color: AppTheme.primaryColor,
+                        size: 22,
+                      ),
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

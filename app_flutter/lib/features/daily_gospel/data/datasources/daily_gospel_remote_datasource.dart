@@ -24,6 +24,7 @@ class DailyGospelRemoteDatasource {
             verse_date,
             bible_version_code,
             verse_text,
+            verse_summary,
             daily_verses!inner (
               reference,
               context_notes
@@ -48,6 +49,7 @@ class DailyGospelRemoteDatasource {
         date: date,
         reference: dailyVerse['reference'] as String? ?? '',
         text: response['verse_text'] as String? ?? '',
+        summary: response['verse_summary'] as String?,
         bibleVersion: response['bible_version_code'] as String? ?? bibleVersionCode,
         contextNotes: dailyVerse['context_notes'] as String?,
       );

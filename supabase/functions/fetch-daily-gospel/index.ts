@@ -2,7 +2,8 @@
 // Se ejecuta diariamente via cron para obtener el Evangelio del día
 // 1. Consulta Catholic Readings API → referencia del día
 // 2. Consulta API.Bible → texto en español
-// 3. Guarda en daily_verses + daily_verse_texts
+// 3. Genera resumen coloquial con OpenAI
+// 4. Guarda en daily_verses + daily_verse_texts
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -216,6 +217,60 @@ function cleanContent(content: string): string {
     .trim();
 }
 
+// Genera un resumen coloquial del evangelio usando OpenAI
+async function generateSummary(
+  gospelText: string,
+  reference: string,
+  openaiKey: string
+): Promise<string | null> {
+  const prompt = `Eres un comunicador cristiano moderno que hace accesible la Biblia a jóvenes hispanohablantes.
+
+Resume el siguiente pasaje del evangelio en 2-3 frases usando lenguaje coloquial, cercano y fácil de entender.
+- Usa un tono como si se lo explicaras a un amigo
+- Evita lenguaje religioso formal o anticuado
+- Mantén el mensaje espiritual pero hazlo relatable
+- No uses emojis
+- Máximo 280 caracteres (como un tweet)
+
+Pasaje (${reference}):
+"${gospelText}"
+
+Resumen coloquial:`;
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${openaiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        max_tokens: 150,
+        temperature: 0.7,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error(`OpenAI API error: ${response.status}`);
+      return null;
+    }
+
+    const data = await response.json();
+    const summary = data.choices?.[0]?.message?.content?.trim();
+    return summary || null;
+  } catch (error) {
+    console.error("Error generating summary:", error);
+    return null;
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -227,9 +282,14 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const apiBibleKey = Deno.env.get("API_BIBLE_KEY");
+    const openaiKey = Deno.env.get("OPENAI_API_KEY");
 
     if (!apiBibleKey) {
       throw new Error("API_BIBLE_KEY not configured");
+    }
+
+    if (!openaiKey) {
+      console.warn("OPENAI_API_KEY not configured - summaries will not be generated");
     }
 
     // Create Supabase client with service role (bypass RLS)
@@ -298,6 +358,8 @@ serve(async (req) => {
     const versionsToFetch = ["RVR1909"];
     const results: Record<string, string> = {};
 
+    let summary: string | null = null;
+
     for (const versionCode of versionsToFetch) {
       const bibleId = BIBLE_VERSIONS[versionCode];
       if (!bibleId || !apiBiblePassageId) continue;
@@ -307,6 +369,15 @@ serve(async (req) => {
         const cleanText = cleanContent(passage.content);
         results[versionCode] = cleanText;
 
+        // Generate summary with OpenAI (only once, for the first version)
+        if (!summary && openaiKey) {
+          console.log("Generating summary with OpenAI...");
+          summary = await generateSummary(cleanText, spanishReference, openaiKey);
+          if (summary) {
+            console.log(`Summary generated: ${summary.substring(0, 50)}...`);
+          }
+        }
+
         // Insert into daily_verse_texts for this version
         const { error: textError } = await supabase
           .from("daily_verse_texts")
@@ -314,6 +385,7 @@ serve(async (req) => {
             verse_date: dateStr,
             bible_version_code: versionCode,
             verse_text: cleanText,
+            verse_summary: summary,
           });
 
         if (textError) {
@@ -328,6 +400,7 @@ serve(async (req) => {
               verse_date: dateStr,
               bible_version_code: "RVR1960",
               verse_text: cleanText,
+              verse_summary: summary,
             });
 
           if (rvr1960Error) {
@@ -345,6 +418,7 @@ serve(async (req) => {
         reference: spanishReference,
         season: readings.season,
         versions: Object.keys(results),
+        summary: summary,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

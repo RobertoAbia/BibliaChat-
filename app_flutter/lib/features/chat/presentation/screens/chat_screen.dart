@@ -9,8 +9,15 @@ import '../../../../core/widgets/lottie_helper.dart';
 
 class ChatScreen extends StatefulWidget {
   final String topicKey;
+  final String? initialGospelText;
+  final String? initialGospelReference;
 
-  const ChatScreen({super.key, required this.topicKey});
+  const ChatScreen({
+    super.key,
+    required this.topicKey,
+    this.initialGospelText,
+    this.initialGospelReference,
+  });
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -41,13 +48,24 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() {
-          _messages.add(
-            ChatMessage(
-              content:
-                  'Hola, soy tu acompañante espiritual. Estoy aquí para escucharte y conversar contigo sobre ${_getTopicTitle(widget.topicKey)}. ¿Qué hay en tu corazón hoy?',
-              isUser: false,
-            ),
-          );
+          // If we have a gospel text, show it as the first message
+          if (widget.initialGospelText != null && widget.initialGospelReference != null) {
+            _messages.add(
+              ChatMessage(
+                content:
+                    '📖 *${widget.initialGospelReference}*\n\n"${widget.initialGospelText}"\n\n¿Qué te gustaría explorar de este pasaje? Puedo ayudarte a entender su contexto, su significado o cómo aplicarlo en tu vida.',
+                isUser: false,
+              ),
+            );
+          } else {
+            _messages.add(
+              ChatMessage(
+                content:
+                    'Hola, soy tu acompañante espiritual. Estoy aquí para escucharte y conversar contigo sobre ${_getTopicTitle(widget.topicKey)}. ¿Qué hay en tu corazón hoy?',
+                isUser: false,
+              ),
+            );
+          }
         });
       }
     });
@@ -64,6 +82,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       'sacramentos': 'sacramentos',
       'oracion': 'oración',
       'preguntas_biblia': 'la Biblia',
+      'evangelio_del_dia': 'el evangelio de hoy',
+      'lectura_del_dia': 'la lectura de hoy',
       'otro': 'lo que necesites',
     };
     return topics[key] ?? 'lo que necesites';
@@ -80,6 +100,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       'sacramentos': 'Sacramentos',
       'oracion': 'Oración',
       'preguntas_biblia': 'Preguntas bíblicas',
+      'evangelio_del_dia': 'Evangelio del día',
+      'lectura_del_dia': 'Lectura del día',
       'otro': 'Conversación',
     };
     return topics[key] ?? 'Conversación';

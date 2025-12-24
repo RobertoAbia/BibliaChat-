@@ -197,6 +197,33 @@ BibliaChat/
     - `lib/features/onboarding/presentation/widgets/onboarding_reminder_page.dart`
     - `lib/features/onboarding/presentation/widgets/onboarding_persistence_page.dart`
 
+- [x] Feature: Evangelio del Día (Daily Gospel)
+  - **Edge Function `fetch-daily-gospel`:**
+    - Obtiene referencia del calendario litúrgico católico (Catholic Readings API)
+    - Obtiene texto en español de API.Bible (Reina Valera 1909)
+    - Genera resumen coloquial con OpenAI (GPT-3.5-turbo)
+    - Guarda en `daily_verses` + `daily_verse_texts`
+    - **00012:** Nueva columna `verse_summary` para resumen IA
+  - **APIs utilizadas:**
+    - Catholic Readings API (pública, sin key) - calendario litúrgico
+    - API.Bible (key requerida) - texto bíblico en español
+    - OpenAI API (key requerida) - generación de resumen coloquial
+  - **Secrets en Supabase:**
+    - `API_BIBLE_KEY` - Clave de API.Bible
+    - `OPENAI_API_KEY` - Clave de OpenAI
+  - **Feature Flutter `daily_gospel`:**
+    - Clean Architecture (entity, model, repository, datasource, provider)
+    - `DailyGospel` entity con: date, reference, text, summary, bibleVersion, contextNotes
+    - `dailyGospelProvider` conecta con perfil del usuario para versión de Biblia
+  - **HomeScreen actualizada:**
+    - Card compacta "EVANGELIO DEL DÍA" (católicos) / "LECTURA DEL DÍA" (otros)
+    - Muestra referencia + flecha navegación
+    - Tap → abre ChatScreen con el evangelio como primer mensaje
+  - **ChatScreen actualizada:**
+    - Acepta parámetros opcionales: `initialGospelText`, `initialGospelReference`
+    - Nuevos topics: `evangelio_del_dia`, `lectura_del_dia`
+    - Mensaje inicial con el texto completo e invitación a explorar
+
 ### Próximos Pasos
 - [ ] T-0003: Configurar proyecto Supabase (prod)
 - [ ] T-0301: Auth flow completo (email upgrade)

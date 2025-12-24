@@ -6,6 +6,7 @@ class DailyGospelModel extends DailyGospel {
     required super.date,
     required super.reference,
     required super.text,
+    super.summary,
     required super.bibleVersion,
     super.contextNotes,
   });
@@ -16,6 +17,7 @@ class DailyGospelModel extends DailyGospel {
       date: DateTime.parse(json['verse_date'] as String),
       reference: json['reference'] as String? ?? '',
       text: json['verse_text'] as String? ?? '',
+      summary: json['verse_summary'] as String?,
       bibleVersion: json['bible_version_code'] as String? ?? 'RVR1960',
       contextNotes: json['context_notes'] as String?,
     );
@@ -30,6 +32,7 @@ class DailyGospelModel extends DailyGospel {
       date: DateTime.parse(verse['verse_date'] as String),
       reference: verse['reference'] as String? ?? '',
       text: text['verse_text'] as String? ?? '',
+      summary: text['verse_summary'] as String?,
       bibleVersion: text['bible_version_code'] as String? ?? 'RVR1960',
       contextNotes: verse['context_notes'] as String?,
     );
@@ -41,6 +44,7 @@ class DailyGospelModel extends DailyGospel {
       date: date,
       reference: reference,
       text: text,
+      summary: summary,
       bibleVersion: bibleVersion,
       contextNotes: contextNotes,
     );
