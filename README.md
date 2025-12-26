@@ -2,47 +2,97 @@
 
 **La app cristiana hecha para ti. Que entiende tu fe, tu idioma, tu cultura.**
 
-App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada según denominación, origen cultural y problemas personales del usuario hispanohablante.
+App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada según denominación, origen cultural y problemas personales del usuario hispanohablante en EE.UU.
 
 ## Stack Tecnológico
 
 | Componente | Tecnología |
 |------------|------------|
-| Frontend | Flutter (iOS 14.5+ / Android 6.0+) |
-| Backend/DB/Auth | Supabase (PostgreSQL + Auth + RLS) |
-| IA | OpenAI API |
+| Frontend | Flutter 3.35+ (iOS 14.5+ / Android 6.0+) |
+| Backend/DB/Auth | Supabase (PostgreSQL + Auth + RLS + Edge Functions) |
+| IA | OpenAI GPT-5.2 |
 | Pagos | RevenueCat + In-App Purchases |
 | Notificaciones | Firebase Cloud Messaging |
 | Analytics | Firebase Analytics + Mixpanel |
+
+## 3 Pilares de la App
+
+1. **HOY** - Retención diaria (racha, evangelio del día con Stories, devoción, oración)
+2. **CHAT** - IA denominacional con 10 temas hispanos
+3. **ESTUDIAR** - 7 planes de estudio + gamificación
+
+## Features Principales
+
+### Evangelio del Día + Stories
+- Experiencia Instagram Stories con 3 slides:
+  - **Resumen coloquial** del evangelio
+  - **Concepto clave** (frase impactante)
+  - **Ejercicio práctico** (acción física/material)
+- Contenido generado con GPT-5.2
+- Integración con calendario litúrgico católico
+- **Bottom bar estilo Instagram:**
+  - Campo de texto para enviar mensaje
+  - Botón compartir (share_plus)
+  - Al enviar: abre chat con contexto de la story
+- Navegación fullscreen (oculta bottom nav)
+
+### Chat IA Denominacional
+- Personalizado según denominación (católico, evangélico, pentecostal, etc.)
+- Adaptado al origen cultural del usuario
+- 10 temas específicos para hispanohablantes
+- Memoria global para personalización continua
+
+### Planes de Estudio
+- 7 planes temáticos para hispanos
+- Gamificación con puntos y badges
+- Progreso guardado y sincronizado
 
 ## Estructura del Proyecto
 
 ```
 BibliaChat/
-├── app_flutter/          # Aplicación Flutter
+├── app_flutter/                    # Aplicación Flutter
+│   └── lib/
+│       ├── core/                   # Tema, widgets, utilidades
+│       └── features/               # Features por módulo
+│           ├── auth/
+│           ├── onboarding/
+│           ├── home/
+│           ├── chat/
+│           ├── study/
+│           ├── profile/
+│           └── daily_gospel/       # Feature Evangelio + Stories
 ├── supabase/
-│   ├── migrations/       # Migraciones SQL
-│   └── functions/        # Edge Functions
-├── docs/                 # Documentación del proyecto
-├── .env.example          # Variables de entorno (template)
+│   ├── migrations/                 # 13 migraciones SQL
+│   └── functions/
+│       └── fetch-daily-gospel/     # Edge Function para contenido diario
+├── docs/                           # Documentación completa
+│   ├── 01.Product Requeriments Document (PRD).md
+│   ├── 02.Historias de usuario. Backlog.md
+│   ├── 03.Casos de Uso, Arquitectura y C4.md
+│   ├── 04.BBDD.md
+│   └── 05.Tickets de Trabajo.md
+├── .env.example
+├── CLAUDE.md                       # Memoria del proyecto para Claude
 └── README.md
 ```
 
 ## Requisitos
 
-- Flutter SDK >= 3.0
-- Dart >= 3.0
-- Cuenta de Supabase
-- Cuenta de OpenAI
+- Flutter SDK >= 3.35
+- Dart >= 3.5
+- Cuenta de Supabase (con Edge Functions habilitadas)
+- Cuenta de OpenAI (GPT-5.2)
 - Cuenta de RevenueCat
 - Cuenta de Firebase
+- API.Bible key
 
 ## Configuración Local
 
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/TU_USUARIO/BibliaChat.git
+git clone https://github.com/RobertoAbia/BibliaChat-.git
 cd BibliaChat
 ```
 
@@ -50,17 +100,36 @@ cd BibliaChat
 
 ```bash
 cp .env.example .env
-# Editar .env con tus credenciales
+# Editar .env con tus credenciales:
+# - SUPABASE_URL
+# - SUPABASE_ANON_KEY
+# - OPENAI_API_KEY
+# - API_BIBLE_KEY
 ```
 
-### 3. Configurar Flutter
+### 3. Configurar Supabase
+
+```bash
+# Aplicar migraciones
+cd supabase
+supabase db push
+
+# Configurar secrets para Edge Functions
+supabase secrets set OPENAI_API_KEY=tu_key
+supabase secrets set API_BIBLE_KEY=tu_key
+
+# Desplegar Edge Functions
+supabase functions deploy fetch-daily-gospel
+```
+
+### 4. Configurar Flutter
 
 ```bash
 cd app_flutter
 flutter pub get
 ```
 
-### 4. Ejecutar la app
+### 5. Ejecutar la app
 
 ```bash
 # iOS
@@ -73,24 +142,43 @@ flutter run -d android
 ## Arquitectura
 
 - **Supabase-First**: Sin backend dedicado en MVP
-- **Clean Architecture**: Separación de capas
+- **Clean Architecture**: Separación de capas (domain, data, presentation)
 - **RLS (Row Level Security)**: Seguridad a nivel de base de datos
+- **Edge Functions**: Para operaciones sensibles (IA, billing)
 
-## 3 Pilares de la App
+### Configuración GPT-5.2
 
-1. **HOY** - Retención diaria (racha, versículo, devoción, oración)
-2. **CHAT** - IA denominacional con 10 temas hispanos
-3. **ESTUDIAR** - Planes de estudio + gamificación
+```typescript
+// Edge Functions usan GPT-5.2 con esta configuración:
+{
+  model: "gpt-5.2",
+  messages: [
+    { role: "developer", content: "..." },  // NO "system"
+    { role: "user", content: "..." }
+  ],
+  max_completion_tokens: 600,  // NO "max_tokens"
+  temperature: 0.9
+}
+```
+
+## UI/UX
+
+- **Tema**: Glassmorphism con paleta Azul Noche + Dorado
+- **Animaciones**: Lottie + Flutter Animate
+- **Efectos**: BackdropFilter blur, gradientes con glow
+- **Colores**:
+  - Fondo: #1A1A2E, #16162A
+  - Primario (Dorado): #D4AF37, #E8C967
+  - Superficies: #252540, #2D2D4A
 
 ## Documentación
 
-Ver carpeta `/docs` para documentación detallada:
+Ver carpeta `/docs` para documentación detallada del proyecto.
 
-- `01.Product Requeriments Document (PRD).md`
-- `02.Historias de usuario. Backlog.md`
-- `03.Casos de Uso, Arquitectura y C4.md`
-- `04.BBDD.md`
-- `05.Tickets de Trabajo.md`
+## Desarrollador
+
+- **GitHub**: [RobertoAbia](https://github.com/RobertoAbia)
+- **Repositorio**: https://github.com/RobertoAbia/BibliaChat-
 
 ## Licencia
 

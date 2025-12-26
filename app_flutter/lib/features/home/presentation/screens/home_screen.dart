@@ -7,7 +7,9 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../chat/presentation/screens/chat_screen.dart';
+import '../../../daily_gospel/domain/entities/daily_gospel.dart';
 import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart';
+import '../../../daily_gospel/presentation/screens/gospel_stories_screen.dart';
 import '../../../profile/domain/entities/user_profile.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 
@@ -428,7 +430,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         return _GospelCardCompact(
           label: label,
           reference: gospel.reference,
-          onTap: () {
+          hasStories: gospel.hasStoriesContent,
+          onTap: () async {
+            // Si tiene contenido de Stories, abrir Stories primero
+            if (gospel.hasStoriesContent) {
+              // Usar rootNavigator para que cubra toda la pantalla incluyendo bottom nav
+              final result = await Navigator.of(context, rootNavigator: true).push<Map<String, dynamic>>(
+                MaterialPageRoute(
+                  builder: (context) => GospelStoriesScreen(gospel: gospel),
+                  fullscreenDialog: true,
+                ),
+              );
+
+              // Si el usuario quiere abrir el chat desde Stories
+              if (result != null && result['action'] == 'openChat' && context.mounted) {
+                // Usar rootNavigator para ocultar el bottom nav
+                Navigator.of(context, rootNavigator: true).push(
+                  MaterialPageRoute(
+                    builder: (context) => ChatScreen(
+                      topicKey: topicKey,
+                      initialGospelText: result['text'] ?? gospel.text,
+                      initialGospelReference: result['reference'] ?? gospel.reference,
+                      initialUserMessage: result['userMessage'],
+                    ),
+                    fullscreenDialog: true,
+                  ),
+                );
+              }
+            } else {
+              // Si no, ir directo al chat
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => ChatScreen(
+                    topicKey: topicKey,
+                    initialGospelText: gospel.text,
+                    initialGospelReference: gospel.reference,
+                  ),
+                ),
+              );
+            }
+          },
+          onChatTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => ChatScreen(
@@ -452,12 +494,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 class _GospelCardCompact extends StatefulWidget {
   final String label;
   final String reference;
+  final bool hasStories;
   final VoidCallback onTap;
+  final VoidCallback? onChatTap;
 
   const _GospelCardCompact({
     required this.label,
     required this.reference,
+    this.hasStories = false,
     required this.onTap,
+    this.onChatTap,
   });
 
   @override
@@ -545,26 +591,60 @@ class _GospelCardCompactState extends State<_GospelCardCompact>
                 ),
                 child: Row(
                   children: [
-                    // Icon
-                    Container(
-                      width: 52,
-                      height: 52,
-                      decoration: BoxDecoration(
-                        gradient: AppTheme.goldGradient,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primaryColor.withOpacity(0.3),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                    // Icon with Stories ring indicator
+                    Stack(
+                      children: [
+                        // Stories ring (visible cuando hasStories)
+                        if (widget.hasStories)
+                          Container(
+                            width: 58,
+                            height: 58,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(17),
+                              gradient: AppTheme.goldGradient,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primaryColor.withOpacity(0.4),
+                                  blurRadius: 12,
+                                  spreadRadius: 0,
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.menu_book_rounded,
-                        color: AppTheme.textOnPrimary,
-                        size: 26,
-                      ),
+                        // Icon container
+                        Container(
+                          width: 52,
+                          height: 52,
+                          margin: widget.hasStories
+                              ? const EdgeInsets.all(3)
+                              : EdgeInsets.zero,
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.goldGradient,
+                            borderRadius: BorderRadius.circular(14),
+                            border: widget.hasStories
+                                ? Border.all(
+                                    color: AppTheme.backgroundDark,
+                                    width: 2,
+                                  )
+                                : null,
+                            boxShadow: widget.hasStories
+                                ? null
+                                : [
+                                    BoxShadow(
+                                      color:
+                                          AppTheme.primaryColor.withOpacity(0.3),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                          ),
+                          child: const Icon(
+                            Icons.menu_book_rounded,
+                            color: AppTheme.textOnPrimary,
+                            size: 26,
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(width: 16),
                     // Content
@@ -572,37 +652,96 @@ class _GospelCardCompactState extends State<_GospelCardCompact>
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            widget.label,
-                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                  color: AppTheme.primaryColor,
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.5,
+                          Row(
+                            children: [
+                              Text(
+                                widget.label,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: AppTheme.primaryColor,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
+                              ),
+                              if (widget.hasStories) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: AppTheme.goldGradient,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    'NUEVO',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                          color: AppTheme.textOnPrimary,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 8,
+                                          letterSpacing: 0.5,
+                                        ),
+                                  ),
                                 ),
+                              ],
+                            ],
                           ),
                           const SizedBox(height: 4),
                           Text(
                             widget.reference,
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  color: AppTheme.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                            style:
+                                Theme.of(context).textTheme.titleMedium?.copyWith(
+                                      color: AppTheme.textPrimary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
                           ),
                         ],
                       ),
                     ),
-                    // Chevron
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor.withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.chevron_right,
-                        color: AppTheme.primaryColor,
-                        size: 22,
-                      ),
+                    // Actions
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Chat button (si tiene Stories)
+                        if (widget.hasStories && widget.onChatTap != null)
+                          GestureDetector(
+                            onTap: widget.onChatTap,
+                            child: Container(
+                              padding: const EdgeInsets.all(8),
+                              margin: const EdgeInsets.only(right: 8),
+                              decoration: BoxDecoration(
+                                color: AppTheme.surfaceLight.withOpacity(0.4),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.chat_bubble_outline_rounded,
+                                color: AppTheme.textSecondary,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                        // Chevron / Play
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            widget.hasStories
+                                ? Icons.play_arrow_rounded
+                                : Icons.chevron_right,
+                            color: AppTheme.primaryColor,
+                            size: 22,
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

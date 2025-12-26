@@ -12,6 +12,12 @@ class DailyGospel {
   /// Resumen del evangelio en lenguaje coloquial
   final String? summary;
 
+  /// Concepto/frase principal del pasaje
+  final String? keyConcept;
+
+  /// Ejercicio práctico para aplicar el pasaje
+  final String? practicalExercise;
+
   /// Versión de la biblia (ej: "RVR1960")
   final String bibleVersion;
 
@@ -23,6 +29,8 @@ class DailyGospel {
     required this.reference,
     required this.text,
     this.summary,
+    this.keyConcept,
+    this.practicalExercise,
     required this.bibleVersion,
     this.contextNotes,
   });
@@ -34,6 +42,8 @@ class DailyGospel {
       reference: '',
       text: '',
       summary: null,
+      keyConcept: null,
+      practicalExercise: null,
       bibleVersion: 'RVR1960',
       contextNotes: null,
     );
@@ -44,6 +54,9 @@ class DailyGospel {
 
   /// Verifica si tiene resumen disponible
   bool get hasSummary => summary != null && summary!.isNotEmpty;
+
+  /// Verifica si tiene contenido para Stories
+  bool get hasStoriesContent => hasSummary || (keyConcept != null && keyConcept!.isNotEmpty);
 
   @override
   String toString() {

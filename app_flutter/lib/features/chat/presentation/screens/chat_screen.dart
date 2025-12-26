@@ -11,12 +11,14 @@ class ChatScreen extends StatefulWidget {
   final String topicKey;
   final String? initialGospelText;
   final String? initialGospelReference;
+  final String? initialUserMessage;
 
   const ChatScreen({
     super.key,
     required this.topicKey,
     this.initialGospelText,
     this.initialGospelReference,
+    this.initialUserMessage,
   });
 
   @override
@@ -44,20 +46,50 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       CurvedAnimation(parent: _sendButtonController, curve: Curves.easeInOut),
     );
 
-    // Add initial AI message with delay for animation
+    // Add initial messages with delay for animation
     Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
         setState(() {
-          // If we have a gospel text, show it as the first message
-          if (widget.initialGospelText != null && widget.initialGospelReference != null) {
+          // If we have a gospel text, show it as the first message from AI
+          if (widget.initialGospelText != null) {
             _messages.add(
               ChatMessage(
-                content:
-                    '📖 *${widget.initialGospelReference}*\n\n"${widget.initialGospelText}"\n\n¿Qué te gustaría explorar de este pasaje? Puedo ayudarte a entender su contexto, su significado o cómo aplicarlo en tu vida.',
+                content: widget.initialGospelText!,
                 isUser: false,
               ),
             );
+
+            // If user sent a message from Stories, add it as their response
+            if (widget.initialUserMessage != null && widget.initialUserMessage!.isNotEmpty) {
+              _messages.add(
+                ChatMessage(
+                  content: widget.initialUserMessage!,
+                  isUser: true,
+                ),
+              );
+
+              // Show that AI is "typing" a response
+              _isLoading = true;
+
+              // Simulate AI response after a delay (TODO: replace with real AI)
+              Future.delayed(const Duration(seconds: 2), () {
+                if (mounted) {
+                  setState(() {
+                    _isLoading = false;
+                    _messages.add(
+                      ChatMessage(
+                        content:
+                            'Gracias por compartir eso conmigo. Este pasaje nos invita a reflexionar profundamente. ¿Hay algo específico que te llamó la atención o te gustaría que exploremos juntos?',
+                        isUser: false,
+                      ),
+                    );
+                  });
+                  _scrollToBottom();
+                }
+              });
+            }
           } else {
+            // No gospel text, show default greeting
             _messages.add(
               ChatMessage(
                 content:
@@ -67,6 +99,19 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
             );
           }
         });
+        _scrollToBottom();
+      }
+    });
+  }
+
+  void _scrollToBottom() {
+    Future.delayed(const Duration(milliseconds: 100), () {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
       }
     });
   }
@@ -141,18 +186,6 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
           _isLoading = false;
         });
         _scrollToBottom();
-      }
-    });
-  }
-
-  void _scrollToBottom() {
-    Future.delayed(const Duration(milliseconds: 100), () {
-      if (_scrollController.hasClients) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
       }
     });
   }
@@ -349,9 +382,17 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Expanded(
-                      child: GlassContainer.input(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(
+                            color: AppTheme.textTertiary.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
                         child: TextField(
                           controller: _messageController,
+                          cursorColor: AppTheme.textPrimary,
                           style: const TextStyle(
                             color: AppTheme.textPrimary,
                           ),
@@ -359,9 +400,14 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                             hintText: 'Escribe tu mensaje...',
                             hintStyle: TextStyle(color: AppTheme.textTertiary),
                             border: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            fillColor: Colors.transparent,
+                            filled: false,
+                            isDense: true,
                             contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
+                              horizontal: 20,
+                              vertical: 14,
                             ),
                           ),
                           maxLines: 4,

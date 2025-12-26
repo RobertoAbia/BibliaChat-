@@ -7,6 +7,8 @@ class DailyGospelModel extends DailyGospel {
     required super.reference,
     required super.text,
     super.summary,
+    super.keyConcept,
+    super.practicalExercise,
     required super.bibleVersion,
     super.contextNotes,
   });
@@ -18,6 +20,8 @@ class DailyGospelModel extends DailyGospel {
       reference: json['reference'] as String? ?? '',
       text: json['verse_text'] as String? ?? '',
       summary: json['verse_summary'] as String?,
+      keyConcept: json['key_concept'] as String?,
+      practicalExercise: json['practical_exercise'] as String?,
       bibleVersion: json['bible_version_code'] as String? ?? 'RVR1960',
       contextNotes: json['context_notes'] as String?,
     );
@@ -33,6 +37,8 @@ class DailyGospelModel extends DailyGospel {
       reference: verse['reference'] as String? ?? '',
       text: text['verse_text'] as String? ?? '',
       summary: text['verse_summary'] as String?,
+      keyConcept: text['key_concept'] as String?,
+      practicalExercise: text['practical_exercise'] as String?,
       bibleVersion: text['bible_version_code'] as String? ?? 'RVR1960',
       contextNotes: verse['context_notes'] as String?,
     );
@@ -45,6 +51,8 @@ class DailyGospelModel extends DailyGospel {
       reference: reference,
       text: text,
       summary: summary,
+      keyConcept: keyConcept,
+      practicalExercise: practicalExercise,
       bibleVersion: bibleVersion,
       contextNotes: contextNotes,
     );

@@ -217,25 +217,64 @@ function cleanContent(content: string): string {
     .trim();
 }
 
-// Genera un resumen coloquial del evangelio usando OpenAI
-async function generateSummary(
+// Interfaz para el contenido generado por IA
+interface GospelContent {
+  summary: string;      // Resumen coloquial
+  keyConcept: string;   // Concepto/frase principal
+  exercise: string;     // Ejercicio práctico
+}
+
+// Genera contenido del evangelio para Stories usando OpenAI
+async function generateGospelContent(
   gospelText: string,
   reference: string,
   openaiKey: string
-): Promise<string | null> {
-  const prompt = `Eres un comunicador cristiano moderno que hace accesible la Biblia a jóvenes hispanohablantes.
+): Promise<GospelContent | null> {
+  const systemPrompt = `Eres un copywriter experto y comunicador cristiano moderno. Tu trabajo es transformar pasajes bíblicos en contenido atractivo para redes sociales.
 
-Resume el siguiente pasaje del evangelio en 2-3 frases usando lenguaje coloquial, cercano y fácil de entender.
-- Usa un tono como si se lo explicaras a un amigo
-- Evita lenguaje religioso formal o anticuado
-- Mantén el mensaje espiritual pero hazlo relatable
-- No uses emojis
-- Máximo 280 caracteres (como un tweet)
+REGLAS ESTRICTAS:
+- El resumen DEBE tener mínimo 300 caracteres
+- El ejercicio NUNCA puede ser orar, rezar, meditar o reflexionar
+- El concepto clave debe sonar a frase de autor, no a resumen`;
 
-Pasaje (${reference}):
+  const userPrompt = `Transforma este pasaje en contenido para Stories de instagram. Habla en español de España. SIGUE LAS INSTRUCCIONES AL PIE DE LA LETRA:
+
+PASAJE (${reference}):
 "${gospelText}"
 
-Resumen coloquial:`;
+---
+
+GENERA EXACTAMENTE ESTO:
+
+1. "summary" (MÍNIMO 300 caracteres, MÁXIMO 500):
+Cuenta la historia del pasaje como un storyteller. ¿Qué estaba pasando? ¿Quiénes estaban ahí? ¿Qué dijo Jesús y por qué importa? Escríbelo como si se lo contaras a un amigo en un café. Nada de lenguaje formal ni religioso. Debe ser un párrafo completo de 4-5 oraciones.
+
+2. "keyConcept" (MÁXIMO 60 caracteres):
+Redacta una frase POTENTE que resuma el mensaje central en estilo copywriting. Debe sonar como una frase de motivación o vida diaria, no como un versículo bíblico. Piensa en frases como:
+- "El miedo miente, la fe actúa"
+- "No estás solo en la tormenta"
+- "Tu historia no termina aquí"
+- "El silencio de Dios no es ausencia"
+NO repitas el contenido del pasaje. Crea una frase original e inspiradora.
+
+3. "exercise" (entre 80-150 caracteres):
+Una acción FÍSICA y CONCRETA para hacer hoy que conecte con el mpasaje y sea tangible.
+
+PROHIBIDO: orar, rezar, meditar, reflexionar, leer la Biblia, ir a misa.
+
+OBLIGATORIO: algo que involucre a OTRA PERSONA o una ACCIÓN MATERIAL.
+
+Ejemplos válidos:
+- "Escribe en un papel el nombre de alguien que te ha hecho daño y quémalo como símbolo de perdón"
+- "Envía un audio de WhatsApp a alguien diciéndole por qué lo aprecias"
+- "Deja una nota anónima de ánimo en el escritorio de un compañero"
+- "Invita a comer a alguien que notes solo o triste"
+- "Regala algo tuyo que ya no uses a quien lo necesite"
+
+---
+
+RESPONDE SOLO CON JSON VÁLIDO:
+{"summary": "...", "keyConcept": "...", "exercise": "..."}`;
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -245,28 +284,52 @@ Resumen coloquial:`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "gpt-3.5-turbo",
+        model: "gpt-5.2",
         messages: [
           {
+            role: "developer",
+            content: systemPrompt,
+          },
+          {
             role: "user",
-            content: prompt,
+            content: userPrompt,
           },
         ],
-        max_tokens: 150,
-        temperature: 0.7,
+        max_completion_tokens: 600,
+        temperature: 0.9,
       }),
     });
 
     if (!response.ok) {
-      console.error(`OpenAI API error: ${response.status}`);
+      const errorBody = await response.text();
+      console.error(`OpenAI API error: ${response.status} - ${errorBody}`);
       return null;
     }
 
     const data = await response.json();
-    const summary = data.choices?.[0]?.message?.content?.trim();
-    return summary || null;
+    const content = data.choices?.[0]?.message?.content?.trim();
+
+    if (!content) return null;
+
+    // Parsear el JSON de la respuesta
+    try {
+      const parsed = JSON.parse(content);
+      return {
+        summary: parsed.summary || "",
+        keyConcept: parsed.keyConcept || "",
+        exercise: parsed.exercise || "",
+      };
+    } catch (parseError) {
+      console.error("Error parsing OpenAI response as JSON:", content);
+      // Fallback: usar todo el contenido como resumen
+      return {
+        summary: content.substring(0, 200),
+        keyConcept: "",
+        exercise: "",
+      };
+    }
   } catch (error) {
-    console.error("Error generating summary:", error);
+    console.error("Error generating gospel content:", error);
     return null;
   }
 }
@@ -353,60 +416,40 @@ serve(async (req) => {
       throw new Error(`Error inserting daily_verse: ${verseError.message}`);
     }
 
-    // Fetch text for each Bible version
-    // Note: RVR1909 es la única versión completa gratuita, se guarda también como RVR1960 para compatibilidad
-    const versionsToFetch = ["RVR1909"];
+    // Fetch text for RVR1960 (usando RVR1909 de API.Bible que es la única versión completa gratuita)
+    const bibleId = BIBLE_VERSIONS["RVR1909"]; // RVR1909 de API.Bible
     const results: Record<string, string> = {};
+    let gospelContent: GospelContent | null = null;
 
-    let summary: string | null = null;
-
-    for (const versionCode of versionsToFetch) {
-      const bibleId = BIBLE_VERSIONS[versionCode];
-      if (!bibleId || !apiBiblePassageId) continue;
-
+    if (bibleId && apiBiblePassageId) {
       const passage = await fetchBiblePassage(apiBiblePassageId, bibleId, apiBibleKey);
       if (passage) {
         const cleanText = cleanContent(passage.content);
-        results[versionCode] = cleanText;
+        results["RVR1960"] = cleanText;
 
-        // Generate summary with OpenAI (only once, for the first version)
-        if (!summary && openaiKey) {
-          console.log("Generating summary with OpenAI...");
-          summary = await generateSummary(cleanText, spanishReference, openaiKey);
-          if (summary) {
-            console.log(`Summary generated: ${summary.substring(0, 50)}...`);
+        // Generate gospel content with OpenAI
+        if (openaiKey) {
+          console.log("Generating gospel content with OpenAI...");
+          gospelContent = await generateGospelContent(cleanText, spanishReference, openaiKey);
+          if (gospelContent) {
+            console.log(`Content generated - Summary: ${gospelContent.summary.substring(0, 50)}...`);
           }
         }
 
-        // Insert into daily_verse_texts for this version
+        // Insert into daily_verse_texts (solo RVR1960 que existe en bible_versions)
         const { error: textError } = await supabase
           .from("daily_verse_texts")
           .upsert({
             verse_date: dateStr,
-            bible_version_code: versionCode,
+            bible_version_code: "RVR1960",
             verse_text: cleanText,
-            verse_summary: summary,
+            verse_summary: gospelContent?.summary || null,
+            key_concept: gospelContent?.keyConcept || null,
+            practical_exercise: gospelContent?.exercise || null,
           });
 
         if (textError) {
-          console.error(`Error inserting text for ${versionCode}:`, textError.message);
-        }
-
-        // Also save as RVR1960 for backwards compatibility (app default)
-        if (versionCode === "RVR1909") {
-          const { error: rvr1960Error } = await supabase
-            .from("daily_verse_texts")
-            .upsert({
-              verse_date: dateStr,
-              bible_version_code: "RVR1960",
-              verse_text: cleanText,
-              verse_summary: summary,
-            });
-
-          if (rvr1960Error) {
-            console.error(`Error inserting text for RVR1960:`, rvr1960Error.message);
-          }
-          results["RVR1960"] = cleanText;
+          console.error(`Error inserting text for RVR1960:`, textError.message);
         }
       }
     }
@@ -418,7 +461,9 @@ serve(async (req) => {
         reference: spanishReference,
         season: readings.season,
         versions: Object.keys(results),
-        summary: summary,
+        summary: gospelContent?.summary || null,
+        keyConcept: gospelContent?.keyConcept || null,
+        exercise: gospelContent?.exercise || null,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
