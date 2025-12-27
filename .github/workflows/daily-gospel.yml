@@ -1,10 +1,9 @@
-name: Fetch Daily Gospel
+  name: Fetch Daily Gospel
 
   on:
     schedule:
-      # Se ejecuta a las 6:00 AM UTC (7:00 AM España, 1:00 AM EST)
       - cron: '0 6 * * *'
-    workflow_dispatch:  # Permite ejecutar manualmente desde GitHub
+    workflow_dispatch:
 
   jobs:
     fetch-gospel:
