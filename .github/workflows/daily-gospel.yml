@@ -13,7 +13,7 @@ name: Fetch Daily Gospel
         - name: Invoke Supabase Edge Function
           run: |
             response=$(curl -s -w "\n%{http_code}" -X POST \
-              'https://popqvhrgsokuviwtscid.supabase.co/functions/v1/fetch-daily-gospel' \
+              'https://popqvhrgsokuviwtscid.supabase.co/functions/v1/clever-worker' \
               -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \
               -H 'Content-Type: application/json')
 
