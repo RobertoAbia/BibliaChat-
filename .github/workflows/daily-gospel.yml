@@ -1,0 +1,29 @@
+name: Fetch Daily Gospel
+
+  on:
+    schedule:
+      # Se ejecuta a las 6:00 AM UTC (7:00 AM España, 1:00 AM EST)
+      - cron: '0 6 * * *'
+    workflow_dispatch:  # Permite ejecutar manualmente desde GitHub
+
+  jobs:
+    fetch-gospel:
+      runs-on: ubuntu-latest
+      steps:
+        - name: Invoke Supabase Edge Function
+          run: |
+            response=$(curl -s -w "\n%{http_code}" -X POST \
+              'https://popqvhrgsokuviwtscid.supabase.co/functions/v1/fetch-daily-gospel' \
+              -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \
+              -H 'Content-Type: application/json')
+
+            http_code=$(echo "$response" | tail -n1)
+            body=$(echo "$response" | sed '$d')
+
+            echo "Response: $body"
+            echo "HTTP Code: $http_code"
+
+            if [ "$http_code" != "200" ]; then
+              echo "Error: Function returned $http_code"
+              exit 1
+            fi
