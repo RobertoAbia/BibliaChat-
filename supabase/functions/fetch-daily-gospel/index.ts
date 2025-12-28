@@ -124,22 +124,25 @@ function parseReference(reference: string): { book: string; chapter: number; ver
 }
 
 // Convierte referencia a formato API.Bible (ej: "LUK.1.57-LUK.1.66")
-function toApiBibleFormat(reference: string): string | null {
+// Retorna un array para manejar referencias no contiguas como "13-15, 19-23"
+function toApiBibleFormats(reference: string): string[] | null {
   const parsed = parseReference(reference);
   if (!parsed) return null;
 
   const bookInfo = bookMapping[parsed.book];
   if (!bookInfo) return null;
 
-  // Manejar rangos de versículos: "57-66" -> "LUK.1.57-LUK.1.66"
-  const verseRange = parsed.verses;
-  if (verseRange.includes("-")) {
-    const [startVerse, endVerse] = verseRange.split("-");
-    return `${bookInfo.apiId}.${parsed.chapter}.${startVerse}-${bookInfo.apiId}.${parsed.chapter}.${endVerse}`;
-  }
+  // Separar por comas para manejar rangos no contiguos: "13-15, 19-23" -> ["13-15", "19-23"]
+  const ranges = parsed.verses.split(",").map(v => v.trim());
 
-  // Versículo único: "LUK.1.57"
-  return `${bookInfo.apiId}.${parsed.chapter}.${verseRange}`;
+  return ranges.map(range => {
+    if (range.includes("-")) {
+      const [startVerse, endVerse] = range.split("-");
+      return `${bookInfo.apiId}.${parsed.chapter}.${startVerse}-${bookInfo.apiId}.${parsed.chapter}.${endVerse}`;
+    }
+    // Versículo único
+    return `${bookInfo.apiId}.${parsed.chapter}.${range}`;
+  });
 }
 
 // Convierte referencia en inglés a español
@@ -237,7 +240,7 @@ REGLAS ESTRICTAS:
 - El ejercicio NUNCA puede ser orar, rezar, meditar o reflexionar
 - El concepto clave debe sonar a frase de autor, no a resumen`;
 
-  const userPrompt = `Transforma este pasaje en contenido para Stories de instagram. Habla en español de España. SIGUE LAS INSTRUCCIONES AL PIE DE LA LETRA:
+  const userPrompt = `Transforma este pasaje bíblico en contenido para una app cristiana. Escribe SIEMPRE en español de España, usando la segunda persona del singular (tú, te, ti).
 
 PASAJE (${reference}):
 "${gospelText}"
@@ -247,29 +250,25 @@ PASAJE (${reference}):
 GENERA EXACTAMENTE ESTO:
 
 1. "summary" (MÍNIMO 300 caracteres, MÁXIMO 500):
-Cuenta la historia del pasaje como un storyteller. ¿Qué estaba pasando? ¿Quiénes estaban ahí? ¿Qué dijo Jesús y por qué importa? Escríbelo como si se lo contaras a un amigo en un café. Nada de lenguaje formal ni religioso. Debe ser un párrafo completo de 4-5 oraciones.
+Cuenta qué pasa en este pasaje de forma clara y cercana, como si se lo explicaras a un amigo. Nada de frases hechas religiosas ni lenguaje arcaico. Escribe de forma natural, con frases cortas y directas. Usa presente histórico para hacerlo más vivo. NO uses expresiones como "imagínate", "fíjate", "salir pitando" o jerga forzada.
 
 2. "keyConcept" (MÁXIMO 60 caracteres):
-Redacta una frase POTENTE que resuma el mensaje central en estilo copywriting. Debe sonar como una frase de motivación o vida diaria, no como un versículo bíblico. Piensa en frases como:
+Una frase potente estilo copywriting que capture la esencia del mensaje. Debe sonar a frase de autor, no a resumen del pasaje. Ejemplos del estilo:
 - "El miedo miente, la fe actúa"
-- "No estás solo en la tormenta"
 - "Tu historia no termina aquí"
-- "El silencio de Dios no es ausencia"
-NO repitas el contenido del pasaje. Crea una frase original e inspiradora.
+- "A veces el rodeo es el camino"
 
 3. "exercise" (entre 80-150 caracteres):
-Una acción FÍSICA y CONCRETA para hacer hoy que conecte con el mpasaje y sea tangible.
+Una acción FÍSICA y CONCRETA para hacer hoy. Dirígete al usuario en segunda persona del singular (tú).
 
 PROHIBIDO: orar, rezar, meditar, reflexionar, leer la Biblia, ir a misa.
-
-OBLIGATORIO: algo que involucre a OTRA PERSONA o una ACCIÓN MATERIAL.
+OBLIGATORIO: que involucre a OTRA PERSONA o una ACCIÓN MATERIAL tangible.
 
 Ejemplos válidos:
-- "Escribe en un papel el nombre de alguien que te ha hecho daño y quémalo como símbolo de perdón"
-- "Envía un audio de WhatsApp a alguien diciéndole por qué lo aprecias"
+- "Escribe en un papel el nombre de alguien que te haya hecho daño y quémalo como símbolo de perdón"
+- "Envía un audio de WhatsApp a alguien diciéndole por qué le aprecias"
 - "Deja una nota anónima de ánimo en el escritorio de un compañero"
-- "Invita a comer a alguien que notes solo o triste"
-- "Regala algo tuyo que ya no uses a quien lo necesite"
+- "Invita a comer a alguien que veas solo o triste"
 
 ---
 
@@ -398,10 +397,10 @@ serve(async (req) => {
 
     const gospelReference = readings.readings.gospel;
     const spanishReference = toSpanishReference(gospelReference);
-    const apiBiblePassageId = toApiBibleFormat(gospelReference);
+    const apiBiblePassageIds = toApiBibleFormats(gospelReference);
 
     console.log(`Gospel reference: ${gospelReference} -> ${spanishReference}`);
-    console.log(`API.Bible passage ID: ${apiBiblePassageId}`);
+    console.log(`API.Bible passage IDs: ${JSON.stringify(apiBiblePassageIds)}`);
 
     // Insert into daily_verses
     const { error: verseError } = await supabase
@@ -421,10 +420,19 @@ serve(async (req) => {
     const results: Record<string, string> = {};
     let gospelContent: GospelContent | null = null;
 
-    if (bibleId && apiBiblePassageId) {
-      const passage = await fetchBiblePassage(apiBiblePassageId, bibleId, apiBibleKey);
-      if (passage) {
-        const cleanText = cleanContent(passage.content);
+    if (bibleId && apiBiblePassageIds && apiBiblePassageIds.length > 0) {
+      // Fetch all passage parts and concatenate (handles non-contiguous verses like "13-15, 19-23")
+      const textParts: string[] = [];
+      for (const passageId of apiBiblePassageIds) {
+        console.log(`Fetching passage: ${passageId}`);
+        const passage = await fetchBiblePassage(passageId, bibleId, apiBibleKey);
+        if (passage) {
+          textParts.push(cleanContent(passage.content));
+        }
+      }
+
+      if (textParts.length > 0) {
+        const cleanText = textParts.join(" ");
         results["RVR1960"] = cleanText;
 
         // Generate gospel content with OpenAI

@@ -26,6 +26,10 @@ BibliaChat/
 ├── supabase/
 │   ├── migrations/       # Migraciones SQL
 │   └── functions/        # Edge Functions (Deno/TypeScript)
+│       └── fetch-daily-gospel/  # Evangelio del día (desplegada como clever-worker)
+├── .github/
+│   └── workflows/
+│       └── daily-gospel.yml  # Cron diario para fetch-daily-gospel
 ├── docs/                 # Documentación del proyecto
 │   ├── 01.Product Requeriments Document (PRD).md
 │   ├── 02.Historias de usuario. Backlog.md
@@ -303,9 +307,11 @@ supabase functions serve
 
 ## Edge Functions (Supabase)
 
-### `fetch-daily-gospel`
+### `fetch-daily-gospel` (desplegada como `clever-worker`)
 - **Ubicación:** `supabase/functions/fetch-daily-gospel/index.ts`
+- **Nombre en Supabase:** `clever-worker`
 - **Propósito:** Obtener y procesar el evangelio del día
+- **Ejecución automática:** GitHub Actions cron diario a las 6:00 AM UTC
 - **APIs externas:**
   - Catholic Readings API (calendario litúrgico)
   - API.Bible (texto bíblico RVR1960)
@@ -314,9 +320,21 @@ supabase functions serve
   - `verse_summary`: Resumen coloquial (300-500 chars)
   - `key_concept`: Frase impactante (60-100 chars)
   - `practical_exercise`: Acción física/material (100-180 chars)
+- **Características técnicas:**
+  - Maneja versículos no contiguos (ej: "13-15, 19-23") con múltiples llamadas a API.Bible
+  - Prompt optimizado para español de España, segunda persona singular (tú)
 - **Secrets requeridos:**
   - `OPENAI_API_KEY`
   - `API_BIBLE_KEY`
+
+## GitHub Actions
+
+### `daily-gospel.yml`
+- **Ubicación:** `.github/workflows/daily-gospel.yml`
+- **Propósito:** Ejecutar automáticamente la Edge Function cada día
+- **Cron:** `0 6 * * *` (6:00 AM UTC = 7:00 AM España)
+- **Trigger manual:** `workflow_dispatch` permite ejecución manual desde GitHub
+- **Secret requerido:** `SUPABASE_SERVICE_ROLE_KEY` (configurado en GitHub → Settings → Secrets)
 
 ## Notas Técnicas Flutter
 - **Flutter version:** 3.35.3 (stable)

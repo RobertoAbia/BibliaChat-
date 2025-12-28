@@ -28,8 +28,9 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - **Resumen coloquial** del evangelio
   - **Concepto clave** (frase impactante)
   - **Ejercicio práctico** (acción física/material)
-- Contenido generado con GPT-5.2
+- Contenido generado con GPT-5.2 (español de España, tú)
 - Integración con calendario litúrgico católico
+- **Ejecución automática:** GitHub Actions cron diario (6:00 AM UTC)
 - **Bottom bar estilo Instagram:**
   - Campo de texto para enviar mensaje
   - Botón compartir (share_plus)
@@ -66,6 +67,9 @@ BibliaChat/
 │   ├── migrations/                 # 13 migraciones SQL
 │   └── functions/
 │       └── fetch-daily-gospel/     # Edge Function para contenido diario
+├── .github/
+│   └── workflows/
+│       └── daily-gospel.yml        # Cron diario (6:00 AM UTC)
 ├── docs/                           # Documentación completa
 │   ├── 01.Product Requeriments Document (PRD).md
 │   ├── 02.Historias de usuario. Backlog.md
@@ -118,8 +122,8 @@ supabase db push
 supabase secrets set OPENAI_API_KEY=tu_key
 supabase secrets set API_BIBLE_KEY=tu_key
 
-# Desplegar Edge Functions
-supabase functions deploy fetch-daily-gospel
+# Desplegar Edge Functions (nombre en Supabase: clever-worker)
+supabase functions deploy clever-worker --project-ref popqvhrgsokuviwtscid
 ```
 
 ### 4. Configurar Flutter
