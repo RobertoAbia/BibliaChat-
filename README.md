@@ -37,6 +37,14 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - Al enviar: abre chat con contexto de la story
 - Navegación fullscreen (oculta bottom nav)
 
+### Sistema de Progreso y Racha 🔥
+- **Barra de progreso diario** (0%, 33%, 66%, 100%) según slides vistos
+- **Racha de días consecutivos** calculada desde Supabase (`daily_activity`)
+- **Optimistic UI**: La racha se actualiza instantáneamente sin esperar al servidor
+- **Celebración**: SnackBar dorado "¡Felicidades! 🔥 X días seguidos" al completar
+- **Almacenamiento local**: Slides vistos en SharedPreferences por fecha
+- **Mutex para concurrencia**: Evita race conditions en escrituras rápidas
+
 ### Chat IA Denominacional
 - Personalizado según denominación (católico, evangélico, pentecostal, etc.)
 - Adaptado al origen cultural del usuario
@@ -54,19 +62,25 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 BibliaChat/
 ├── app_flutter/                    # Aplicación Flutter
 │   └── lib/
-│       ├── core/                   # Tema, widgets, utilidades
-│       └── features/               # Features por módulo
-│           ├── auth/
-│           ├── onboarding/
+│       ├── core/
+│       │   ├── theme/              # AppTheme, colores, estilos
+│       │   ├── widgets/            # GlassContainer, ShimmerLoading, LottieHelper
+│       │   ├── services/           # StoryViewedService (SharedPreferences)
+│       │   └── providers/          # story_viewed_provider
+│       └── features/
+│           ├── auth/               # SplashScreen
+│           ├── onboarding/         # 12 páginas de onboarding
 │           ├── home/
-│           ├── chat/
-│           ├── study/
-│           ├── profile/
+│           │   ├── data/           # daily_activity_remote_datasource
+│           │   └── presentation/   # HomeScreen, daily_progress_provider
+│           ├── chat/               # ChatListScreen, ChatScreen
+│           ├── study/              # StudyScreen
+│           ├── profile/            # Perfil de usuario
 │           └── daily_gospel/       # Feature Evangelio + Stories
 ├── supabase/
 │   ├── migrations/                 # 13 migraciones SQL
 │   └── functions/
-│       └── fetch-daily-gospel/     # Edge Function para contenido diario
+│       └── fetch-daily-gospel/     # Edge Function (desplegada como clever-worker)
 ├── .github/
 │   └── workflows/
 │       └── daily-gospel.yml        # Cron diario (6:00 AM UTC)
@@ -174,6 +188,7 @@ flutter run -d android
   - Fondo: #1A1A2E, #16162A
   - Primario (Dorado): #D4AF37, #E8C967
   - Superficies: #252540, #2D2D4A
+  - Shimmer (loading): #3A3A5A → #5A5A7A (contraste visible en tema oscuro)
 
 ## Documentación
 

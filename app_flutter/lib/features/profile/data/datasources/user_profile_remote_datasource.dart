@@ -36,15 +36,17 @@ class UserProfileRemoteDatasource {
     return UserProfileModel.fromJson(response);
   }
 
-  /// Actualiza el perfil del usuario
+  /// Actualiza el perfil del usuario (crea si no existe)
   Future<UserProfileModel> updateProfile(
     String userId,
     Map<String, dynamic> data,
   ) async {
+    // Use upsert to create profile if it doesn't exist
+    final dataWithUserId = {...data, 'user_id': userId};
+
     final response = await _client
         .from('user_profiles')
-        .update(data)
-        .eq('user_id', userId)
+        .upsert(dataWithUserId)
         .select()
         .single();
 

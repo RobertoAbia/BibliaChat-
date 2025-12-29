@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/glass_container.dart';
 import '../../../../core/widgets/lottie_helper.dart';
 
 class ChatScreen extends StatefulWidget {

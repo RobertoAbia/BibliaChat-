@@ -3,11 +3,12 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/providers/story_viewed_provider.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../providers/daily_progress_provider.dart';
 import '../../../../core/widgets/glass_container.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../chat/presentation/screens/chat_screen.dart';
-import '../../../daily_gospel/domain/entities/daily_gospel.dart';
 import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart';
 import '../../../daily_gospel/presentation/screens/gospel_stories_screen.dart';
 import '../../../profile/domain/entities/user_profile.dart';
@@ -22,10 +23,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with SingleTickerProviderStateMixin {
-  // TODO: Get from Supabase
-  int _streakDays = 0;
-  int _todayProgress = 0; // 0-100
-
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
 
@@ -79,45 +76,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   const SizedBox(height: 24),
 
                   // Content Cards
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      children: [
-                        // Gospel Card (Evangelio del Día)
-                        _buildGospelCard(),
-
-                        const SizedBox(height: 16),
-
-                        // Devotional Card
-                        _ContentCard(
-                          label: 'DEVOCIONAL PERSONALIZADO',
-                          duration: '3 MIN',
-                          title: 'El Regalo de la Paz',
-                          icon: Icons.auto_stories,
-                          delay: 100,
-                          onTap: () {
-                            // TODO: Navigate to devotional
-                          },
-                        ),
-
-                        const SizedBox(height: 16),
-
-                        // Prayer Card
-                        _ContentCard(
-                          label: 'MI ORACIÓN',
-                          duration: '2 MIN',
-                          title: 'Momento de conexión con Dios',
-                          icon: Icons.favorite_outline,
-                          delay: 200,
-                          onTap: () {
-                            // TODO: Navigate to prayer
-                          },
-                        ),
-
-                        const SizedBox(height: 32),
-                      ],
-                    ),
-                  ),
+                  _buildContentCards(),
                 ],
               ),
             ),
@@ -207,12 +166,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               children: [
                 const Text('🔥', style: TextStyle(fontSize: 18)),
                 const SizedBox(width: 6),
-                Text(
-                  '$_streakDays',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: AppTheme.primaryColor,
-                        fontWeight: FontWeight.bold,
-                      ),
+                Consumer(
+                  builder: (context, ref, child) {
+                    final streak = ref.watch(streakDaysDisplayProvider);
+                    return Text(
+                      '$streak',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -332,6 +296,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildProgressSection(BuildContext context) {
+    final progress = ref.watch(todayProgressProvider);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -350,7 +316,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 shaderCallback: (bounds) =>
                     AppTheme.goldGradient.createShader(bounds),
                 child: Text(
-                  '$_todayProgress%',
+                  '$progress%',
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
@@ -371,7 +337,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               children: [
                 FractionallySizedBox(
                   alignment: Alignment.centerLeft,
-                  widthFactor: _todayProgress / 100,
+                  widthFactor: progress / 100,
                   child: Container(
                     decoration: BoxDecoration(
                       gradient: AppTheme.goldGradient,
@@ -403,9 +369,145 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return '${now.day} de ${months[now.month - 1]}';
   }
 
+  /// Opens Stories at a specific slide index
+  Future<void> _openStoriesAtIndex(int slideIndex) async {
+    final gospelAsync = ref.read(dailyGospelProvider);
+    final profileAsync = ref.read(currentUserProfileProvider);
+    final service = ref.read(storyViewedServiceProvider);
+
+    final gospel = gospelAsync.valueOrNull;
+    if (gospel == null || !gospel.hasStoriesContent) {
+      // No gospel content available
+      return;
+    }
+
+    // Determine topic based on denomination
+    final isCatholic = profileAsync.valueOrNull?.denomination == Denomination.catolica;
+    final topicKey = isCatholic ? 'evangelio_del_dia' : 'lectura_del_dia';
+
+    // Open Stories at the specified slide
+    final result = await Navigator.of(context, rootNavigator: true).push<Map<String, dynamic>>(
+      MaterialPageRoute(
+        builder: (context) => GospelStoriesScreen(
+          gospel: gospel,
+          initialSlideIndex: slideIndex,
+          onSlideViewed: (index) async {
+            // Mark slide as viewed
+            await service.markSlideAsViewed(gospel.date, index);
+          },
+        ),
+        fullscreenDialog: true,
+      ),
+    );
+
+    // Refresh the viewed slides state for UI
+    ref.invalidate(viewedSlidesProvider);
+
+    // Read directly from SharedPreferences to check completion
+    // This avoids race conditions with provider refresh
+    final viewedSlides = await service.getViewedSlides(gospel.date);
+    debugPrint('After Stories: viewedSlides = $viewedSlides (length=${viewedSlides.length})');
+
+    if (viewedSlides.length >= 3) {
+      final marked = await markDayAsCompleted(ref);
+      if (marked) {
+        debugPrint('Day marked as completed! Streak updated.');
+        // Show celebration SnackBar
+        if (context.mounted) {
+          final newStreak = ref.read(streakDaysDisplayProvider);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                '¡Felicidades! 🔥 $newStreak ${newStreak == 1 ? 'día' : 'días'} seguidos',
+                style: const TextStyle(
+                  color: AppTheme.textOnPrimary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              backgroundColor: AppTheme.primaryColor,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 3),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.all(16),
+            ),
+          );
+        }
+      } else {
+        debugPrint('Day was already completed.');
+      }
+    } else {
+      debugPrint('Not all slides viewed yet: ${viewedSlides.length}/3');
+    }
+
+    // Handle chat action from Stories
+    if (result != null && result['action'] == 'openChat' && context.mounted) {
+      Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute(
+          builder: (context) => ChatScreen(
+            topicKey: topicKey,
+            initialGospelText: result['text'] ?? gospel.text,
+            initialGospelReference: result['reference'] ?? gospel.reference,
+            initialUserMessage: result['userMessage'],
+          ),
+          fullscreenDialog: true,
+        ),
+      );
+    }
+  }
+
+  Widget _buildContentCards() {
+    final viewedSlidesAsync = ref.watch(viewedSlidesProvider);
+    final gospelAsync = ref.watch(dailyGospelProvider);
+
+    // Get viewed slides (default to empty if loading/error)
+    final viewedSlides = viewedSlidesAsync.valueOrNull ?? <int>{};
+    final hasContent = gospelAsync.valueOrNull?.hasStoriesContent ?? false;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        children: [
+          // Gospel Card (Evangelio del Día)
+          _buildGospelCard(),
+
+          const SizedBox(height: 16),
+
+          // Key Concept Card - Opens Stories at slide 1
+          _ContentCard(
+            label: 'CONCEPTO CLAVE',
+            duration: '1 MIN',
+            title: 'La idea que transforma',
+            icon: Icons.lightbulb_outline,
+            delay: 100,
+            isNew: hasContent && !viewedSlides.contains(1),
+            onTap: () => _openStoriesAtIndex(1),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Practical Exercise Card - Opens Stories at slide 2
+          _ContentCard(
+            label: 'PARA HOY',
+            duration: '1 MIN',
+            title: 'Tu acción del día',
+            icon: Icons.favorite_outline,
+            delay: 200,
+            isNew: hasContent && !viewedSlides.contains(2),
+            onTap: () => _openStoriesAtIndex(2),
+          ),
+
+          const SizedBox(height: 32),
+        ],
+      ),
+    );
+  }
+
   Widget _buildGospelCard() {
     final gospelAsync = ref.watch(dailyGospelProvider);
     final profileAsync = ref.watch(currentUserProfileProvider);
+    final viewedSlidesAsync = ref.watch(viewedSlidesProvider);
 
     // Determine label and topic based on denomination
     final isCatholic = profileAsync.whenOrNull(
@@ -427,20 +529,70 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             onRetry: () => ref.invalidate(dailyGospelProvider),
           );
         }
+        // Check if slide 0 has been viewed
+        final viewedSlides = viewedSlidesAsync.valueOrNull ?? <int>{};
+        final isSlide0New = gospel.hasStoriesContent && !viewedSlides.contains(0);
+        final service = ref.read(storyViewedServiceProvider);
+
         return _GospelCardCompact(
           label: label,
           reference: gospel.reference,
-          hasStories: gospel.hasStoriesContent,
+          hasStories: isSlide0New,
           onTap: () async {
             // Si tiene contenido de Stories, abrir Stories primero
             if (gospel.hasStoriesContent) {
               // Usar rootNavigator para que cubra toda la pantalla incluyendo bottom nav
               final result = await Navigator.of(context, rootNavigator: true).push<Map<String, dynamic>>(
                 MaterialPageRoute(
-                  builder: (context) => GospelStoriesScreen(gospel: gospel),
+                  builder: (context) => GospelStoriesScreen(
+                    gospel: gospel,
+                    initialSlideIndex: 0,
+                    onSlideViewed: (index) async {
+                      await service.markSlideAsViewed(gospel.date, index);
+                    },
+                  ),
                   fullscreenDialog: true,
                 ),
               );
+
+              // Refresh the viewed slides state
+              ref.invalidate(viewedSlidesProvider);
+
+              // Check completion - read directly from SharedPreferences
+              final viewedSlidesNow = await service.getViewedSlides(gospel.date);
+              debugPrint('After Stories (Gospel Card): viewedSlides = $viewedSlidesNow (length=${viewedSlidesNow.length})');
+
+              if (viewedSlidesNow.length >= 3) {
+                final marked = await markDayAsCompleted(ref);
+                if (marked) {
+                  debugPrint('Day marked as completed! Streak updated.');
+                  if (context.mounted) {
+                    final newStreak = ref.read(streakDaysDisplayProvider);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          '¡Felicidades! 🔥 $newStreak ${newStreak == 1 ? 'día' : 'días'} seguidos',
+                          style: const TextStyle(
+                            color: AppTheme.textOnPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        backgroundColor: AppTheme.primaryColor,
+                        behavior: SnackBarBehavior.floating,
+                        duration: const Duration(seconds: 3),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        margin: const EdgeInsets.all(16),
+                      ),
+                    );
+                  }
+                } else {
+                  debugPrint('Day was already completed.');
+                }
+              } else {
+                debugPrint('Not all slides viewed yet: ${viewedSlidesNow.length}/3');
+              }
 
               // Si el usuario quiere abrir el chat desde Stories
               if (result != null && result['action'] == 'openChat' && context.mounted) {
@@ -761,6 +913,7 @@ class _ContentCard extends StatefulWidget {
   final IconData icon;
   final VoidCallback onTap;
   final int delay;
+  final bool isNew;
 
   const _ContentCard({
     required this.label,
@@ -769,6 +922,7 @@ class _ContentCard extends StatefulWidget {
     required this.icon,
     required this.onTap,
     this.delay = 0,
+    this.isNew = false,
   });
 
   @override
@@ -834,22 +988,57 @@ class _ContentCardState extends State<_ContentCard>
             backgroundOpacity: 0.4,
             child: Row(
               children: [
-                // Icon
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppTheme.primaryColor.withOpacity(0.2),
+                // Icon with optional golden ring
+                Stack(
+                  children: [
+                    // Golden ring (visible when isNew)
+                    if (widget.isNew)
+                      Container(
+                        width: 58,
+                        height: 58,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(17),
+                          gradient: AppTheme.goldGradient,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryColor.withOpacity(0.4),
+                              blurRadius: 12,
+                              spreadRadius: 0,
+                            ),
+                          ],
+                        ),
+                      ),
+                    // Icon container
+                    Container(
+                      width: 52,
+                      height: 52,
+                      margin: widget.isNew
+                          ? const EdgeInsets.all(3)
+                          : EdgeInsets.zero,
+                      decoration: BoxDecoration(
+                        gradient: widget.isNew ? AppTheme.goldGradient : null,
+                        color: widget.isNew
+                            ? null
+                            : AppTheme.primaryColor.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(14),
+                        border: widget.isNew
+                            ? Border.all(
+                                color: AppTheme.backgroundDark,
+                                width: 2,
+                              )
+                            : Border.all(
+                                color: AppTheme.primaryColor.withOpacity(0.2),
+                              ),
+                      ),
+                      child: Icon(
+                        widget.icon,
+                        color: widget.isNew
+                            ? AppTheme.textOnPrimary
+                            : AppTheme.primaryColor,
+                        size: 26,
+                      ),
                     ),
-                  ),
-                  child: Icon(
-                    widget.icon,
-                    color: AppTheme.primaryColor,
-                    size: 26,
-                  ),
+                  ],
                 ),
                 const SizedBox(width: 16),
                 // Content
@@ -863,27 +1052,60 @@ class _ContentCardState extends State<_ContentCard>
                             widget.label,
                             style:
                                 Theme.of(context).textTheme.labelSmall?.copyWith(
-                                      color: AppTheme.textTertiary,
+                                      color: widget.isNew
+                                          ? AppTheme.primaryColor
+                                          : AppTheme.textTertiary,
+                                      fontWeight: widget.isNew
+                                          ? FontWeight.w600
+                                          : FontWeight.normal,
                                       letterSpacing: 0.5,
                                     ),
                           ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 4,
-                            height: 4,
-                            decoration: BoxDecoration(
-                              color: AppTheme.textTertiary,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            widget.duration,
-                            style:
-                                Theme.of(context).textTheme.labelSmall?.copyWith(
-                                      color: AppTheme.textTertiary,
+                          // "NUEVO" badge when isNew
+                          if (widget.isNew) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                gradient: AppTheme.goldGradient,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                'NUEVO',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: AppTheme.textOnPrimary,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 8,
+                                      letterSpacing: 0.5,
                                     ),
-                          ),
+                              ),
+                            ),
+                          ],
+                          if (!widget.isNew) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              width: 4,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: AppTheme.textTertiary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              widget.duration,
+                              style:
+                                  Theme.of(context).textTheme.labelSmall?.copyWith(
+                                        color: AppTheme.textTertiary,
+                                      ),
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 6),
@@ -897,17 +1119,23 @@ class _ContentCardState extends State<_ContentCard>
                     ],
                   ),
                 ),
-                // Chevron
+                // Chevron or Play button
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceLight.withOpacity(0.3),
+                    color: widget.isNew
+                        ? AppTheme.primaryColor.withOpacity(0.2)
+                        : AppTheme.surfaceLight.withOpacity(0.3),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(
-                    Icons.chevron_right,
-                    color: AppTheme.textSecondary,
-                    size: 20,
+                  child: Icon(
+                    widget.isNew
+                        ? Icons.play_arrow_rounded
+                        : Icons.chevron_right,
+                    color: widget.isNew
+                        ? AppTheme.primaryColor
+                        : AppTheme.textSecondary,
+                    size: widget.isNew ? 22 : 20,
                   ),
                 ),
               ],

@@ -12,10 +12,14 @@ import '../../domain/entities/daily_gospel.dart';
 /// Muestra 3 slides: Resumen, Concepto clave, Ejercicio práctico
 class GospelStoriesScreen extends StatefulWidget {
   final DailyGospel gospel;
+  final int initialSlideIndex;
+  final void Function(int slideIndex)? onSlideViewed;
 
   const GospelStoriesScreen({
     super.key,
     required this.gospel,
+    this.initialSlideIndex = 0,
+    this.onSlideViewed,
   });
 
   @override
@@ -100,7 +104,8 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
   @override
   void initState() {
     super.initState();
-    _pageController = PageController();
+    _currentPage = widget.initialSlideIndex;
+    _pageController = PageController(initialPage: widget.initialSlideIndex);
     _progressController = AnimationController(
       vsync: this,
       duration: Duration(seconds: _slideDuration),
@@ -130,6 +135,9 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
       setState(() {});
     });
 
+    // Mark initial slide as viewed
+    widget.onSlideViewed?.call(widget.initialSlideIndex);
+
     _startProgress();
   }
 
@@ -146,6 +154,8 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
+      // Mark new slide as viewed
+      widget.onSlideViewed?.call(_currentPage);
       _startProgress();
     } else {
       // Último slide - cerrar (usando rootNavigator)
@@ -162,6 +172,8 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
+      // Mark slide as viewed (in case user goes back)
+      widget.onSlideViewed?.call(_currentPage);
       _startProgress();
     }
   }

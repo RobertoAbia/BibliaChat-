@@ -274,6 +274,32 @@ BibliaChat/
     - `supabase/migrations/00012_add_verse_summary_column.sql` - Columna summary
     - `supabase/migrations/00013_add_gospel_story_columns.sql` - Columnas Stories
 
+- [x] Feature: Sistema de Progreso y Racha (Daily Progress + Streak)
+  - **Progreso diario:**
+    - Barra de progreso en HomeScreen (0%, 33%, 66%, 100%)
+    - Se actualiza según slides vistos de Stories
+    - Almacenamiento local en SharedPreferences por fecha del gospel
+  - **Racha (Streak):**
+    - Calcula días consecutivos completados desde `daily_activity` (Supabase)
+    - Se incrementa al ver las 3 Stories del día
+    - Muestra emoji 🔥 + número en header de HomeScreen
+  - **Optimistic UI:**
+    - La racha se actualiza instantáneamente en la UI sin esperar a Supabase
+    - Usa `StateProvider` para estado optimista + `FutureProvider` para datos reales
+    - `streakDaysDisplayProvider` combina ambos: optimista si existe, sino Supabase
+  - **Celebración:**
+    - SnackBar dorado "¡Felicidades! 🔥 X días seguidos" al completar
+    - Aparece inmediatamente gracias a Optimistic UI
+  - **Archivos creados:**
+    - `lib/features/home/data/datasources/daily_activity_remote_datasource.dart` - CRUD Supabase
+    - `lib/features/home/presentation/providers/daily_progress_provider.dart` - Providers Riverpod
+    - `lib/core/services/story_viewed_service.dart` - Almacenamiento local de slides vistos
+    - `lib/core/providers/story_viewed_provider.dart` - Providers para slides vistos
+  - **Bugs corregidos:**
+    - Race condition en `StoryViewedService`: múltiples escrituras concurrentes sobrescribían datos. Solución: mutex con `Completer`
+    - Completación solo desde cards secundarias: faltaba check en card principal del Evangelio
+    - Shimmer invisible: colores demasiado similares (`#252540` → `#2D2D4A`). Solución: más contraste (`#3A3A5A` → `#5A5A7A`)
+
 ### Próximos Pasos
 - [ ] T-0003: Configurar proyecto Supabase (prod)
 - [ ] T-0301: Auth flow completo (email upgrade)
@@ -355,3 +381,14 @@ supabase functions serve
 - **Capturar tap antes de perder focus:**
   - Usar `Listener` con `onPointerDown` en lugar de `GestureDetector` con `onTap`
   - El `onPointerDown` se dispara antes de que el sistema de focus procese el evento
+- **Optimistic UI en Riverpod:**
+  - Patrón: `StateProvider` (optimista) + `FutureProvider` (real) + `Provider` (combinado)
+  - El provider combinado devuelve el estado optimista si existe, sino el de Supabase
+  - Después de la operación async, limpiar estado optimista con `Future.delayed`
+- **Mutex/Lock en Dart:**
+  - Usar `Completer<void>?` para serializar operaciones async concurrentes
+  - Patrón: `while (_lock != null) await _lock!.future;` antes de operar
+  - Liberar en `finally` para garantizar que siempre se libera
+- **Shimmer en tema oscuro:**
+  - Los colores base y highlight deben tener suficiente contraste
+  - Recomendado: `#3A3A5A` → `#5A5A7A` (diferencia ~32 en cada canal)
