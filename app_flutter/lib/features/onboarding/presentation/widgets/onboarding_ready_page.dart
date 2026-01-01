@@ -68,15 +68,15 @@ class OnboardingReadyPage extends StatelessWidget {
 
           // Features list
           const _FeatureItem(
-            icon: Icons.auto_awesome,
-            title: 'Devocionales personalizados',
-            subtitle: 'Basados en tus necesidades',
+            icon: Icons.chat_bubble_outline,
+            title: 'Un amigo que te escucha',
+            subtitle: 'Consejería espiritual personalizada',
           ),
           const SizedBox(height: 16),
           const _FeatureItem(
-            icon: Icons.chat_bubble_outline,
-            title: 'Chat con IA bíblica',
-            subtitle: 'Respuestas sabias y compasivas',
+            icon: Icons.favorite,
+            title: 'Oraciones personalizadas',
+            subtitle: 'Basadas en tus necesidades',
           ),
           const SizedBox(height: 16),
           const _FeatureItem(

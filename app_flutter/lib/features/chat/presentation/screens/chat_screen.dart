@@ -1,40 +1,63 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lottie/lottie.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/lottie_helper.dart';
+import '../../domain/entities/chat_message.dart';
+import '../providers/chat_provider.dart';
 
-class ChatScreen extends StatefulWidget {
-  final String topicKey;
+class ChatScreen extends ConsumerStatefulWidget {
+  /// ID del chat existente (para abrir conversación existente)
+  final String? chatId;
+
+  /// Topic key (para chat de topic específico, ej: desde Stories)
+  final String? topicKey;
+
+  /// Texto inicial del evangelio (cuando viene de Stories)
   final String? initialGospelText;
   final String? initialGospelReference;
   final String? initialUserMessage;
 
   const ChatScreen({
     super.key,
-    required this.topicKey,
+    this.chatId,
+    this.topicKey,
     this.initialGospelText,
     this.initialGospelReference,
     this.initialUserMessage,
   });
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  ConsumerState<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
+class _ChatScreenState extends ConsumerState<ChatScreen>
+    with TickerProviderStateMixin {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  final List<ChatMessage> _messages = [];
-  bool _isLoading = false;
   late AnimationController _sendButtonController;
   late Animation<double> _sendButtonScale;
+
+  late ChatIdentifier _chatIdentifier;
 
   @override
   void initState() {
     super.initState();
+
+    // Determinar el identificador del chat
+    if (widget.chatId != null) {
+      _chatIdentifier = ChatIdentifier.existing(widget.chatId!);
+    } else if (widget.initialGospelText != null) {
+      // Viene de Stories: SIEMPRE crear chat nuevo (no buscar existente)
+      _chatIdentifier = const ChatIdentifier.newChat();
+    } else if (widget.topicKey != null) {
+      _chatIdentifier = ChatIdentifier.topic(widget.topicKey!);
+    } else {
+      _chatIdentifier = const ChatIdentifier.newChat();
+    }
 
     _sendButtonController = AnimationController(
       duration: const Duration(milliseconds: 200),
@@ -45,62 +68,61 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
       CurvedAnimation(parent: _sendButtonController, curve: Curves.easeInOut),
     );
 
-    // Add initial messages with delay for animation
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        setState(() {
-          // If we have a gospel text, show it as the first message from AI
-          if (widget.initialGospelText != null) {
-            _messages.add(
-              ChatMessage(
-                content: widget.initialGospelText!,
-                isUser: false,
-              ),
-            );
-
-            // If user sent a message from Stories, add it as their response
-            if (widget.initialUserMessage != null && widget.initialUserMessage!.isNotEmpty) {
-              _messages.add(
-                ChatMessage(
-                  content: widget.initialUserMessage!,
-                  isUser: true,
-                ),
-              );
-
-              // Show that AI is "typing" a response
-              _isLoading = true;
-
-              // Simulate AI response after a delay (TODO: replace with real AI)
-              Future.delayed(const Duration(seconds: 2), () {
-                if (mounted) {
-                  setState(() {
-                    _isLoading = false;
-                    _messages.add(
-                      ChatMessage(
-                        content:
-                            'Gracias por compartir eso conmigo. Este pasaje nos invita a reflexionar profundamente. ¿Hay algo específico que te llamó la atención o te gustaría que exploremos juntos?',
-                        isUser: false,
-                      ),
-                    );
-                  });
-                  _scrollToBottom();
-                }
-              });
-            }
-          } else {
-            // No gospel text, show default greeting
-            _messages.add(
-              ChatMessage(
-                content:
-                    'Hola, soy tu acompañante espiritual. Estoy aquí para escucharte y conversar contigo sobre ${_getTopicTitle(widget.topicKey)}. ¿Qué hay en tu corazón hoy?',
-                isUser: false,
-              ),
-            );
-          }
-        });
-        _scrollToBottom();
-      }
+    // Inicializar después del primer frame para evitar problemas de contexto
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeChat();
     });
+  }
+
+  Future<void> _initializeChat() async {
+    if (!mounted) return;
+
+    final notifier = ref.read(chatNotifierProvider(_chatIdentifier).notifier);
+
+    // Para chats nuevos, resetear el estado primero (evita reutilizar chat viejo cacheado)
+    if (_chatIdentifier.isNewChat && widget.initialGospelText == null) {
+      notifier.resetForNewChat();
+    }
+
+    // Inicializar el chat (cargar historial)
+    try {
+      await notifier.initialize();
+    } catch (e) {
+      debugPrint('Error initializing chat: $e');
+      return;
+    }
+
+    if (!mounted) return;
+
+    // Para chats desde Stories, SIEMPRE añadir mensajes iniciales (es un chat nuevo)
+    if (widget.initialGospelText != null) {
+      // Solo añadir el mensaje del asistente (el contenido de la Story)
+      // NO añadir userContent aquí porque sendMessage() lo añadirá después
+      notifier.addInitialMessages(
+        assistantContent: widget.initialGospelText!,
+      );
+
+      // Si hay mensaje del usuario, enviarlo para obtener respuesta real
+      if (widget.initialUserMessage != null &&
+          widget.initialUserMessage!.isNotEmpty) {
+        // Pasar el topicKey y el contexto de la Story para que la IA sepa de qué habla
+        notifier.sendMessage(
+          widget.initialUserMessage!,
+          topicKey: widget.topicKey,
+          systemContext: widget.initialGospelText,
+        );
+      }
+    } else {
+      // Para otros casos, solo añadir si está vacío
+      final state = ref.read(chatNotifierProvider(_chatIdentifier));
+      if (state.messages.isEmpty && !state.showStarterSuggestions) {
+        if (widget.topicKey != null) {
+          notifier.addInitialAssistantMessage(
+            'Hola, soy tu acompañante espiritual. Estoy aquí para escucharte y conversar contigo sobre ${_getTopicTitle(widget.topicKey!)}. ¿Qué hay en tu corazón hoy?',
+          );
+        }
+      }
+    }
   }
 
   void _scrollToBottom() {
@@ -133,7 +155,8 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     return topics[key] ?? 'lo que necesites';
   }
 
-  String _getTopicDisplayTitle(String key) {
+  String _getTopicDisplayTitle(String? key) {
+    if (key == null) return 'Nueva conversación';
     final topics = {
       'familia_separada': 'Familia separada',
       'desempleo': 'Fe en desempleo',
@@ -151,42 +174,26 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     return topics[key] ?? 'Conversación';
   }
 
-  void _sendMessage() {
-    if (_messageController.text.trim().isEmpty) return;
+  void _sendMessage([String? suggestionText]) {
+    final text = suggestionText ?? _messageController.text.trim();
+    if (text.isEmpty) return;
 
     _sendButtonController.forward().then((_) {
       _sendButtonController.reverse();
     });
 
-    setState(() {
-      _messages.add(
-        ChatMessage(
-          content: _messageController.text.trim(),
-          isUser: true,
-        ),
-      );
-      _isLoading = true;
-    });
+    if (suggestionText == null) {
+      _messageController.clear();
+    }
 
-    _messageController.clear();
+    // Enviar mensaje usando el provider
+    ref.read(chatNotifierProvider(_chatIdentifier).notifier).sendMessage(text);
+
     _scrollToBottom();
+  }
 
-    // Simulate AI response (in real app, call Edge Function)
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          _messages.add(
-            ChatMessage(
-              content:
-                  'Gracias por compartir eso conmigo. Entiendo que esto es importante para ti. La Biblia nos recuerda en Filipenses 4:6-7: "Por nada estéis afanosos, sino sean conocidas vuestras peticiones delante de Dios en toda oración y ruego, con acción de gracias."\n\n¿Te gustaría que oremos juntos sobre esto?',
-              isUser: false,
-            ),
-          );
-          _isLoading = false;
-        });
-        _scrollToBottom();
-      }
-    });
+  void _onSuggestionTap(StarterSuggestion suggestion) {
+    _sendMessage(suggestion.text);
   }
 
   @override
@@ -199,6 +206,16 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    // Escuchar cambios en el estado del chat
+    final chatState = ref.watch(chatNotifierProvider(_chatIdentifier));
+
+    // Scroll al fondo cuando cambian los mensajes
+    ref.listen<ChatState>(chatNotifierProvider(_chatIdentifier), (prev, next) {
+      if (prev?.messages.length != next.messages.length) {
+        _scrollToBottom();
+      }
+    });
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,
       body: Container(
@@ -208,24 +225,62 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
         child: SafeArea(
           child: Column(
             children: [
-              _buildAppBar(),
+              _buildAppBar(chatState),
               Expanded(
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                  itemCount: _messages.length + (_isLoading ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == _messages.length && _isLoading) {
-                      return _TypingIndicator();
-                    }
-                    return _MessageBubble(
-                      message: _messages[index],
-                      index: index,
-                    );
-                  },
-                ),
+                child: chatState.isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: AppTheme.primaryColor,
+                        ),
+                      )
+                    : chatState.showStarterSuggestions
+                        ? _buildStarterSuggestions()
+                        : ListView.builder(
+                            controller: _scrollController,
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                            itemCount: chatState.messages.length +
+                                (chatState.isSending ? 1 : 0),
+                            itemBuilder: (context, index) {
+                              if (index == chatState.messages.length &&
+                                  chatState.isSending) {
+                                return const _TypingIndicator();
+                              }
+                              return _MessageBubble(
+                                message: chatState.messages[index],
+                                index: index,
+                              );
+                            },
+                          ),
               ),
-              _buildInputArea(),
+              if (chatState.error != null)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  color: AppTheme.errorColor.withOpacity(0.1),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.error_outline,
+                          color: AppTheme.errorColor, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          chatState.error!,
+                          style: const TextStyle(
+                            color: AppTheme.errorColor,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 16),
+                        onPressed: () => ref
+                            .read(chatNotifierProvider(_chatIdentifier).notifier)
+                            .clearError(),
+                        color: AppTheme.errorColor,
+                      ),
+                    ],
+                  ),
+                ),
+              _buildInputArea(chatState.isSending),
             ],
           ),
         ),
@@ -233,7 +288,11 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildAppBar() {
+  Widget _buildAppBar(ChatState chatState) {
+    final title = chatState.topicKey != null
+        ? _getTopicDisplayTitle(chatState.topicKey)
+        : 'Nueva conversación';
+
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -297,7 +356,7 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _getTopicDisplayTitle(widget.topicKey),
+                      title,
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: AppTheme.textPrimary,
                             fontWeight: FontWeight.w600,
@@ -358,7 +417,129 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildInputArea() {
+  Widget _buildStarterSuggestions() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // AI greeting message bubble
+          _buildAIGreetingBubble(),
+
+          const SizedBox(height: 24),
+
+          // Suggestions section
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              'Puedes empezar con:',
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    color: AppTheme.textSecondary,
+                    fontWeight: FontWeight.w500,
+                  ),
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Starter suggestions
+          ...starterSuggestions.map((suggestion) => Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: _StarterSuggestionTile(
+                  suggestion: suggestion,
+                  onTap: () => _onSuggestionTap(suggestion),
+                ),
+              )),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAIGreetingBubble() {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 500),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Transform.translate(
+          offset: Offset(-20 * (1 - value), 0),
+          child: Opacity(
+            opacity: value,
+            child: child,
+          ),
+        );
+      },
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.85,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18).copyWith(
+              bottomLeft: const Radius.circular(4),
+            ),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppTheme.surfaceDark.withOpacity(0.7),
+                      AppTheme.surfaceDark.withOpacity(0.5),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(18).copyWith(
+                    bottomLeft: const Radius.circular(4),
+                  ),
+                  border: Border.all(
+                    color: AppTheme.surfaceLight.withOpacity(0.3),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '¡Hola! 👋',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Soy tu acompañante espiritual. Estoy aquí para escucharte, '
+                      'conversar contigo y ayudarte a encontrar paz y guía en la Palabra de Dios.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.textPrimary,
+                            height: 1.4,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '¿Qué hay en tu corazón hoy?',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.textSecondary,
+                            fontStyle: FontStyle.italic,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInputArea(bool isSending) {
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -392,19 +573,24 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                         child: TextField(
                           controller: _messageController,
                           cursorColor: AppTheme.textPrimary,
+                          enabled: !isSending,
                           style: const TextStyle(
                             color: AppTheme.textPrimary,
                           ),
-                          decoration: const InputDecoration(
-                            hintText: 'Escribe tu mensaje...',
-                            hintStyle: TextStyle(color: AppTheme.textTertiary),
+                          decoration: InputDecoration(
+                            hintText: isSending
+                                ? 'Esperando respuesta...'
+                                : 'Escribe tu mensaje...',
+                            hintStyle:
+                                const TextStyle(color: AppTheme.textTertiary),
                             border: InputBorder.none,
                             focusedBorder: InputBorder.none,
                             enabledBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
                             fillColor: Colors.transparent,
                             filled: false,
                             isDense: true,
-                            contentPadding: EdgeInsets.symmetric(
+                            contentPadding: const EdgeInsets.symmetric(
                               horizontal: 20,
                               vertical: 14,
                             ),
@@ -426,24 +612,36 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                         );
                       },
                       child: GestureDetector(
-                        onTap: _sendMessage,
+                        onTap: isSending ? null : () => _sendMessage(),
                         child: Container(
                           width: 48,
                           height: 48,
                           decoration: BoxDecoration(
-                            gradient: AppTheme.goldGradient,
+                            gradient: isSending
+                                ? LinearGradient(
+                                    colors: [
+                                      AppTheme.primaryColor.withOpacity(0.5),
+                                      AppTheme.primaryDark.withOpacity(0.5),
+                                    ],
+                                  )
+                                : AppTheme.goldGradient,
                             borderRadius: BorderRadius.circular(14),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primaryColor.withOpacity(0.4),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
+                            boxShadow: isSending
+                                ? null
+                                : [
+                                    BoxShadow(
+                                      color:
+                                          AppTheme.primaryColor.withOpacity(0.4),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.send_rounded,
-                            color: AppTheme.textOnPrimary,
+                            color: isSending
+                                ? AppTheme.textTertiary
+                                : AppTheme.textOnPrimary,
                             size: 22,
                           ),
                         ),
@@ -461,6 +659,102 @@ class _ChatScreenState extends State<ChatScreen> with TickerProviderStateMixin {
                   textAlign: TextAlign.center,
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _StarterSuggestionTile extends StatefulWidget {
+  final StarterSuggestion suggestion;
+  final VoidCallback onTap;
+
+  const _StarterSuggestionTile({
+    required this.suggestion,
+    required this.onTap,
+  });
+
+  @override
+  State<_StarterSuggestionTile> createState() => _StarterSuggestionTileState();
+}
+
+class _StarterSuggestionTileState extends State<_StarterSuggestionTile>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.98).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) => _controller.reverse(),
+      onTapCancel: () => _controller.reverse(),
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: child,
+          );
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(16),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceDark.withOpacity(0.4),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppTheme.surfaceLight.withOpacity(0.3),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    widget.suggestion.icon,
+                    style: const TextStyle(fontSize: 24),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Text(
+                      widget.suggestion.text,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            color: AppTheme.textPrimary,
+                          ),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    color: AppTheme.textTertiary,
+                    size: 16,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -634,6 +928,8 @@ class _ActionButton extends StatelessWidget {
 }
 
 class _TypingIndicator extends StatelessWidget {
+  const _TypingIndicator();
+
   @override
   Widget build(BuildContext context) {
     return TweenAnimationBuilder<double>(
@@ -680,7 +976,7 @@ class _TypingIndicator extends StatelessWidget {
                         LottieAssets.typingIndicator,
                         fit: BoxFit.contain,
                         errorBuilder: (context, error, stackTrace) {
-                          return _FallbackTypingDots();
+                          return const _FallbackTypingDots();
                         },
                       ),
                     ),
@@ -703,6 +999,8 @@ class _TypingIndicator extends StatelessWidget {
 }
 
 class _FallbackTypingDots extends StatefulWidget {
+  const _FallbackTypingDots();
+
   @override
   State<_FallbackTypingDots> createState() => _FallbackTypingDotsState();
 }
@@ -757,16 +1055,4 @@ class _FallbackTypingDotsState extends State<_FallbackTypingDots>
       },
     );
   }
-}
-
-class ChatMessage {
-  final String content;
-  final bool isUser;
-  final DateTime timestamp;
-
-  ChatMessage({
-    required this.content,
-    required this.isUser,
-    DateTime? timestamp,
-  }) : timestamp = timestamp ?? DateTime.now();
 }

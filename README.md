@@ -10,7 +10,7 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 |------------|------------|
 | Frontend | Flutter 3.35+ (iOS 14.5+ / Android 6.0+) |
 | Backend/DB/Auth | Supabase (PostgreSQL + Auth + RLS + Edge Functions) |
-| IA | OpenAI GPT-5.2 |
+| IA | OpenAI GPT-4o (chat) + GPT-4o-mini (memorias) + GPT-5.2 (Stories) |
 | Pagos | RevenueCat + In-App Purchases |
 | Notificaciones | Firebase Cloud Messaging |
 | Analytics | Firebase Analytics + Mixpanel |
@@ -18,7 +18,7 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 ## 3 Pilares de la App
 
 1. **HOY** - Retención diaria (racha, evangelio del día con Stories, devoción, oración)
-2. **CHAT** - IA denominacional con 10 temas hispanos
+2. **CHAT** - IA denominacional con 12 temas hispanos (sistema híbrido: chats libres + guiados)
 3. **ESTUDIAR** - 7 planes de estudio + gamificación
 
 ## Features Principales
@@ -45,11 +45,22 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 - **Almacenamiento local**: Slides vistos en SharedPreferences por fecha
 - **Mutex para concurrencia**: Evita race conditions en escrituras rápidas
 
-### Chat IA Denominacional
-- Personalizado según denominación (católico, evangélico, pentecostal, etc.)
-- Adaptado al origen cultural del usuario
-- 10 temas específicos para hispanohablantes
-- Memoria global para personalización continua
+### Chat IA Denominacional (Sistema Híbrido)
+- **Estilo ChatGPT**: Conversaciones libres + temas guiados
+- **12 topics específicos** para hispanohablantes:
+  - `familia_separada`, `desempleo`, `solteria`, `ansiedad_miedo`
+  - `identidad_bicultural`, `reconciliacion`, `sacramentos`, `oracion`
+  - `preguntas_biblia`, `evangelio_del_dia`, `lectura_del_dia`, `otro`
+- **Personalización por**:
+  - Denominación (católico, evangélico, pentecostal, bautista, adventista, etc.)
+  - Origen cultural (México/Centroamérica, Caribe, Sudamérica, España)
+  - Grupo de edad (teen, young_adult, adult, senior)
+- **Sistema de memorias**:
+  - `ai_memory`: Hechos del usuario (largo plazo global)
+  - `context_summary`: Resumen de conversación (largo plazo por chat)
+  - Últimos 10 mensajes (corto plazo)
+- **Tono**: "Amigo cristiano de WhatsApp" - casual, cercano, sin sermones
+- **Modelos IA**: GPT-4o (chat) + GPT-4o-mini (memorias)
 
 ### Planes de Estudio
 - 7 planes temáticos para hispanos
@@ -78,9 +89,10 @@ BibliaChat/
 │           ├── profile/            # Perfil de usuario
 │           └── daily_gospel/       # Feature Evangelio + Stories
 ├── supabase/
-│   ├── migrations/                 # 13 migraciones SQL
+│   ├── migrations/                 # 15 migraciones SQL
 │   └── functions/
-│       └── fetch-daily-gospel/     # Edge Function (desplegada como clever-worker)
+│       ├── fetch-daily-gospel/     # Edge Function evangelio (desplegada como clever-worker)
+│       └── chat-send-message/      # Edge Function chat IA (combined.ts)
 ├── .github/
 │   └── workflows/
 │       └── daily-gospel.yml        # Cron diario (6:00 AM UTC)
@@ -164,17 +176,32 @@ flutter run -d android
 - **RLS (Row Level Security)**: Seguridad a nivel de base de datos
 - **Edge Functions**: Para operaciones sensibles (IA, billing)
 
-### Configuración GPT-5.2
+### Configuración OpenAI
 
 ```typescript
-// Edge Functions usan GPT-5.2 con esta configuración:
+// chat-send-message: GPT-4o para respuestas del chat
+{
+  model: "gpt-4o",
+  messages: [
+    { role: "developer", content: systemPrompt },  // NO "system"
+    ...historialMensajes,
+    { role: "user", content: userMessage }
+  ],
+  max_completion_tokens: 800,
+  temperature: 0.8
+}
+
+// chat-send-message: GPT-4o-mini para memorias (cada 20 mensajes)
+{
+  model: "gpt-4o-mini",
+  max_completion_tokens: 200-300,
+  temperature: 0.2-0.3
+}
+
+// fetch-daily-gospel: GPT-5.2 para contenido Stories
 {
   model: "gpt-5.2",
-  messages: [
-    { role: "developer", content: "..." },  // NO "system"
-    { role: "user", content: "..." }
-  ],
-  max_completion_tokens: 600,  // NO "max_tokens"
+  max_completion_tokens: 600,
   temperature: 0.9
 }
 ```

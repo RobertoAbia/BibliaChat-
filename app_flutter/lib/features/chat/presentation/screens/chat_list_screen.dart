@@ -1,106 +1,21 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
+import '../../domain/entities/chat_message.dart';
+import '../providers/chat_provider.dart';
+import 'chat_screen.dart';
 
-class ChatListScreen extends StatelessWidget {
+class ChatListScreen extends ConsumerWidget {
   const ChatListScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final topics = [
-      ChatTopic(
-        key: 'familia_separada',
-        title: 'Oración por familia separada',
-        icon: '🏠',
-        description: 'Para quienes tienen familiares lejos',
-        gradient: const LinearGradient(
-          colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-        ),
-      ),
-      ChatTopic(
-        key: 'desempleo',
-        title: 'Fe en desempleo',
-        icon: '💼',
-        description: 'Cuando el trabajo escasea',
-        gradient: const LinearGradient(
-          colors: [Color(0xFF059669), Color(0xFF10B981)],
-        ),
-      ),
-      ChatTopic(
-        key: 'solteria',
-        title: 'Soltería cristiana',
-        icon: '💝',
-        description: 'Vivir la soltería con propósito',
-        gradient: const LinearGradient(
-          colors: [Color(0xFFEC4899), Color(0xFFF472B6)],
-        ),
-      ),
-      ChatTopic(
-        key: 'ansiedad_miedo',
-        title: 'Ansiedad y miedo',
-        icon: '🕊️',
-        description: 'Encontrar paz en tiempos difíciles',
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0EA5E9), Color(0xFF38BDF8)],
-        ),
-      ),
-      ChatTopic(
-        key: 'identidad_bicultural',
-        title: 'Identidad bicultural',
-        icon: '🌎',
-        description: 'Entre dos mundos y culturas',
-        gradient: const LinearGradient(
-          colors: [Color(0xFFF59E0B), Color(0xFFFBBF24)],
-        ),
-      ),
-      ChatTopic(
-        key: 'reconciliacion',
-        title: 'Reconciliación familiar',
-        icon: '🤝',
-        description: 'Sanar relaciones rotas',
-        gradient: const LinearGradient(
-          colors: [Color(0xFF14B8A6), Color(0xFF2DD4BF)],
-        ),
-      ),
-      ChatTopic(
-        key: 'sacramentos',
-        title: 'Bautismo / Confirmación',
-        icon: '✝️',
-        description: 'Preguntas sobre sacramentos',
-        gradient: const LinearGradient(
-          colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
-        ),
-      ),
-      ChatTopic(
-        key: 'oracion',
-        title: 'Oración personalizada',
-        icon: '🙏',
-        description: 'Orar juntos sobre tu situación',
-        gradient: AppTheme.goldGradient,
-      ),
-      ChatTopic(
-        key: 'preguntas_biblia',
-        title: 'Preguntas sobre la Biblia',
-        icon: '📖',
-        description: 'Dudas y estudios bíblicos',
-        gradient: const LinearGradient(
-          colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
-        ),
-      ),
-      ChatTopic(
-        key: 'otro',
-        title: 'Otro tema',
-        icon: '💬',
-        description: 'Cualquier otra cosa en tu corazón',
-        gradient: const LinearGradient(
-          colors: [Color(0xFF6B7280), Color(0xFF9CA3AF)],
-        ),
-      ),
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final chatsAsync = ref.watch(refreshableUserChatsProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,
@@ -113,114 +28,115 @@ class ChatListScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        gradient: AppTheme.goldGradient,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primaryColor.withOpacity(0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.chat_bubble_rounded,
-                        color: AppTheme.textOnPrimary,
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Chat IA',
-                          style:
-                              Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                    color: AppTheme.textPrimary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                        ),
-                        Text(
-                          'Tu compañero espiritual',
-                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                color: AppTheme.textTertiary,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              _buildHeader(context),
 
-              // Subtitle with glass effect
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                child: GlassContainer(
-                  blur: 8,
-                  backgroundOpacity: 0.3,
-                  borderRadius: 14,
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          gradient: AppTheme.goldGradient,
-                          borderRadius: BorderRadius.circular(2),
+              // Content
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    ref.read(userChatsRefreshProvider.notifier).state++;
+                    await ref.read(refreshableUserChatsProvider.future);
+                  },
+                  color: AppTheme.primaryColor,
+                  child: CustomScrollView(
+                    slivers: [
+                      // New conversation button
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                          child: _NewConversationButton(
+                            onTap: () async {
+                              await Navigator.of(context, rootNavigator: true).push(
+                                MaterialPageRoute(
+                                  builder: (_) => const ChatScreen(),
+                                  fullscreenDialog: true,
+                                ),
+                              );
+                              // Refrescar lista al volver del chat
+                              ref.read(userChatsRefreshProvider.notifier).state++;
+                            },
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          '¿Sobre qué quieres conversar hoy?',
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: AppTheme.textPrimary,
-                                    fontWeight: FontWeight.w500,
+
+                      // Recent conversations section
+                      chatsAsync.when(
+                        data: (chats) {
+                          if (chats.isEmpty) {
+                            return SliverToBoxAdapter(
+                              child: _buildEmptyState(context),
+                            );
+                          }
+
+                          return SliverList(
+                            delegate: SliverChildBuilderDelegate(
+                              (context, index) {
+                                if (index == 0) {
+                                  return Padding(
+                                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                                    child: Text(
+                                      'Conversaciones recientes',
+                                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                            color: AppTheme.textTertiary,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                    ),
+                                  );
+                                }
+
+                                final chat = chats[index - 1];
+                                return TweenAnimationBuilder<double>(
+                                  tween: Tween(begin: 0.0, end: 1.0),
+                                  duration: Duration(milliseconds: 300 + (index * 50)),
+                                  curve: Curves.easeOutCubic,
+                                  builder: (context, value, child) {
+                                    return Transform.translate(
+                                      offset: Offset(0, 20 * (1 - value)),
+                                      child: Opacity(
+                                        opacity: value,
+                                        child: child,
+                                      ),
+                                    );
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                                    child: _ChatTile(
+                                      chat: chat,
+                                      onReturn: () => ref.read(userChatsRefreshProvider.notifier).state++,
+                                    ),
                                   ),
+                                );
+                              },
+                              childCount: chats.length + 1, // +1 for header
+                            ),
+                          );
+                        },
+                        loading: () => const SliverToBoxAdapter(
+                          child: Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(40),
+                              child: CircularProgressIndicator(
+                                color: AppTheme.primaryColor,
+                              ),
+                            ),
+                          ),
+                        ),
+                        error: (error, stack) => SliverToBoxAdapter(
+                          child: _buildErrorState(context, error.toString()),
+                        ),
+                      ),
+
+                      // Guided topics section (collapsed by default)
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                          child: _GuidedTopicsSection(
+                            onTopicReturn: () => ref.read(userChatsRefreshProvider.notifier).state++,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-
-              // Topics list
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: topics.length,
-                  itemBuilder: (context, index) {
-                    final topic = topics[index];
-                    return TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0.0, end: 1.0),
-                      duration: Duration(milliseconds: 400 + (index * 50)),
-                      curve: Curves.easeOutCubic,
-                      builder: (context, value, child) {
-                        return Transform.translate(
-                          offset: Offset(0, 20 * (1 - value)),
-                          child: Opacity(
-                            opacity: value,
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.only(bottom: 12),
-                        child: _ChatTopicTile(topic: topic),
-                      ),
-                    );
-                  },
                 ),
               ),
             ],
@@ -229,18 +145,135 @@ class ChatListScreen extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              gradient: AppTheme.goldGradient,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(
+              Icons.chat_bubble_rounded,
+              color: AppTheme.textOnPrimary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Tus Conversaciones',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: AppTheme.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              Text(
+                'Tu compañero espiritual',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textTertiary,
+                    ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceDark.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Icon(
+              Icons.chat_bubble_outline,
+              color: AppTheme.textTertiary.withOpacity(0.5),
+              size: 40,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Aún no tienes conversaciones',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Toca el botón de arriba para empezar a conversar',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppTheme.textTertiary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context, String error) {
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: Column(
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: AppTheme.errorColor.withOpacity(0.5),
+            size: 48,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Error al cargar conversaciones',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppTheme.errorColor,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            error,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppTheme.textTertiary,
+                ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-class _ChatTopicTile extends StatefulWidget {
-  final ChatTopic topic;
+class _NewConversationButton extends StatefulWidget {
+  final VoidCallback onTap;
 
-  const _ChatTopicTile({required this.topic});
+  const _NewConversationButton({required this.onTap});
 
   @override
-  State<_ChatTopicTile> createState() => _ChatTopicTileState();
+  State<_NewConversationButton> createState() => _NewConversationButtonState();
 }
 
-class _ChatTopicTileState extends State<_ChatTopicTile>
+class _NewConversationButtonState extends State<_NewConversationButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
@@ -264,25 +297,155 @@ class _ChatTopicTileState extends State<_ChatTopicTile>
     super.dispose();
   }
 
-  void _onTapDown(TapDownDetails details) {
-    _controller.forward();
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) => _controller.reverse(),
+      onTapCancel: () => _controller.reverse(),
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: child,
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: BoxDecoration(
+            gradient: AppTheme.goldGradient,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryColor.withOpacity(0.3),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(
+                  Icons.add_rounded,
+                  color: AppTheme.textOnPrimary,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Nueva conversación',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AppTheme.textOnPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChatTile extends StatefulWidget {
+  final Chat chat;
+  final VoidCallback? onReturn;
+
+  const _ChatTile({required this.chat, this.onReturn});
+
+  @override
+  State<_ChatTile> createState() => _ChatTileState();
+}
+
+class _ChatTileState extends State<_ChatTile>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.98).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
   }
 
-  void _onTapUp(TapUpDetails details) {
-    _controller.reverse();
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
-  void _onTapCancel() {
-    _controller.reverse();
+  String _getTopicIcon(String? topicKey) {
+    if (topicKey == null) return '💬';
+    const icons = {
+      'familia_separada': '🏠',
+      'desempleo': '💼',
+      'solteria': '💝',
+      'ansiedad_miedo': '🕊️',
+      'identidad_bicultural': '🌎',
+      'reconciliacion': '🤝',
+      'sacramentos': '✝️',
+      'oracion': '🙏',
+      'preguntas_biblia': '📖',
+      'evangelio_del_dia': '📜',
+      'lectura_del_dia': '📜',
+      'otro': '💬',
+    };
+    return icons[topicKey] ?? '💬';
+  }
+
+  String _formatTime(DateTime? dateTime) {
+    if (dateTime == null) return '';
+
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 1) {
+      return 'Ahora';
+    } else if (difference.inMinutes < 60) {
+      return 'Hace ${difference.inMinutes} min';
+    } else if (difference.inHours < 24) {
+      return 'Hace ${difference.inHours}h';
+    } else if (difference.inDays == 1) {
+      return 'Ayer';
+    } else if (difference.inDays < 7) {
+      return 'Hace ${difference.inDays} días';
+    } else {
+      return DateFormat('dd/MM').format(dateTime);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: _onTapDown,
-      onTapUp: _onTapUp,
-      onTapCancel: _onTapCancel,
-      onTap: () => context.go('/chat/${widget.topic.key}'),
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) => _controller.reverse(),
+      onTapCancel: () => _controller.reverse(),
+      onTap: () async {
+        await Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(chatId: widget.chat.id),
+            fullscreenDialog: true,
+          ),
+        );
+        widget.onReturn?.call();
+      },
       child: AnimatedBuilder(
         animation: _controller,
         builder: (context, child) {
@@ -292,40 +455,32 @@ class _ChatTopicTileState extends State<_ChatTopicTile>
           );
         },
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(16),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: AppTheme.surfaceDark.withOpacity(0.4),
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
                   color: AppTheme.surfaceLight.withOpacity(0.3),
                 ),
               ),
               child: Row(
                 children: [
-                  // Icon with gradient background
+                  // Icon
                   Container(
-                    width: 52,
-                    height: 52,
+                    width: 48,
+                    height: 48,
                     decoration: BoxDecoration(
-                      gradient: widget.topic.gradient,
+                      color: AppTheme.surfaceLight.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: (widget.topic.gradient.colors.first)
-                              .withOpacity(0.3),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
                     ),
                     child: Center(
                       child: Text(
-                        widget.topic.icon,
-                        style: const TextStyle(fontSize: 26),
+                        _getTopicIcon(widget.chat.topicKey),
+                        style: const TextStyle(fontSize: 24),
                       ),
                     ),
                   ),
@@ -337,38 +492,60 @@ class _ChatTopicTileState extends State<_ChatTopicTile>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          widget.topic.title,
-                          style:
-                              Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    color: AppTheme.textPrimary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                widget.chat.displayTitle,
+                                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                      color: AppTheme.textPrimary,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            if (widget.chat.lastMessageAt != null) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                _formatTime(widget.chat.lastMessageAt),
+                                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                      color: AppTheme.textTertiary,
+                                      fontSize: 11,
+                                    ),
+                              ),
+                            ],
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.topic.description,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.textTertiary,
-                                  ),
-                        ),
+                        if (widget.chat.lastMessagePreview != null) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.chat.lastMessagePreview!,
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppTheme.textTertiary,
+                                ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ],
                     ),
                   ),
 
+                  const SizedBox(width: 8),
+
                   // Arrow
                   Container(
-                    width: 32,
-                    height: 32,
+                    width: 28,
+                    height: 28,
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceLight.withOpacity(0.3),
+                      color: AppTheme.surfaceLight.withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
                       Icons.arrow_forward_ios,
-                      color: AppTheme.textSecondary,
-                      size: 14,
+                      color: AppTheme.textTertiary,
+                      size: 12,
                     ),
                   ),
                 ],
@@ -381,18 +558,288 @@ class _ChatTopicTileState extends State<_ChatTopicTile>
   }
 }
 
+class _GuidedTopicsSection extends StatelessWidget {
+  final VoidCallback? onTopicReturn;
+
+  _GuidedTopicsSection({this.onTopicReturn});
+
+  final List<ChatTopic> topics = [
+    ChatTopic(
+      key: 'familia_separada',
+      title: 'Familia separada',
+      icon: '🏠',
+      gradient: const LinearGradient(
+        colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
+      ),
+    ),
+    ChatTopic(
+      key: 'desempleo',
+      title: 'Fe en desempleo',
+      icon: '💼',
+      gradient: const LinearGradient(
+        colors: [Color(0xFF059669), Color(0xFF10B981)],
+      ),
+    ),
+    ChatTopic(
+      key: 'solteria',
+      title: 'Soltería',
+      icon: '💝',
+      gradient: const LinearGradient(
+        colors: [Color(0xFFEC4899), Color(0xFFF472B6)],
+      ),
+    ),
+    ChatTopic(
+      key: 'ansiedad_miedo',
+      title: 'Ansiedad',
+      icon: '🕊️',
+      gradient: const LinearGradient(
+        colors: [Color(0xFF0EA5E9), Color(0xFF38BDF8)],
+      ),
+    ),
+    ChatTopic(
+      key: 'identidad_bicultural',
+      title: 'Bicultural',
+      icon: '🌎',
+      gradient: const LinearGradient(
+        colors: [Color(0xFFF59E0B), Color(0xFFFBBF24)],
+      ),
+    ),
+    ChatTopic(
+      key: 'reconciliacion',
+      title: 'Reconciliación',
+      icon: '🤝',
+      gradient: const LinearGradient(
+        colors: [Color(0xFF14B8A6), Color(0xFF2DD4BF)],
+      ),
+    ),
+    ChatTopic(
+      key: 'sacramentos',
+      title: 'Sacramentos',
+      icon: '✝️',
+      gradient: const LinearGradient(
+        colors: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+      ),
+    ),
+    ChatTopic(
+      key: 'oracion',
+      title: 'Oración',
+      icon: '🙏',
+      gradient: AppTheme.goldGradient,
+    ),
+    ChatTopic(
+      key: 'preguntas_biblia',
+      title: 'Biblia',
+      icon: '📖',
+      gradient: const LinearGradient(
+        colors: [Color(0xFF3B82F6), Color(0xFF60A5FA)],
+      ),
+    ),
+    ChatTopic(
+      key: 'otro',
+      title: 'Otro tema',
+      icon: '💬',
+      gradient: const LinearGradient(
+        colors: [Color(0xFF6B7280), Color(0xFF9CA3AF)],
+      ),
+    ),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceDark.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppTheme.surfaceLight.withOpacity(0.2),
+            ),
+          ),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              dividerColor: Colors.transparent,
+            ),
+            child: ExpansionTile(
+              initiallyExpanded: false,
+              tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              title: Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceLight.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.topic_outlined,
+                      color: AppTheme.textSecondary,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Temas guiados',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          color: AppTheme.textSecondary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceLight.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '${topics.length}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: AppTheme.textTertiary,
+                            fontSize: 11,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+              trailing: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: AppTheme.surfaceLight.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: AppTheme.textTertiary,
+                  size: 20,
+                ),
+              ),
+              children: [
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 10,
+                  children: topics.map((topic) => _TopicChip(
+                    topic: topic,
+                    onReturn: onTopicReturn,
+                  )).toList(),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TopicChip extends StatefulWidget {
+  final ChatTopic topic;
+  final VoidCallback? onReturn;
+
+  const _TopicChip({required this.topic, this.onReturn});
+
+  @override
+  State<_TopicChip> createState() => _TopicChipState();
+}
+
+class _TopicChipState extends State<_TopicChip>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 100),
+      vsync: this,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) => _controller.reverse(),
+      onTapCancel: () => _controller.reverse(),
+      onTap: () async {
+        await Navigator.of(context, rootNavigator: true).push(
+          MaterialPageRoute(
+            builder: (_) => ChatScreen(topicKey: widget.topic.key),
+            fullscreenDialog: true,
+          ),
+        );
+        widget.onReturn?.call();
+      },
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
+            child: child,
+          );
+        },
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            gradient: widget.topic.gradient,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: widget.topic.gradient.colors.first.withOpacity(0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.topic.icon,
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                widget.topic.title,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class ChatTopic {
   final String key;
   final String title;
   final String icon;
-  final String description;
   final LinearGradient gradient;
 
   ChatTopic({
     required this.key,
     required this.title,
     required this.icon,
-    required this.description,
     required this.gradient,
   });
 }

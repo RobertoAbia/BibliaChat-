@@ -391,6 +391,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         builder: (context) => GospelStoriesScreen(
           gospel: gospel,
           initialSlideIndex: slideIndex,
+          topicKey: topicKey,
           onSlideViewed: (index) async {
             // Mark slide as viewed
             await service.markSlideAsViewed(gospel.date, index);
@@ -547,6 +548,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   builder: (context) => GospelStoriesScreen(
                     gospel: gospel,
                     initialSlideIndex: 0,
+                    topicKey: topicKey,
                     onSlideViewed: (index) async {
                       await service.markSlideAsViewed(gospel.date, index);
                     },

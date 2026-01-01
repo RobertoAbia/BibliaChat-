@@ -125,7 +125,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         final notifier = ref.read(onboardingProvider.notifier);
                         return OnboardingSelectionPage(
                           verseReference: 'Salmo 90:12',
-                          title: 'Enséñanos a contar\nbien nuestros días.',
+                          title: 'Enséñanos a contar bien nuestros días.',
                           subtitle: '¿Cuál es tu grupo de edad?',
                           options: const [
                             SelectionOption(key: '18-24', label: '18-24'),
@@ -148,7 +148,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         final notifier = ref.read(onboardingProvider.notifier);
                         return OnboardingSelectionPage(
                           verseReference: 'Salmo 139:14',
-                          title: 'Dios nos creó única y\nmaravillosamente.',
+                          title: 'Dios nos creó única y maravillosamente.',
                           subtitle: '¿Cuál es tu género?',
                           options: const [
                             SelectionOption(key: 'male', label: 'Hombre'),
@@ -179,7 +179,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         final notifier = ref.read(onboardingProvider.notifier);
                         return OnboardingSelectionPage(
                           verseReference: 'Efesios 4:5',
-                          title: 'Un solo Señor, una sola fe,\nun solo bautismo.',
+                          title: 'Un solo Señor, una sola fe, un solo bautismo.',
                           subtitle: '¿Cuál es tu tradición cristiana?',
                           options: const [
                             SelectionOption(
@@ -222,7 +222,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         final notifier = ref.read(onboardingProvider.notifier);
                         return OnboardingSelectionPage(
                           verseReference: '2 Timoteo 3:16',
-                          title: 'Toda la Escritura es\ninspirada por Dios.',
+                          title: 'Toda la Escritura es inspirada por Dios.',
                           subtitle: '¿Qué versión de la Biblia prefieres?',
                           options: const [
                             SelectionOption(
@@ -260,7 +260,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         final notifier = ref.read(onboardingProvider.notifier);
                         return OnboardingSelectionPage(
                           verseReference: 'Isaías 41:10',
-                          title: 'La Biblia tiene respuestas\npara superar cualquier prueba.',
+                          title: 'La Biblia tiene respuestas para superar cualquier prueba.',
                           subtitle: '¿Cómo te puede ayudar Biblia Chat?',
                           options: const [
                             SelectionOption(

@@ -63,12 +63,14 @@ BibliaChat/
 - `user_devices` (FCM tokens)
 - `user_entitlements` (premium status)
 
-## Migraciones SQL (13 total)
+## Migraciones SQL (15 total)
 - 00001-00009: Tablas core, ENUMs, RLS, índices
 - 00010: `rc_app_user_id` para restaurar compras
 - 00011: `gender` + enum `gender_type`
 - 00012: `verse_summary` para resumen IA
 - 00013: `key_concept` + `practical_exercise` para Stories
+- 00014: `last_summary_message_count` para tracking de resúmenes IA
+- 00015: Sistema chat híbrido (topics Stories + quitar UNIQUE constraint)
 
 ## EPICs del Proyecto (12 total)
 - **EPIC 0-1:** Foundation + Base de datos + RLS
@@ -300,11 +302,128 @@ BibliaChat/
     - Completación solo desde cards secundarias: faltaba check en card principal del Evangelio
     - Shimmer invisible: colores demasiado similares (`#252540` → `#2D2D4A`). Solución: más contraste (`#3A3A5A` → `#5A5A7A`)
 
+- [x] T-0501: Chat IA Funcional (Edge Function + Flutter)
+  - **Edge Function `chat-send-message`:**
+    - Procesa mensajes del chat y genera respuestas con OpenAI GPT-4o
+    - Sistema de memorias: ai_memory (largo plazo usuario), context_summary (largo plazo conversación), últimos 10 mensajes (corto plazo)
+    - Prompts personalizados por: denominación (9), origen cultural (4), edad (4), tema (12)
+    - Auto-actualiza ai_memory y context_summary cada 20 mensajes
+    - Defaults para perfiles incompletos
+  - **Sistema de Prompts:**
+    - `BASE_PROMPT`: Identidad del consejero cristiano
+    - `DENOMINATION_PROMPTS`: católico, evangélico, pentecostal, bautista, adventista, testigo_jehova, mormón, otro, ninguna
+    - `ORIGIN_PROMPTS`: mexico_centroamerica, caribe, sudamerica, espana
+    - `AGE_PROMPTS`: teen, young_adult, adult, senior
+    - `TOPIC_PROMPTS`: 12 temas hispanos (familia_separada, desempleo, etc.)
+  - **Clean Architecture Flutter:**
+    - Domain: `ChatMessage`, `Chat` entities + repository interface
+    - Data: Models, Datasource (Edge Function), Repository impl
+    - Presentation: `ChatNotifier` StateNotifier + providers
+  - **ChatScreen actualizada:**
+    - Usa `ConsumerStatefulWidget` con Riverpod
+    - Carga historial existente al abrir
+    - Envía mensajes a Edge Function
+    - Estados: loading, sending, error
+  - **Archivos creados:**
+    - `supabase/functions/chat-send-message/index.ts`
+    - `supabase/functions/chat-send-message/prompts.ts`
+    - `supabase/functions/chat-send-message/deno.json`
+    - `lib/features/chat/domain/entities/chat_message.dart`
+    - `lib/features/chat/domain/repositories/chat_repository.dart`
+    - `lib/features/chat/data/models/chat_message_model.dart`
+    - `lib/features/chat/data/datasources/chat_remote_datasource.dart`
+    - `lib/features/chat/data/repositories/chat_repository_impl.dart`
+    - `lib/features/chat/presentation/providers/chat_provider.dart`
+  - **Archivo modificado:**
+    - `lib/features/chat/presentation/screens/chat_screen.dart`
+
+- [x] Feature: Sistema de Chat Híbrido (estilo ChatGPT)
+  - **Migración 00014:** `last_summary_message_count` para tracking de regeneración de resúmenes
+  - **Migración 00015:**
+    - Añade topics `evangelio_del_dia` y `lectura_del_dia` para Stories
+    - Quita constraint UNIQUE(user_id, topic_key) para permitir múltiples chats
+    - Añade índice `idx_chats_user_id` para rendimiento
+  - **Edge Function actualizada:**
+    - `topic_key` ahora es opcional (null = chat libre)
+    - Si no hay topic, usa prompt genérico "otro"
+    - Soporta tanto chats libres como chats de topic
+  - **Flutter - Nuevo sistema de identificadores:**
+    - `ChatIdentifier`: Puede ser `newChat()`, `existing(id)` o `topic(key)`
+    - Provider family ahora usa `ChatIdentifier` como key
+    - Soporta cargar chat por ID, por topic, o crear nuevo
+  - **ChatScreen rediseñada:**
+    - Acepta parámetros opcionales: `chatId`, `topicKey`
+    - Muestra sugerencias de inicio cuando el chat está vacío
+    - 5 sugerencias predefinidas: oración, Biblia, ansiedad, familia, otro
+  - **ChatListScreen rediseñada:**
+    - Botón "Nueva conversación" prominente arriba
+    - Lista de conversaciones recientes con preview y timestamp
+    - Sección "Temas guiados" colapsada por defecto con 10 topics
+  - **Nuevas rutas:**
+    - `/chat/new` → Chat libre nuevo
+    - `/chat/id/:chatId` → Chat existente por ID
+    - `/chat/topic/:topicKey` → Chat por topic (Stories, temas guiados)
+  - **Archivos creados/modificados:**
+    - `supabase/migrations/00014_add_chat_summary_tracking.sql`
+    - `supabase/migrations/00015_chat_hybrid_system.sql`
+    - `supabase/functions/chat-send-message/combined.ts` (topic_key opcional)
+    - `lib/features/chat/domain/entities/chat_message.dart` (Chat.topicKey nullable + title)
+    - `lib/features/chat/data/models/chat_message_model.dart`
+    - `lib/features/chat/data/datasources/chat_remote_datasource.dart` (getChatById)
+    - `lib/features/chat/data/repositories/chat_repository_impl.dart`
+    - `lib/features/chat/presentation/providers/chat_provider.dart` (ChatIdentifier)
+    - `lib/features/chat/presentation/screens/chat_screen.dart` (sugerencias)
+    - `lib/features/chat/presentation/screens/chat_list_screen.dart` (rediseño)
+    - `lib/core/router/app_router.dart` (nuevas rutas)
+    - `lib/core/constants/route_constants.dart`
+
+- [x] Feature: Correcciones del Flujo Stories → Chat
+  - **Problema 1: Flash de Home al navegar**
+    - Causa: Stories hacía `pop()` y luego Home hacía `push()`
+    - Solución: Usar `pushReplacement` desde Stories directo a Chat
+    - Archivo: `gospel_stories_screen.dart` - método `_sendMessage()`
+  - **Problema 2: Mensaje duplicado del usuario**
+    - Causa: `addInitialMessages()` añadía el mensaje Y `sendMessage()` también
+    - Solución: Solo añadir mensaje del asistente en `addInitialMessages()`, dejar que `sendMessage()` añada el del usuario
+    - Archivo: `chat_screen.dart` - método `_initializeChat()`
+  - **Problema 3: IA sin contexto de la Story**
+    - Causa: Solo se enviaba el mensaje del usuario, no el contenido de la Story
+    - Solución: Añadir parámetro `systemContext` a `sendMessage()` que incluye el texto de la Story
+    - El contexto se envía a la Edge Function pero NO se muestra en el chat
+    - Formato: `[Contexto de la lectura bíblica:]\n{texto}\n\n[Mensaje del usuario:]\n{mensaje}`
+    - Archivos: `chat_provider.dart`, `chat_screen.dart`
+  - **Problema 4: Cargaba chat viejo con mismo topic**
+    - Causa: `getChatByTopic()` encontraba chat existente
+    - Solución: Cuando viene de Stories (`initialGospelText != null`), usar `ChatIdentifier.newChat()` en lugar de `topic()`
+    - Archivo: `chat_screen.dart` - `initState()`
+  - **HomeScreen actualizada:**
+    - Ahora pasa `topicKey` a `GospelStoriesScreen` para que llegue hasta `ChatScreen`
+
+- [x] Feature: Correcciones del Sistema de Conversaciones
+  - **Problema: "Nueva conversación" reutilizaba chat viejo**
+    - Causa: Riverpod cacheaba el provider por `ChatIdentifier(null, null)`
+    - Solución: Añadir método `resetForNewChat()` en `ChatNotifier` que limpia el estado
+    - Se llama en `_initializeChat()` cuando `isNewChat && initialGospelText == null`
+    - Archivo: `chat_provider.dart`
+  - **Problema: Lista de chats no se actualizaba al volver**
+    - Causa: No se refrescaba el provider al hacer `pop()` del chat
+    - Solución: Hacer `await` en la navegación y luego incrementar `userChatsRefreshProvider`
+    - Afecta: Botón "Nueva conversación", tiles de chats recientes, chips de temas guiados
+    - Archivo: `chat_list_screen.dart`
+  - **Comportamiento actual del sistema de chats:**
+    | Acción | Comportamiento |
+    |--------|----------------|
+    | Nueva conversación | SIEMPRE crea chat nuevo |
+    | Click chat reciente | Continúa ESE chat específico |
+    | Temas guiados | Continúa chat existente del topic (o crea nuevo) |
+    | Desde Stories | SIEMPRE crea chat nuevo |
+
 ### Próximos Pasos
+- [ ] Ejecutar migraciones 00014 y 00015 en Supabase SQL Editor
+- [ ] Redesplegar Edge Function `chat-send-message` con cambios de topic_key opcional
 - [ ] T-0003: Configurar proyecto Supabase (prod)
 - [ ] T-0301: Auth flow completo (email upgrade)
 - [ ] T-0401: Integrar RevenueCat
-- [ ] T-0501: Edge Function para chat IA
 - [ ] T-0701: Conectar pantallas con Supabase (datos reales)
 
 ## Comandos Útiles
@@ -332,6 +451,41 @@ supabase functions serve
 - La IA no debe inventar datos que no estén en ai_memory o historial
 
 ## Edge Functions (Supabase)
+
+### `chat-send-message` (DESPLEGADA)
+- **Ubicación:** `supabase/functions/chat-send-message/combined.ts`
+- **Propósito:** Procesar mensajes del chat y generar respuestas con IA
+- **Sistema de Memorias:**
+  - `ai_memory` (user_profiles.ai_memory): Largo plazo del USUARIO
+  - `context_summary` (chats.context_summary): Largo plazo de la CONVERSACIÓN
+  - Últimos 10 mensajes (chat_messages): Corto plazo
+- **Orden del Prompt (6 capas):**
+  1. BASE_PROMPT → Identidad "amigo cristiano de WhatsApp" (tono casual, cercano)
+  2. DENOMINATION_PROMPT → Adaptación denominacional (9 opciones)
+  3. ORIGIN_PROMPT → Contexto cultural (4 regiones)
+  4. TOPIC_PROMPT → Contexto del tema (12 topics + "otro")
+  5. ai_memory → Hechos del usuario (JSON)
+  6. context_summary → Resumen conversación anterior
+- **Request:** `{ topic_key?, user_message, chat_id? }`
+  - `topic_key` es OPCIONAL (null = chat libre, usa prompt "otro")
+- **Response:** `{ success, chat_id, message_id, assistant_message, created_at }`
+- **Auto-actualización:** Cada 20 mensajes regenera context_summary y extrae ai_memory
+- **Modelo principal:** GPT-4o (`role: "developer"`, `max_completion_tokens: 800`, `temperature: 0.8`)
+- **Modelo para memorias:** GPT-4o-mini (resúmenes y extracción de ai_memory)
+- **Secrets requeridos:** `OPENAI_API_KEY`
+- **Topics soportados (12):**
+  - `familia_separada`, `desempleo`, `solteria`, `ansiedad_miedo`
+  - `identidad_bicultural`, `reconciliacion`, `sacramentos`, `oracion`
+  - `preguntas_biblia`, `evangelio_del_dia`, `lectura_del_dia`, `otro`
+- **BASE_PROMPT (tono actualizado):**
+  ```
+  Eres un amigo cristiano que chatea por WhatsApp. Te llamas "Biblia Chat"...
+  - Como un colega de confianza, no un predicador
+  - Escuchas primero, aconsejas solo si hace falta
+  - Como en WhatsApp: natural, cercano, real
+  - NUNCA párrafos largos ni estructurados
+  - NO siempre cites la Biblia - solo cuando realmente aporte
+  ```
 
 ### `fetch-daily-gospel` (desplegada como `clever-worker`)
 - **Ubicación:** `supabase/functions/fetch-daily-gospel/index.ts`
@@ -392,3 +546,16 @@ supabase functions serve
 - **Shimmer en tema oscuro:**
   - Los colores base y highlight deben tener suficiente contraste
   - Recomendado: `#3A3A5A` → `#5A5A7A` (diferencia ~32 en cada canal)
+- **Riverpod .family provider caching:**
+  - Los providers `.family` cachean instancias por key
+  - Si usas `ChatIdentifier.newChat()` (que siempre es `(null, null)`), reutiliza el mismo estado
+  - Solución: Añadir método `reset()` al StateNotifier y llamarlo cuando se necesite estado fresco
+  - Ejemplo: `notifier.resetForNewChat()` antes de `initialize()`
+- **Refrescar lista después de navegación:**
+  - Hacer `await` en `Navigator.push()` para esperar a que vuelva
+  - Luego incrementar un `StateProvider<int>` que el `FutureProvider` observe
+  - Ejemplo: `ref.read(userChatsRefreshProvider.notifier).state++`
+- **Pasar contexto oculto a la IA:**
+  - Usar parámetro `systemContext` en `sendMessage()` que NO se muestra al usuario
+  - Se concatena con el mensaje antes de enviar a la Edge Function
+  - Útil para: contenido de Stories, contexto de la conversación, etc.

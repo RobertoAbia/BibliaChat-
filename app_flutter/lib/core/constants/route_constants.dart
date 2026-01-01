@@ -9,7 +9,9 @@ class RouteConstants {
   // Main App
   static const String home = '/home';
   static const String chatList = '/chat';
-  static const String chat = '/chat/:topicKey';
+  static const String chatNew = '/chat/new';
+  static const String chatById = '/chat/id/:chatId';
+  static const String chatByTopic = '/chat/topic/:topicKey';
   static const String study = '/study';
   static const String settings = '/settings';
 

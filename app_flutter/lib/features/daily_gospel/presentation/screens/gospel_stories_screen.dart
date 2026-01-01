@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
+import '../../../chat/presentation/screens/chat_screen.dart';
 import '../../domain/entities/daily_gospel.dart';
 
 /// Pantalla de Stories para el Evangelio del día
@@ -14,12 +15,14 @@ class GospelStoriesScreen extends StatefulWidget {
   final DailyGospel gospel;
   final int initialSlideIndex;
   final void Function(int slideIndex)? onSlideViewed;
+  final String? topicKey; // Para navegar directo al chat
 
   const GospelStoriesScreen({
     super.key,
     required this.gospel,
     this.initialSlideIndex = 0,
     this.onSlideViewed,
+    this.topicKey,
   });
 
   @override
@@ -360,6 +363,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
 
   void _sendMessage() {
     final message = _messageController.text.trim();
+    if (message.isEmpty) return;
 
     // Cerrar teclado
     _messageFocusNode.unfocus();
@@ -377,13 +381,17 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
 
 📖 ${widget.gospel.reference}''';
 
-    // Cerrar stories (usando rootNavigator porque se abrió con rootNavigator)
-    Navigator.of(context, rootNavigator: true).pop({
-      'action': 'openChat',
-      'text': chatText,
-      'reference': widget.gospel.reference,
-      'userMessage': message, // Va por separado
-    });
+    // Navegar directo al chat (reemplazando Stories para evitar flash de Home)
+    Navigator.of(context, rootNavigator: true).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => ChatScreen(
+          topicKey: widget.topicKey,
+          initialGospelText: chatText,
+          initialGospelReference: widget.gospel.reference,
+          initialUserMessage: message,
+        ),
+      ),
+    );
   }
 
   void _shareContent() {

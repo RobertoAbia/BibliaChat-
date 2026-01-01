@@ -46,9 +46,25 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: 'chatList',
             builder: (context, state) => const ChatListScreen(),
             routes: [
+              // Nueva conversación (chat libre)
               GoRoute(
-                path: ':topicKey',
-                name: 'chat',
+                path: 'new',
+                name: 'chatNew',
+                builder: (context, state) => const ChatScreen(),
+              ),
+              // Chat existente por ID
+              GoRoute(
+                path: 'id/:chatId',
+                name: 'chatById',
+                builder: (context, state) {
+                  final chatId = state.pathParameters['chatId']!;
+                  return ChatScreen(chatId: chatId);
+                },
+              ),
+              // Chat por topic (desde Stories o temas guiados)
+              GoRoute(
+                path: 'topic/:topicKey',
+                name: 'chatByTopic',
                 builder: (context, state) {
                   final topicKey = state.pathParameters['topicKey']!;
                   return ChatScreen(topicKey: topicKey);

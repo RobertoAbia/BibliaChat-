@@ -174,14 +174,14 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
                       child: Column(
                         children: [
                           _FeatureRow(
-                            icon: Icons.auto_awesome,
-                            text: 'IA que entiende tu fe',
+                            icon: Icons.chat_bubble_outline,
+                            text: 'Un amigo que te escucha',
                             delay: 0,
                           ),
                           const SizedBox(height: 14),
                           _FeatureRow(
                             icon: Icons.favorite,
-                            text: 'Devocionales personalizados',
+                            text: 'Oraciones personalizadas',
                             delay: 100,
                           ),
                           const SizedBox(height: 14),

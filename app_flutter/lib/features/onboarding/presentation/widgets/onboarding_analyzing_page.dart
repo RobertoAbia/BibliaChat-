@@ -119,44 +119,46 @@ class _OnboardingAnalyzingPageState extends State<OnboardingAnalyzingPage>
             final isActive = index == _currentStep;
             final isCompleted = index < _currentStep;
 
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            return AnimatedBuilder(
+              animation: _progressController,
+              builder: (context, child) {
+                final progressValue = isActive ? _progressController.value : 0.0;
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        _steps[index].label,
-                        style:
-                            Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                  color: isActive || isCompleted
-                                      ? AppTheme.textPrimary
-                                      : AppTheme.textTertiary,
-                                ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            _steps[index].label,
+                            style:
+                                Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: isActive || isCompleted
+                                          ? AppTheme.textPrimary
+                                          : AppTheme.textTertiary,
+                                    ),
+                          ),
+                          if (isCompleted)
+                            const Icon(
+                              Icons.check_circle,
+                              color: AppTheme.successColor,
+                              size: 20,
+                            )
+                          else if (isActive)
+                            Text(
+                              '${(progressValue * 100).toInt()}%',
+                              style:
+                                  Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: AppTheme.primaryColor,
+                                      ),
+                            ),
+                        ],
                       ),
-                      if (isCompleted)
-                        const Icon(
-                          Icons.check_circle,
-                          color: AppTheme.successColor,
-                          size: 20,
-                        )
-                      else if (isActive)
-                        Text(
-                          '${((_progressController.value) * 100).toInt()}%',
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.primaryColor,
-                                  ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  AnimatedBuilder(
-                    animation: _progressController,
-                    builder: (context, child) {
-                      return Container(
+                      const SizedBox(height: 8),
+                      Container(
                         height: 4,
                         decoration: BoxDecoration(
                           color: AppTheme.surfaceDark,
@@ -164,9 +166,7 @@ class _OnboardingAnalyzingPageState extends State<OnboardingAnalyzingPage>
                         ),
                         child: FractionallySizedBox(
                           alignment: Alignment.centerLeft,
-                          widthFactor: isCompleted
-                              ? 1.0
-                              : (isActive ? _progressController.value : 0.0),
+                          widthFactor: isCompleted ? 1.0 : progressValue,
                           child: Container(
                             decoration: BoxDecoration(
                               gradient: isCompleted
@@ -179,11 +179,11 @@ class _OnboardingAnalyzingPageState extends State<OnboardingAnalyzingPage>
                             ),
                           ),
                         ),
-                      );
-                    },
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             );
           }),
         ],
