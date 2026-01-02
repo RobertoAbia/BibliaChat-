@@ -59,6 +59,7 @@ class ChatIdentifier {
 class ChatState {
   final String? chatId;
   final String? topicKey;
+  final String? title;  // Título del chat (generado por IA o editado manualmente)
   final List<ChatMessage> messages;
   final bool isLoading;
   final bool isSending;
@@ -68,6 +69,7 @@ class ChatState {
   const ChatState({
     this.chatId,
     this.topicKey,
+    this.title,
     this.messages = const [],
     this.isLoading = false,
     this.isSending = false,
@@ -78,6 +80,8 @@ class ChatState {
   ChatState copyWith({
     String? chatId,
     String? topicKey,
+    String? title,
+    bool clearTitle = false,  // Para poder establecer title = null
     List<ChatMessage>? messages,
     bool? isLoading,
     bool? isSending,
@@ -87,6 +91,7 @@ class ChatState {
     return ChatState(
       chatId: chatId ?? this.chatId,
       topicKey: topicKey ?? this.topicKey,
+      title: clearTitle ? null : (title ?? this.title),
       messages: messages ?? this.messages,
       isLoading: isLoading ?? this.isLoading,
       isSending: isSending ?? this.isSending,
@@ -97,6 +102,31 @@ class ChatState {
 
   bool get isEmpty => messages.isEmpty;
   bool get isNewFreeChat => chatId == null && topicKey == null;
+
+  /// Título para mostrar: título personalizado > título del topic > "Nueva conversación"
+  String get displayTitle {
+    if (title != null && title!.isNotEmpty) return title!;
+    if (topicKey != null) return _getTopicTitle(topicKey!);
+    return 'Nueva conversación';
+  }
+
+  String _getTopicTitle(String key) {
+    const titles = {
+      'familia_separada': 'Familia separada',
+      'desempleo': 'Desempleo',
+      'solteria': 'Soltería',
+      'ansiedad_miedo': 'Ansiedad y miedo',
+      'identidad_bicultural': 'Identidad bicultural',
+      'reconciliacion': 'Reconciliación',
+      'sacramentos': 'Sacramentos',
+      'oracion': 'Oración',
+      'preguntas_biblia': 'Preguntas bíblicas',
+      'evangelio_del_dia': 'Evangelio del día',
+      'lectura_del_dia': 'Lectura del día',
+      'otro': 'Otro tema',
+    };
+    return titles[key] ?? 'Nueva conversación';
+  }
 }
 
 // StateNotifier para manejar el estado del chat
@@ -117,6 +147,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     state = ChatState(
       topicKey: _identifier.topicKey,
       chatId: null,
+      title: null,
       messages: [],
       isLoading: false,
       isSending: false,
@@ -156,6 +187,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
         state = state.copyWith(
           chatId: existingChat.id,
           topicKey: existingChat.topicKey,
+          title: existingChat.title,  // Cargar título existente
           messages: messages,
           isLoading: false,
           showStarterSuggestions: false,
@@ -208,13 +240,16 @@ class ChatNotifier extends StateNotifier<ChatState> {
         messageForApi = '[Contexto de la lectura bíblica que el usuario está viendo:]\n$systemContext\n\n[Mensaje del usuario:]\n$content';
       }
 
-      // Enviar mensaje a la Edge Function
+      // Enviar mensaje a la Edge Function y obtener respuesta + título
       // Usar topicKey proporcionado o el del state
-      final assistantMessage = await _repository.sendMessage(
+      final result = await _repository.sendMessageWithTitle(
         topicKey: topicKey ?? state.topicKey,
         userMessage: messageForApi,
         chatId: state.chatId,
       );
+
+      final assistantMessage = result.message;
+      final generatedTitle = result.title;
 
       // Actualizar chat_id si es la primera vez
       final newChatId = state.chatId ??
@@ -236,8 +271,10 @@ class ChatNotifier extends StateNotifier<ChatState> {
         assistantMessage,
       ];
 
+      // Actualizar estado con el nuevo título si se generó
       state = state.copyWith(
         chatId: newChatId,
+        title: generatedTitle ?? state.title,  // Usar título generado o mantener existente
         messages: updatedMessages,
         isSending: false,
       );
@@ -295,6 +332,33 @@ class ChatNotifier extends StateNotifier<ChatState> {
   // Limpia el error
   void clearError() {
     state = state.copyWith(error: null);
+  }
+
+  // Actualiza el título del chat
+  Future<bool> updateTitle(String newTitle) async {
+    if (state.chatId == null) return false;
+
+    try {
+      await _repository.updateChatTitle(state.chatId!, newTitle);
+      state = state.copyWith(title: newTitle);
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: 'Error al renombrar: $e');
+      return false;
+    }
+  }
+
+  // Elimina el chat actual
+  Future<bool> deleteChat() async {
+    if (state.chatId == null) return false;
+
+    try {
+      await _repository.deleteChat(state.chatId!);
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: 'Error al eliminar: $e');
+      return false;
+    }
   }
 }
 

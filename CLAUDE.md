@@ -418,9 +418,43 @@ BibliaChat/
     | Temas guiados | Continúa chat existente del topic (o crea nuevo) |
     | Desde Stories | SIEMPRE crea chat nuevo |
 
+- [x] Feature: Sistema de Títulos de Conversaciones
+  - **Generación automática de títulos:**
+    - Edge Function genera título con GPT-4o-mini después del primer mensaje
+    - Condición: `messageCount == 2 AND chat.title IS NULL`
+    - Título máximo 50 caracteres, descriptivo del tema
+    - Se genera UNA SOLA VEZ, después solo edición manual
+  - **CRUD de títulos en Flutter:**
+    - `ChatState.title`: Campo para almacenar título en el estado
+    - `ChatState.displayTitle`: Getter que prioriza título > topic > "Nueva conversación"
+    - `ChatNotifier.updateTitle()`: Actualiza título en Supabase y estado local
+    - `ChatNotifier.deleteChat()`: Elimina chat y sus mensajes
+  - **Menú de opciones en ChatScreen:**
+    - PopupMenuButton reemplaza IconButton vacío
+    - Opciones: "Renombrar" y "Eliminar"
+    - Diálogos personalizados con tema glassmorphism
+    - Refresca lista de chats al eliminar
+  - **Edge Function actualizada:**
+    - Nueva función `generateChatTitle()` con GPT-4o-mini
+    - Nuevo prompt `CHAT_TITLE_PROMPT` con reglas específicas
+    - Respuesta incluye `title` (generado o existente)
+    - Interface `Chat` incluye campo `title`
+  - **Archivos modificados:**
+    - `supabase/functions/chat-send-message/combined.ts`
+    - `lib/features/chat/domain/repositories/chat_repository.dart`
+    - `lib/features/chat/data/datasources/chat_remote_datasource.dart`
+    - `lib/features/chat/data/repositories/chat_repository_impl.dart`
+    - `lib/features/chat/presentation/providers/chat_provider.dart`
+    - `lib/features/chat/presentation/screens/chat_screen.dart`
+
 ### Próximos Pasos
-- [ ] Ejecutar migraciones 00014 y 00015 en Supabase SQL Editor
-- [ ] Redesplegar Edge Function `chat-send-message` con cambios de topic_key opcional
+- [x] Redesplegar Edge Function `chat-send-message` con generación de títulos ✅
+- [ ] **BUG PENDIENTE:** Separar `systemContext` del mensaje guardado
+  - Al recargar chat desde Stories, el mensaje muestra `[Contexto de la lectura bíblica...]`
+  - **Causa:** El contexto se concatena con el mensaje antes de guardar en BD
+  - **Solución:** Enviar `system_context` como parámetro separado a Edge Function
+  - **Archivos:** `combined.ts`, `chat_remote_datasource.dart`, `chat_repository_impl.dart`, `chat_provider.dart`
+  - **También:** Limpiar mensajes antiguos en BD con script SQL
 - [ ] T-0003: Configurar proyecto Supabase (prod)
 - [ ] T-0301: Auth flow completo (email upgrade)
 - [ ] T-0401: Integrar RevenueCat
@@ -468,10 +502,16 @@ supabase functions serve
   6. context_summary → Resumen conversación anterior
 - **Request:** `{ topic_key?, user_message, chat_id? }`
   - `topic_key` es OPCIONAL (null = chat libre, usa prompt "otro")
-- **Response:** `{ success, chat_id, message_id, assistant_message, created_at }`
+- **Response:** `{ success, chat_id, message_id, assistant_message, title?, created_at }`
+  - `title` se devuelve solo si se generó o ya existía
+- **Generación automática de títulos:**
+  - Se genera con GPT-4o-mini después del primer mensaje (`messageCount == 2 AND !chat.title`)
+  - Máximo 50 caracteres, descriptivo del tema de conversación
+  - Solo se genera UNA VEZ, después solo edición manual
+  - Prompt: `CHAT_TITLE_PROMPT` con reglas específicas
 - **Auto-actualización:** Cada 20 mensajes regenera context_summary y extrae ai_memory
 - **Modelo principal:** GPT-4o (`role: "developer"`, `max_completion_tokens: 800`, `temperature: 0.8`)
-- **Modelo para memorias:** GPT-4o-mini (resúmenes y extracción de ai_memory)
+- **Modelo para memorias y títulos:** GPT-4o-mini (resúmenes, ai_memory, títulos)
 - **Secrets requeridos:** `OPENAI_API_KEY`
 - **Topics soportados (12):**
   - `familia_separada`, `desempleo`, `solteria`, `ansiedad_miedo`

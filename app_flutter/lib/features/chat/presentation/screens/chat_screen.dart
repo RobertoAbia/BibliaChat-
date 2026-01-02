@@ -289,9 +289,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   Widget _buildAppBar(ChatState chatState) {
-    final title = chatState.topicKey != null
-        ? _getTopicDisplayTitle(chatState.topicKey)
-        : 'Nueva conversación';
+    // Usar displayTitle que prioriza: título generado > topic > "Nueva conversación"
+    final title = chatState.displayTitle;
 
     return ClipRRect(
       child: BackdropFilter(
@@ -361,6 +360,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                             color: AppTheme.textPrimary,
                             fontWeight: FontWeight.w600,
                           ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     Row(
                       children: [
@@ -392,27 +393,201 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 ),
               ),
 
-              // Menu button
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppTheme.surfaceLight.withOpacity(0.3),
-                  shape: BoxShape.circle,
-                ),
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.more_vert,
-                    color: AppTheme.textSecondary,
-                    size: 18,
-                  ),
-                  onPressed: () {},
-                  padding: EdgeInsets.zero,
-                ),
-              ),
+              // Menu button con opciones
+              _buildMenuButton(chatState),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildMenuButton(ChatState chatState) {
+    // Solo mostrar menú si hay un chat existente
+    final hasChat = chatState.chatId != null;
+
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceLight.withOpacity(0.3),
+        shape: BoxShape.circle,
+      ),
+      child: PopupMenuButton<String>(
+        icon: const Icon(
+          Icons.more_vert,
+          color: AppTheme.textSecondary,
+          size: 18,
+        ),
+        padding: EdgeInsets.zero,
+        color: AppTheme.surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: AppTheme.surfaceLight.withOpacity(0.3),
+          ),
+        ),
+        enabled: hasChat,
+        onSelected: (value) {
+          switch (value) {
+            case 'rename':
+              _showRenameDialog(chatState);
+              break;
+            case 'delete':
+              _showDeleteDialog(chatState);
+              break;
+          }
+        },
+        itemBuilder: (context) => [
+          PopupMenuItem(
+            value: 'rename',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.edit_outlined,
+                  size: 18,
+                  color: AppTheme.textPrimary,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Renombrar',
+                  style: TextStyle(color: AppTheme.textPrimary),
+                ),
+              ],
+            ),
+          ),
+          const PopupMenuDivider(),
+          PopupMenuItem(
+            value: 'delete',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.delete_outline,
+                  size: 18,
+                  color: AppTheme.errorColor,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Eliminar',
+                  style: TextStyle(color: AppTheme.errorColor),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRenameDialog(ChatState chatState) {
+    final controller = TextEditingController(text: chatState.title ?? '');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: AppTheme.surfaceLight.withOpacity(0.3),
+          ),
+        ),
+        title: Text(
+          'Renombrar conversación',
+          style: TextStyle(color: AppTheme.textPrimary),
+        ),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: TextStyle(color: AppTheme.textPrimary),
+          decoration: InputDecoration(
+            hintText: 'Nuevo nombre',
+            hintStyle: TextStyle(color: AppTheme.textTertiary),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(
+                color: AppTheme.surfaceLight.withOpacity(0.3),
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppTheme.primaryColor),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              final newTitle = controller.text.trim();
+              if (newTitle.isNotEmpty) {
+                Navigator.pop(context);
+                await ref
+                    .read(chatNotifierProvider(_chatIdentifier).notifier)
+                    .updateTitle(newTitle);
+              }
+            },
+            child: Text(
+              'Guardar',
+              style: TextStyle(color: AppTheme.primaryColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteDialog(ChatState chatState) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: AppTheme.surfaceLight.withOpacity(0.3),
+          ),
+        ),
+        title: Text(
+          'Eliminar conversación',
+          style: TextStyle(color: AppTheme.textPrimary),
+        ),
+        content: Text(
+          '¿Estás seguro de que quieres eliminar esta conversación? Esta acción no se puede deshacer.',
+          style: TextStyle(color: AppTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context); // Cerrar diálogo
+              final success = await ref
+                  .read(chatNotifierProvider(_chatIdentifier).notifier)
+                  .deleteChat();
+              if (success && mounted) {
+                // Refrescar lista de chats y volver
+                ref.read(userChatsRefreshProvider.notifier).state++;
+                Navigator.of(context).pop(); // Volver a la lista
+              }
+            },
+            child: Text(
+              'Eliminar',
+              style: TextStyle(color: AppTheme.errorColor),
+            ),
+          ),
+        ],
       ),
     );
   }

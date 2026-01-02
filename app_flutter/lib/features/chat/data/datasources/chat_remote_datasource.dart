@@ -16,6 +16,10 @@ abstract class ChatRemoteDatasource {
   Future<ChatModel?> getChatByTopic(String topicKey);
 
   Future<List<ChatModel>> getUserChats();
+
+  Future<void> updateChatTitle(String chatId, String newTitle);
+
+  Future<void> deleteChat(String chatId);
 }
 
 class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
@@ -114,5 +118,18 @@ class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
     return (response as List)
         .map((json) => ChatModel.fromJson(json as Map<String, dynamic>))
         .toList();
+  }
+
+  @override
+  Future<void> updateChatTitle(String chatId, String newTitle) async {
+    await _supabase.from('chats').update({'title': newTitle}).eq('id', chatId);
+  }
+
+  @override
+  Future<void> deleteChat(String chatId) async {
+    // Primero eliminar los mensajes del chat
+    await _supabase.from('chat_messages').delete().eq('chat_id', chatId);
+    // Luego eliminar el chat
+    await _supabase.from('chats').delete().eq('id', chatId);
   }
 }

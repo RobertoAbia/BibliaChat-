@@ -266,6 +266,26 @@ const CONTEXT_SUMMARY_PROMPT = `Analiza la siguiente conversación y genera un r
 El resumen debe ser útil para retomar la conversación en el futuro.
 Escribe en tercera persona (ej: "El usuario expresó preocupación por...")`;
 
+const CHAT_TITLE_PROMPT = `Genera un título corto y descriptivo para esta conversación.
+
+REGLAS:
+- Máximo 50 caracteres
+- Debe capturar el tema principal de la conversación
+- NO uses comillas ni puntuación al final
+- NO uses emojis
+- Sé específico (ej: "Reflexión sobre Juan 3:16" en vez de "Lectura del día")
+- Si es sobre un pasaje bíblico, menciona la referencia
+- Si es sobre un tema personal, captura la esencia sin revelar demasiado
+
+Ejemplos buenos:
+- "Ansiedad por el trabajo"
+- "Oración por mi madre enferma"
+- "Reflexión sobre Mateo 5:14"
+- "Dudas sobre el bautismo"
+- "Familia separada por la frontera"
+
+Responde SOLO con el título, sin explicaciones.`;
+
 const AI_MEMORY_EXTRACTION_PROMPT = `Analiza la conversación y extrae SOLO hechos concretos y verificables sobre el usuario.
 
 EXTRAE (si los menciona):
@@ -361,6 +381,7 @@ interface Chat {
   id: string;
   user_id: string;
   topic_key: string | null;  // Nullable: null = chat libre
+  title: string | null;  // Título del chat (generado automáticamente o manual)
   context_summary: string | null;
   last_summary_message_count: number;
 }
@@ -417,7 +438,7 @@ async function getOrCreateChat(
   if (chatId) {
     const { data } = await supabase
       .from("chats")
-      .select("id, user_id, topic_key, context_summary, last_summary_message_count")
+      .select("id, user_id, topic_key, title, context_summary, last_summary_message_count")
       .eq("id", chatId)
       .eq("user_id", userId)
       .single();
@@ -425,6 +446,7 @@ async function getOrCreateChat(
     if (data) {
       return {
         ...data,
+        title: data.title || null,
         last_summary_message_count: data.last_summary_message_count || 0,
       } as Chat;
     }
@@ -435,7 +457,7 @@ async function getOrCreateChat(
   if (topicKey) {
     const { data: existingChat } = await supabase
       .from("chats")
-      .select("id, user_id, topic_key, context_summary, last_summary_message_count")
+      .select("id, user_id, topic_key, title, context_summary, last_summary_message_count")
       .eq("user_id", userId)
       .eq("topic_key", topicKey)
       .single();
@@ -443,6 +465,7 @@ async function getOrCreateChat(
     if (existingChat) {
       return {
         ...existingChat,
+        title: existingChat.title || null,
         last_summary_message_count: existingChat.last_summary_message_count || 0,
       } as Chat;
     }
@@ -457,14 +480,14 @@ async function getOrCreateChat(
       context_summary: null,
       last_summary_message_count: 0,
     })
-    .select("id, user_id, topic_key, context_summary, last_summary_message_count")
+    .select("id, user_id, topic_key, title, context_summary, last_summary_message_count")
     .single();
 
   if (error || !newChat) {
     throw new Error(`Failed to create chat: ${error?.message}`);
   }
 
-  return newChat as Chat;
+  return { ...newChat, title: null } as Chat;
 }
 
 async function getRecentMessages(
@@ -654,6 +677,58 @@ async function extractAiMemory(
   }
 }
 
+async function generateChatTitle(
+  openaiKey: string,
+  userMessage: string,
+  assistantResponse: string
+): Promise<string> {
+  const conversationText = `Usuario: ${userMessage}\n\nAsistente: ${assistantResponse}`;
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${openaiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "developer", content: CHAT_TITLE_PROMPT },
+        { role: "user", content: conversationText },
+      ],
+      max_completion_tokens: 60,
+      temperature: 0.5,
+    }),
+  });
+
+  if (!response.ok) {
+    console.error("Error generating title:", await response.text());
+    return "Nueva conversación";
+  }
+
+  const data = await response.json();
+  let title = data.choices?.[0]?.message?.content?.trim() || "Nueva conversación";
+
+  // Limpiar el título: quitar comillas, puntos finales, y truncar si es muy largo
+  title = title.replace(/^["']|["']$/g, '').replace(/[.!?]$/, '');
+  if (title.length > 50) {
+    title = title.substring(0, 47) + "...";
+  }
+
+  return title;
+}
+
+async function updateChatTitle(
+  supabase: SupabaseClient,
+  chatId: string,
+  title: string
+): Promise<void> {
+  await supabase
+    .from("chats")
+    .update({ title })
+    .eq("id", chatId);
+}
+
 async function updateMemoriesIfNeeded(
   supabase: SupabaseClient,
   openaiKey: string,
@@ -821,6 +896,17 @@ serve(async (req) => {
     const currentMessageCount = await getMessageCount(supabase, chat.id);
     console.log("Step 8: Done -", currentMessageCount, "total messages");
 
+    // 9. Generar título si es el primer intercambio y no tiene título
+    let generatedTitle: string | null = null;
+    if (currentMessageCount === 2 && !chat.title) {
+      console.log("Step 9: Generating chat title...");
+      generatedTitle = await generateChatTitle(openaiKey, user_message, assistantResponse);
+      await updateChatTitle(supabase, chat.id, generatedTitle);
+      console.log("Step 9: Done - title:", generatedTitle);
+    } else {
+      console.log("Step 9: Skipped - chat already has title or not first message");
+    }
+
     // Ejecutar actualización de memorias en background (no bloquea la respuesta)
     updateMemoriesIfNeeded(
       supabase,
@@ -831,13 +917,14 @@ serve(async (req) => {
       userProfile.ai_memory || {}
     ).catch((err) => console.error("Error updating memories:", err));
 
-    // 9. Retornar respuesta
+    // 10. Retornar respuesta (incluye título si se generó)
     return new Response(
       JSON.stringify({
         success: true,
         chat_id: chat.id,
         message_id: assistantMessageId,
         assistant_message: assistantResponse,
+        title: generatedTitle || chat.title,  // Título generado o existente
         created_at: new Date().toISOString(),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }

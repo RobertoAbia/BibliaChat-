@@ -3,6 +3,14 @@ import '../../domain/repositories/chat_repository.dart';
 import '../datasources/chat_remote_datasource.dart';
 import '../models/chat_message_model.dart';
 
+/// Resultado de enviar un mensaje, incluye el mensaje del asistente y el título (si se generó)
+class SendMessageResult {
+  final ChatMessage message;
+  final String? title;
+
+  SendMessageResult({required this.message, this.title});
+}
+
 class ChatRepositoryImpl implements ChatRepository {
   final ChatRemoteDatasource _remoteDatasource;
 
@@ -14,20 +22,38 @@ class ChatRepositoryImpl implements ChatRepository {
     required String userMessage,
     String? chatId,
   }) async {
+    final result = await sendMessageWithTitle(
+      topicKey: topicKey,
+      userMessage: userMessage,
+      chatId: chatId,
+    );
+    return result.message;
+  }
+
+  /// Envía un mensaje y devuelve tanto el mensaje como el título (si se generó)
+  Future<SendMessageResult> sendMessageWithTitle({
+    String? topicKey,
+    required String userMessage,
+    String? chatId,
+  }) async {
     final response = await _remoteDatasource.sendMessage(
       topicKey: topicKey,
       userMessage: userMessage,
       chatId: chatId,
     );
 
-    // La Edge Function devuelve el mensaje del asistente
-    return ChatMessageModel(
+    // La Edge Function devuelve el mensaje del asistente y opcionalmente el título
+    final message = ChatMessageModel(
       id: response['message_id'] as String,
       chatId: response['chat_id'] as String,
       role: MessageRole.assistant,
       content: response['assistant_message'] as String,
       createdAt: DateTime.parse(response['created_at'] as String),
     );
+
+    final title = response['title'] as String?;
+
+    return SendMessageResult(message: message, title: title);
   }
 
   @override
@@ -48,5 +74,15 @@ class ChatRepositoryImpl implements ChatRepository {
   @override
   Future<List<Chat>> getUserChats() async {
     return await _remoteDatasource.getUserChats();
+  }
+
+  @override
+  Future<void> updateChatTitle(String chatId, String newTitle) async {
+    await _remoteDatasource.updateChatTitle(chatId, newTitle);
+  }
+
+  @override
+  Future<void> deleteChat(String chatId) async {
+    await _remoteDatasource.deleteChat(chatId);
   }
 }
