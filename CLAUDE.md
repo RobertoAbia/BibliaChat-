@@ -449,12 +449,33 @@ BibliaChat/
 
 ### Próximos Pasos
 - [x] Redesplegar Edge Function `chat-send-message` con generación de títulos ✅
-- [ ] **BUG PENDIENTE:** Separar `systemContext` del mensaje guardado
-  - Al recargar chat desde Stories, el mensaje muestra `[Contexto de la lectura bíblica...]`
-  - **Causa:** El contexto se concatena con el mensaje antes de guardar en BD
-  - **Solución:** Enviar `system_context` como parámetro separado a Edge Function
-  - **Archivos:** `combined.ts`, `chat_remote_datasource.dart`, `chat_repository_impl.dart`, `chat_provider.dart`
-  - **También:** Limpiar mensajes antiguos en BD con script SQL
+- [x] Separar `systemContext` como parámetro separado (implementado, desplegado) ✅
+- [ ] **PENDIENTE:** Guardar contenido de Stories como mensajes 'system' en BD
+  - **Problema actual:** El contenido de Stories se envía como `system_context` oculto, NO se guarda en BD
+  - **Consecuencia:** Si el usuario continúa la conversación sin venir de Stories, la IA pierde el contexto
+  - **Solución:** Guardar Stories como mensajes `role: 'system'` en `chat_messages`
+  - **Beneficios:**
+    - Forma parte de la "memoria a corto plazo" (últimos 10-20 mensajes)
+    - Se incluye en el `context_summary` cuando se regenera cada 20 mensajes
+    - La IA siempre tiene el contexto completo
+    - El usuario ve las Stories en el historial del chat
+  - **Flujo deseado:**
+    ```
+    Story 1 → mensaje 'system' en BD (visible como asistente)
+    Usuario → mensaje 'user' en BD
+    IA → mensaje 'assistant' en BD
+    Story 2 → mensaje 'system' en BD (visible como asistente)
+    Usuario → mensaje 'user' en BD
+    IA → mensaje 'assistant' en BD
+    ```
+  - **Archivos a modificar:**
+    - `supabase/functions/chat-send-message/combined.ts` - Guardar `system_message` en BD
+    - `lib/features/chat/data/datasources/chat_remote_datasource.dart` - Renombrar param
+    - `lib/features/chat/data/repositories/chat_repository_impl.dart` - Pasar param
+    - `lib/features/chat/domain/repositories/chat_repository.dart` - Interfaz
+    - `lib/features/chat/presentation/providers/chat_provider.dart` - Renombrar param
+  - **UI:** Mensajes 'system' se muestran igual que mensajes del asistente
+  - **Plan detallado:** `/home/robertoabia/.claude/plans/validated-hopping-adleman.md`
 - [ ] T-0003: Configurar proyecto Supabase (prod)
 - [ ] T-0301: Auth flow completo (email upgrade)
 - [ ] T-0401: Integrar RevenueCat

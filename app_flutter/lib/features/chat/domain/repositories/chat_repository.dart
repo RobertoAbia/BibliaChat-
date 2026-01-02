@@ -4,17 +4,21 @@ import '../../data/repositories/chat_repository_impl.dart';
 abstract class ChatRepository {
   /// Envía un mensaje y obtiene la respuesta de la IA
   /// [topicKey] es opcional: null para chat libre
+  /// [systemContext] es contexto para la IA que NO se guarda en BD
   Future<ChatMessage> sendMessage({
     String? topicKey,
     required String userMessage,
     String? chatId,
+    String? systemContext,
   });
 
   /// Envía un mensaje y obtiene tanto la respuesta como el título (si se generó)
+  /// [systemContext] es contexto para la IA que NO se guarda en BD
   Future<SendMessageResult> sendMessageWithTitle({
     String? topicKey,
     required String userMessage,
     String? chatId,
+    String? systemContext,
   });
 
   /// Obtiene el historial de mensajes de un chat

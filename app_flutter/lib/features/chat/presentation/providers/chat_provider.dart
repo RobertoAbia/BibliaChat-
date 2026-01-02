@@ -233,19 +233,14 @@ class ChatNotifier extends StateNotifier<ChatState> {
     );
 
     try {
-      // Preparar el mensaje para la Edge Function
-      // Si hay contexto del sistema (ej: contenido de Story), incluirlo
-      String messageForApi = content;
-      if (systemContext != null && systemContext.isNotEmpty) {
-        messageForApi = '[Contexto de la lectura bíblica que el usuario está viendo:]\n$systemContext\n\n[Mensaje del usuario:]\n$content';
-      }
-
       // Enviar mensaje a la Edge Function y obtener respuesta + título
+      // El systemContext se envía por separado (la IA lo ve pero NO se guarda en BD)
       // Usar topicKey proporcionado o el del state
       final result = await _repository.sendMessageWithTitle(
         topicKey: topicKey ?? state.topicKey,
-        userMessage: messageForApi,
+        userMessage: content,
         chatId: state.chatId,
+        systemContext: systemContext,
       );
 
       final assistantMessage = result.message;

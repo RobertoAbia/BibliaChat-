@@ -367,6 +367,7 @@ interface ChatRequest {
   topic_key?: string | null;  // Opcional: null = chat libre
   user_message: string;
   chat_id?: string;
+  system_context?: string;  // Contexto adicional para la IA (no se guarda en BD)
 }
 
 interface UserProfile {
@@ -830,7 +831,7 @@ serve(async (req) => {
 
     // Parsear body del request
     const body: ChatRequest = await req.json();
-    const { topic_key, user_message, chat_id } = body;
+    const { topic_key, user_message, chat_id, system_context } = body;
 
     // Solo user_message es obligatorio (topic_key es opcional para chats libres)
     if (!user_message) {
@@ -871,12 +872,18 @@ serve(async (req) => {
     console.log("Step 4: Done - prompt length:", systemPrompt.length);
 
     // 5. Generar respuesta de OpenAI
+    // Si hay system_context (ej: contenido de Story), incluirlo para la IA pero NO guardarlo
     console.log("Step 5: Calling OpenAI API...");
+    let messageForAI = user_message;
+    if (system_context) {
+      messageForAI = `[Contexto de la lectura bíblica que el usuario está viendo:]\n${system_context}\n\n[Mensaje del usuario:]\n${user_message}`;
+      console.log("Step 5: Including system_context for AI");
+    }
     const assistantResponse = await generateAIResponse(
       openaiKey,
       systemPrompt,
       recentMessages.map((m) => ({ role: m.role, content: m.content })),
-      user_message
+      messageForAI
     );
     console.log("Step 5: Done - response length:", assistantResponse.length);
 

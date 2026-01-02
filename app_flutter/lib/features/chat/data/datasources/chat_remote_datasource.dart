@@ -7,6 +7,7 @@ abstract class ChatRemoteDatasource {
     String? topicKey,
     required String userMessage,
     String? chatId,
+    String? systemContext,  // Contexto para la IA (no se guarda en BD)
   });
 
   Future<List<ChatMessageModel>> getMessages(String chatId);
@@ -32,6 +33,7 @@ class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
     String? topicKey,
     required String userMessage,
     String? chatId,
+    String? systemContext,
   }) async {
     final body = <String, dynamic>{
       'user_message': userMessage,
@@ -45,6 +47,11 @@ class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
     // Solo incluir chat_id si no es null
     if (chatId != null) {
       body['chat_id'] = chatId;
+    }
+
+    // Solo incluir system_context si no es null (contexto para la IA, no se guarda)
+    if (systemContext != null && systemContext.isNotEmpty) {
+      body['system_context'] = systemContext;
     }
 
     final response = await _supabase.functions.invoke(
