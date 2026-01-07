@@ -447,35 +447,34 @@ BibliaChat/
     - `lib/features/chat/presentation/providers/chat_provider.dart`
     - `lib/features/chat/presentation/screens/chat_screen.dart`
 
+- [x] Feature: Stories guardadas como mensajes en BD + Respuestas cortas
+  - **Contenido de Stories persistido:**
+    - Al enviar mensaje desde Stories, el contenido se guarda como mensaje `role: 'assistant'` en BD
+    - Esto permite que la IA siempre tenga contexto (forma parte de últimos 12 mensajes)
+    - Se incluye en `context_summary` cuando se regenera cada 20 mensajes
+    - El usuario ve el contenido de la Story en el historial del chat
+  - **Flujo actual:**
+    ```
+    Story → mensaje 'assistant' en BD (contenido visible)
+    Usuario → mensaje 'user' en BD
+    IA → mensaje 'assistant' en BD
+    ```
+  - **Parámetro renombrado:** `systemContext` → `systemMessage` en toda la cadena
+  - **Recarga de mensajes:** Cuando hay `systemMessage`, el provider recarga todos los mensajes de BD para mostrar inmediatamente
+  - **Respuestas más cortas (estilo WhatsApp):**
+    - BASE_PROMPT actualizado con instrucciones más agresivas de brevedad
+    - Máximo 1-3 oraciones por respuesta
+    - Prohibido: párrafos largos, listas, bullet points
+    - Citas bíblicas máximo 1 cada 4-5 mensajes
+    - `max_completion_tokens` reducido de 800 a 400
+  - **Archivos modificados:**
+    - `supabase/functions/chat-send-message/combined.ts` - Guarda `system_message` como 'assistant', nuevo BASE_PROMPT
+    - `lib/features/chat/data/datasources/chat_remote_datasource.dart` - Param `systemMessage`
+    - `lib/features/chat/data/repositories/chat_repository_impl.dart` - Param `systemMessage`
+    - `lib/features/chat/domain/repositories/chat_repository.dart` - Interfaz actualizada
+    - `lib/features/chat/presentation/providers/chat_provider.dart` - Param `systemMessage` + recarga de mensajes
+
 ### Próximos Pasos
-- [x] Redesplegar Edge Function `chat-send-message` con generación de títulos ✅
-- [x] Separar `systemContext` como parámetro separado (implementado, desplegado) ✅
-- [ ] **PENDIENTE:** Guardar contenido de Stories como mensajes 'system' en BD
-  - **Problema actual:** El contenido de Stories se envía como `system_context` oculto, NO se guarda en BD
-  - **Consecuencia:** Si el usuario continúa la conversación sin venir de Stories, la IA pierde el contexto
-  - **Solución:** Guardar Stories como mensajes `role: 'system'` en `chat_messages`
-  - **Beneficios:**
-    - Forma parte de la "memoria a corto plazo" (últimos 10-20 mensajes)
-    - Se incluye en el `context_summary` cuando se regenera cada 20 mensajes
-    - La IA siempre tiene el contexto completo
-    - El usuario ve las Stories en el historial del chat
-  - **Flujo deseado:**
-    ```
-    Story 1 → mensaje 'system' en BD (visible como asistente)
-    Usuario → mensaje 'user' en BD
-    IA → mensaje 'assistant' en BD
-    Story 2 → mensaje 'system' en BD (visible como asistente)
-    Usuario → mensaje 'user' en BD
-    IA → mensaje 'assistant' en BD
-    ```
-  - **Archivos a modificar:**
-    - `supabase/functions/chat-send-message/combined.ts` - Guardar `system_message` en BD
-    - `lib/features/chat/data/datasources/chat_remote_datasource.dart` - Renombrar param
-    - `lib/features/chat/data/repositories/chat_repository_impl.dart` - Pasar param
-    - `lib/features/chat/domain/repositories/chat_repository.dart` - Interfaz
-    - `lib/features/chat/presentation/providers/chat_provider.dart` - Renombrar param
-  - **UI:** Mensajes 'system' se muestran igual que mensajes del asistente
-  - **Plan detallado:** `/home/robertoabia/.claude/plans/validated-hopping-adleman.md`
 - [ ] T-0003: Configurar proyecto Supabase (prod)
 - [ ] T-0301: Auth flow completo (email upgrade)
 - [ ] T-0401: Integrar RevenueCat
@@ -531,21 +530,25 @@ supabase functions serve
   - Solo se genera UNA VEZ, después solo edición manual
   - Prompt: `CHAT_TITLE_PROMPT` con reglas específicas
 - **Auto-actualización:** Cada 20 mensajes regenera context_summary y extrae ai_memory
-- **Modelo principal:** GPT-4o (`role: "developer"`, `max_completion_tokens: 800`, `temperature: 0.8`)
+- **Modelo principal:** GPT-4o (`role: "developer"`, `max_completion_tokens: 400`, `temperature: 0.8`)
 - **Modelo para memorias y títulos:** GPT-4o-mini (resúmenes, ai_memory, títulos)
 - **Secrets requeridos:** `OPENAI_API_KEY`
 - **Topics soportados (12):**
   - `familia_separada`, `desempleo`, `solteria`, `ansiedad_miedo`
   - `identidad_bicultural`, `reconciliacion`, `sacramentos`, `oracion`
   - `preguntas_biblia`, `evangelio_del_dia`, `lectura_del_dia`, `otro`
-- **BASE_PROMPT (tono actualizado):**
+- **Request actualizado:** `{ topic_key?, user_message, chat_id?, system_message? }`
+  - `system_message`: Contenido de Story, se guarda como mensaje 'assistant' en BD
+- **BASE_PROMPT (estilo WhatsApp corto):**
   ```
   Eres un amigo cristiano que chatea por WhatsApp. Te llamas "Biblia Chat"...
-  - Como un colega de confianza, no un predicador
-  - Escuchas primero, aconsejas solo si hace falta
-  - Como en WhatsApp: natural, cercano, real
-  - NUNCA párrafos largos ni estructurados
-  - NO siempre cites la Biblia - solo cuando realmente aporte
+  FORMATO - ESTO ES LO MÁS IMPORTANTE:
+  - Mensajes CORTOS como WhatsApp real (1-3 oraciones máximo)
+  - Si puedes decirlo en una línea, hazlo
+  - PROHIBIDO: párrafos largos, listas, bullet points
+  - A veces basta con "Entiendo", "Qué difícil", "Ánimo"
+  - NO siempre cites la Biblia - máximo 1 cada 4-5 mensajes
+  - Eres un amigo que chatea, NO un consejero dando discursos
   ```
 
 ### `fetch-daily-gospel` (desplegada como `clever-worker`)
@@ -616,7 +619,8 @@ supabase functions serve
   - Hacer `await` en `Navigator.push()` para esperar a que vuelva
   - Luego incrementar un `StateProvider<int>` que el `FutureProvider` observe
   - Ejemplo: `ref.read(userChatsRefreshProvider.notifier).state++`
-- **Pasar contexto oculto a la IA:**
-  - Usar parámetro `systemContext` en `sendMessage()` que NO se muestra al usuario
-  - Se concatena con el mensaje antes de enviar a la Edge Function
-  - Útil para: contenido de Stories, contexto de la conversación, etc.
+- **Pasar contenido de Stories a la IA:**
+  - Usar parámetro `systemMessage` en `sendMessage()`
+  - Se guarda como mensaje 'assistant' en BD (visible en el chat)
+  - El provider recarga todos los mensajes de BD cuando hay `systemMessage`
+  - Útil para: contenido de Stories que debe persistir en el historial

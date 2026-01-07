@@ -105,11 +105,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       // Si hay mensaje del usuario, enviarlo para obtener respuesta real
       if (widget.initialUserMessage != null &&
           widget.initialUserMessage!.isNotEmpty) {
-        // Pasar el topicKey y el contexto de la Story para que la IA sepa de qué habla
+        // Pasar el topicKey y el contenido de la Story (se guarda como mensaje 'system' en BD)
         notifier.sendMessage(
           widget.initialUserMessage!,
           topicKey: widget.topicKey,
-          systemContext: widget.initialGospelText,
+          systemMessage: widget.initialGospelText,
         );
       }
     } else {

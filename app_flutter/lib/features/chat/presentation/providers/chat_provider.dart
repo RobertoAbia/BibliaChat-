@@ -209,8 +209,8 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
   // Envía un mensaje y recibe la respuesta de la IA
   // Si topicKey se proporciona, se usa en lugar de state.topicKey (útil para crear chats nuevos con topic)
-  // Si systemContext se proporciona, se incluye como contexto para la IA (no se muestra al usuario)
-  Future<void> sendMessage(String content, {String? topicKey, String? systemContext}) async {
+  // Si systemMessage se proporciona (contenido de Story), se guarda como mensaje 'system' en BD
+  Future<void> sendMessage(String content, {String? topicKey, String? systemMessage}) async {
     if (content.trim().isEmpty) return;
 
     // Ocultar sugerencias al enviar primer mensaje
@@ -234,13 +234,13 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
     try {
       // Enviar mensaje a la Edge Function y obtener respuesta + título
-      // El systemContext se envía por separado (la IA lo ve pero NO se guarda en BD)
+      // El systemMessage (contenido de Story) se guarda como mensaje 'system' en BD
       // Usar topicKey proporcionado o el del state
       final result = await _repository.sendMessageWithTitle(
         topicKey: topicKey ?? state.topicKey,
         userMessage: content,
         chatId: state.chatId,
-        systemContext: systemContext,
+        systemMessage: systemMessage,
       );
 
       final assistantMessage = result.message;
@@ -250,29 +250,39 @@ class ChatNotifier extends StateNotifier<ChatState> {
       final newChatId = state.chatId ??
           (assistantMessage as ChatMessageModel).chatId;
 
-      // Actualizar el mensaje del usuario con el ID real del chat
-      final updatedUserMessage = ChatMessageModel(
-        id: tempUserMessage.id,
-        chatId: newChatId,
-        role: MessageRole.user,
-        content: content,
-        createdAt: tempUserMessage.createdAt,
-      );
+      // Si había systemMessage (contenido de Story), recargar todos los mensajes
+      // para incluir el mensaje 'system' guardado por la Edge Function
+      if (systemMessage != null) {
+        final allMessages = await _repository.getMessages(newChatId);
+        state = state.copyWith(
+          chatId: newChatId,
+          title: generatedTitle ?? state.title,
+          messages: allMessages,
+          isSending: false,
+        );
+      } else {
+        // Sin systemMessage, actualizar solo los mensajes locales
+        final updatedUserMessage = ChatMessageModel(
+          id: tempUserMessage.id,
+          chatId: newChatId,
+          role: MessageRole.user,
+          content: content,
+          createdAt: tempUserMessage.createdAt,
+        );
 
-      // Reemplazar mensaje temporal y añadir respuesta
-      final updatedMessages = [
-        ...state.messages.where((m) => m.id != tempUserMessage.id),
-        updatedUserMessage,
-        assistantMessage,
-      ];
+        final updatedMessages = [
+          ...state.messages.where((m) => m.id != tempUserMessage.id),
+          updatedUserMessage,
+          assistantMessage,
+        ];
 
-      // Actualizar estado con el nuevo título si se generó
-      state = state.copyWith(
-        chatId: newChatId,
-        title: generatedTitle ?? state.title,  // Usar título generado o mantener existente
-        messages: updatedMessages,
-        isSending: false,
-      );
+        state = state.copyWith(
+          chatId: newChatId,
+          title: generatedTitle ?? state.title,
+          messages: updatedMessages,
+          isSending: false,
+        );
+      }
     } catch (e) {
       state = state.copyWith(
         isSending: false,

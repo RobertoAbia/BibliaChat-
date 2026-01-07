@@ -29,13 +29,16 @@ LÍMITES:
 - NO inventas cosas sobre el usuario
 - NO predices el futuro ni das "profecías"
 
-FORMATO (MUY IMPORTANTE):
-- Responde como en un chat real: a veces una frase basta, otras un poco más
-- NUNCA párrafos largos ni estructurados
-- NO siempre cites la Biblia - solo cuando realmente aporte
+FORMATO - ESTO ES LO MÁS IMPORTANTE:
+- Mensajes CORTOS como WhatsApp real (1-3 oraciones máximo)
+- Si puedes decirlo en una línea, hazlo
+- PROHIBIDO: párrafos largos, listas, bullet points, estructura formal
+- PROHIBIDO: respuestas de más de 4-5 líneas
+- A veces basta con "Entiendo", "Qué difícil", "Ánimo", "Cuenta conmigo"
+- NO siempre des consejos - a veces solo escucha y acompaña
+- NO siempre cites la Biblia - máximo 1 cita cada 4-5 mensajes
 - NO termines siempre con pregunta - a veces solo apoya
-- Adapta la longitud a lo que necesite el momento
-- Evita sonar como bot o como cura dando sermón`;
+- Eres un amigo que chatea, NO un consejero dando discursos`;
 
 const DENOMINATION_PROMPTS: Record<string, string> = {
   catolico: `CONTEXTO DENOMINACIONAL: Usuario católico
@@ -367,7 +370,7 @@ interface ChatRequest {
   topic_key?: string | null;  // Opcional: null = chat libre
   user_message: string;
   chat_id?: string;
-  system_context?: string;  // Contexto adicional para la IA (no se guarda en BD)
+  system_message?: string;  // Contenido de Story - se guarda como mensaje 'system' en BD
 }
 
 interface UserProfile {
@@ -590,7 +593,7 @@ async function generateAIResponse(
     body: JSON.stringify({
       model: "gpt-4o",
       messages: openaiMessages,
-      max_completion_tokens: 800,
+      max_completion_tokens: 400,
       temperature: 0.8,
     }),
   });
@@ -831,7 +834,7 @@ serve(async (req) => {
 
     // Parsear body del request
     const body: ChatRequest = await req.json();
-    const { topic_key, user_message, chat_id, system_context } = body;
+    const { topic_key, user_message, chat_id, system_message } = body;
 
     // Solo user_message es obligatorio (topic_key es opcional para chats libres)
     if (!user_message) {
@@ -871,47 +874,60 @@ serve(async (req) => {
     );
     console.log("Step 4: Done - prompt length:", systemPrompt.length);
 
-    // 5. Generar respuesta de OpenAI
-    // Si hay system_context (ej: contenido de Story), incluirlo para la IA pero NO guardarlo
-    console.log("Step 5: Calling OpenAI API...");
-    let messageForAI = user_message;
-    if (system_context) {
-      messageForAI = `[Contexto de la lectura bíblica que el usuario está viendo:]\n${system_context}\n\n[Mensaje del usuario:]\n${user_message}`;
-      console.log("Step 5: Including system_context for AI");
+    // 5. Si hay system_message (contenido de Story), guardarlo primero como mensaje 'assistant'
+    if (system_message) {
+      console.log("Step 5a: Saving system_message (Story content) as assistant...");
+      await saveMessage(supabase, chat.id, "assistant", system_message);
+      console.log("Step 5a: Done - story content saved as assistant message");
     }
+
+    // 6. Guardar mensaje del usuario
+    console.log("Step 6: Saving user message...");
+    await saveMessage(supabase, chat.id, "user", user_message);
+    console.log("Step 6: Done");
+
+    // 7. Obtener mensajes actualizados (incluyendo el system_message recién guardado)
+    console.log("Step 7: Getting updated messages for AI...");
+    const updatedMessages = await getRecentMessages(supabase, chat.id, 12);
+    console.log("Step 7: Done -", updatedMessages.length, "messages");
+
+    // 8. Generar respuesta de OpenAI
+    console.log("Step 8: Calling OpenAI API...");
     const assistantResponse = await generateAIResponse(
       openaiKey,
       systemPrompt,
-      recentMessages.map((m) => ({ role: m.role, content: m.content })),
-      messageForAI
+      updatedMessages.map((m) => ({ role: m.role, content: m.content })),
+      user_message
     );
-    console.log("Step 5: Done - response length:", assistantResponse.length);
+    console.log("Step 8: Done - response length:", assistantResponse.length);
 
-    // 6. Guardar mensajes (usuario y asistente)
-    console.log("Step 6: Saving messages...");
-    await saveMessage(supabase, chat.id, "user", user_message);
+    // 9. Guardar respuesta del asistente
+    console.log("Step 9: Saving assistant response...");
     const assistantMessageId = await saveMessage(supabase, chat.id, "assistant", assistantResponse);
-    console.log("Step 6: Done - message_id:", assistantMessageId);
+    console.log("Step 9: Done - message_id:", assistantMessageId);
 
-    // 7. Actualizar metadata del chat
-    console.log("Step 7: Updating chat metadata...");
+    // 10. Actualizar metadata del chat
+    console.log("Step 10: Updating chat metadata...");
     await updateChatMetadata(supabase, chat.id, assistantResponse);
-    console.log("Step 7: Done");
+    console.log("Step 10: Done");
 
-    // 8. Contar mensajes actuales y actualizar memorias si es necesario
-    console.log("Step 8: Counting messages...");
+    // 11. Contar mensajes actuales y actualizar memorias si es necesario
+    console.log("Step 11: Counting messages...");
     const currentMessageCount = await getMessageCount(supabase, chat.id);
-    console.log("Step 8: Done -", currentMessageCount, "total messages");
+    console.log("Step 11: Done -", currentMessageCount, "total messages");
 
-    // 9. Generar título si es el primer intercambio y no tiene título
+    // 12. Generar título si es el primer intercambio y no tiene título
+    // Con system_message: system(1) + user(2) + assistant(3) = 3 mensajes mínimo
+    // Sin system_message: user(1) + assistant(2) = 2 mensajes mínimo
     let generatedTitle: string | null = null;
-    if (currentMessageCount === 2 && !chat.title) {
-      console.log("Step 9: Generating chat title...");
+    const isFirstExchange = (system_message && currentMessageCount === 3) || (!system_message && currentMessageCount === 2);
+    if (isFirstExchange && !chat.title) {
+      console.log("Step 12: Generating chat title...");
       generatedTitle = await generateChatTitle(openaiKey, user_message, assistantResponse);
       await updateChatTitle(supabase, chat.id, generatedTitle);
-      console.log("Step 9: Done - title:", generatedTitle);
+      console.log("Step 12: Done - title:", generatedTitle);
     } else {
-      console.log("Step 9: Skipped - chat already has title or not first message");
+      console.log("Step 12: Skipped - chat already has title or not first message");
     }
 
     // Ejecutar actualización de memorias en background (no bloquea la respuesta)

@@ -21,13 +21,13 @@ class ChatRepositoryImpl implements ChatRepository {
     String? topicKey,
     required String userMessage,
     String? chatId,
-    String? systemContext,
+    String? systemMessage,
   }) async {
     final result = await sendMessageWithTitle(
       topicKey: topicKey,
       userMessage: userMessage,
       chatId: chatId,
-      systemContext: systemContext,
+      systemMessage: systemMessage,
     );
     return result.message;
   }
@@ -38,13 +38,13 @@ class ChatRepositoryImpl implements ChatRepository {
     String? topicKey,
     required String userMessage,
     String? chatId,
-    String? systemContext,
+    String? systemMessage,
   }) async {
     final response = await _remoteDatasource.sendMessage(
       topicKey: topicKey,
       userMessage: userMessage,
       chatId: chatId,
-      systemContext: systemContext,
+      systemMessage: systemMessage,
     );
 
     // La Edge Function devuelve el mensaje del asistente y opcionalmente el título
