@@ -474,6 +474,37 @@ BibliaChat/
     - `lib/features/chat/domain/repositories/chat_repository.dart` - Interfaz actualizada
     - `lib/features/chat/presentation/providers/chat_provider.dart` - Param `systemMessage` + recarga de mensajes
 
+- [x] Feature: Títulos de chat estilo ChatGPT
+  - **Nuevo CHAT_TITLE_PROMPT:**
+    - 2-5 palabras máximo (antes hasta 50 caracteres)
+    - Estilo directo sin florituras: "Oración por mamá", "Dudas bautismo", "Hola"
+    - Prohibido: "Conversación sobre...", "Reflexión de...", "Interacción amistosa..."
+    - Ejemplos buenos vs malos incluidos en el prompt
+  - **Archivo modificado:**
+    - `supabase/functions/chat-send-message/combined.ts` - Nuevo CHAT_TITLE_PROMPT
+
+- [x] Feature: UI "Nueva conversación" estilo ChatGPT
+  - **Antes:** Mensaje largo de bienvenida + 5 tiles grandes + input pequeño abajo
+  - **Después:** Icono centrado + "¿En qué te puedo ayudar?" + 3 chips pequeños
+  - **Comportamiento de chips:**
+    - Al tocar → rellena el input (NO envía directo)
+    - Usuario completa la frase y envía
+    - Ejemplo: toca "🙏 Oración para..." → input muestra "Necesito una oración para "
+  - **Chips disponibles:**
+    - 🙏 "Oración para..." → "Necesito una oración para "
+    - 📖 "Duda sobre..." → "Tengo una duda sobre "
+    - 💬 "Hablar de..." → "Me gustaría hablar de "
+  - **Código eliminado:**
+    - `_buildAIGreetingBubble()` - mensaje largo de bienvenida
+    - `_StarterSuggestionTile` - tiles grandes
+  - **Código añadido:**
+    - `_buildSuggestionChips()` - chips pequeños horizontales
+    - `_buildChip()` - widget individual de chip
+    - `_fillInputWith()` - rellena input con texto y pone focus
+    - `_messageFocusNode` - para controlar el focus del input
+  - **Archivo modificado:**
+    - `lib/features/chat/presentation/screens/chat_screen.dart`
+
 ### Próximos Pasos
 - [ ] T-0003: Configurar proyecto Supabase (prod)
 - [ ] T-0301: Auth flow completo (email upgrade)

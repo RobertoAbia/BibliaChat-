@@ -269,25 +269,31 @@ const CONTEXT_SUMMARY_PROMPT = `Analiza la siguiente conversación y genera un r
 El resumen debe ser útil para retomar la conversación en el futuro.
 Escribe en tercera persona (ej: "El usuario expresó preocupación por...")`;
 
-const CHAT_TITLE_PROMPT = `Genera un título corto y descriptivo para esta conversación.
+const CHAT_TITLE_PROMPT = `Genera un título MUY CORTO para esta conversación (estilo ChatGPT).
 
 REGLAS:
-- Máximo 50 caracteres
-- Debe capturar el tema principal de la conversación
-- NO uses comillas ni puntuación al final
-- NO uses emojis
-- Sé específico (ej: "Reflexión sobre Juan 3:16" en vez de "Lectura del día")
-- Si es sobre un pasaje bíblico, menciona la referencia
-- Si es sobre un tema personal, captura la esencia sin revelar demasiado
+- 2-5 palabras MÁXIMO
+- Directo al grano, sin palabras de relleno
+- Como nombrarías un chat de WhatsApp
+- NO uses "Conversación sobre...", "Reflexión de...", "Charla acerca de..."
+- Si es un saludo simple, usa "Hola" o "Saludos"
+- Si es sobre un pasaje bíblico, solo libro y capítulo: "Mateo 14"
 
-Ejemplos buenos:
-- "Ansiedad por el trabajo"
-- "Oración por mi madre enferma"
-- "Reflexión sobre Mateo 5:14"
-- "Dudas sobre el bautismo"
-- "Familia separada por la frontera"
+EJEMPLOS BUENOS:
+- "Oración por mamá"
+- "Ansiedad laboral"
+- "Dudas bautismo"
+- "Mateo 5"
+- "Hola"
+- "Familia lejos"
 
-Responde SOLO con el título, sin explicaciones.`;
+EJEMPLOS MALOS (NO HAGAS ESTO):
+- "Interacción amistosa inicial"
+- "Oración por una situación difícil en el trabajo"
+- "Reflexión sobre el pasaje de Jesús caminando"
+- "Conversación sobre la ansiedad"
+
+Responde SOLO con el título.`;
 
 const AI_MEMORY_EXTRACTION_PROMPT = `Analiza la conversación y extrae SOLO hechos concretos y verificables sobre el usuario.
 

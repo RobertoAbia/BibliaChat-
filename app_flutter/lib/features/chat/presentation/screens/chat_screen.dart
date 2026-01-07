@@ -38,6 +38,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     with TickerProviderStateMixin {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _messageFocusNode = FocusNode();
   late AnimationController _sendButtonController;
   late Animation<double> _sendButtonScale;
 
@@ -196,10 +197,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     _sendMessage(suggestion.text);
   }
 
+  /// Rellena el input con el texto dado y pone el cursor al final
+  void _fillInputWith(String text) {
+    _messageController.text = text;
+    _messageController.selection = TextSelection.fromPosition(
+      TextPosition(offset: text.length),
+    );
+    _messageFocusNode.requestFocus();
+  }
+
   @override
   void dispose() {
     _messageController.dispose();
     _scrollController.dispose();
+    _messageFocusNode.dispose();
     _sendButtonController.dispose();
     super.dispose();
   }
@@ -593,122 +604,99 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   Widget _buildStarterSuggestions() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // AI greeting message bubble
-          _buildAIGreetingBubble(),
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Spacer(flex: 2),
 
-          const SizedBox(height: 24),
+            // Icono centrado con gradiente dorado
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: AppTheme.goldGradient,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withOpacity(0.3),
+                    blurRadius: 20,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.auto_awesome,
+                size: 36,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 24),
 
-          // Suggestions section
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Text(
-              'Puedes empezar con:',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: AppTheme.textSecondary,
+            // Texto simple centrado
+            Text(
+              '¿En qué te puedo ayudar?',
+              style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: AppTheme.textPrimary,
                     fontWeight: FontWeight.w500,
                   ),
+              textAlign: TextAlign.center,
             ),
-          ),
 
-          const SizedBox(height: 12),
+            const Spacer(flex: 2),
 
-          // Starter suggestions
-          ...starterSuggestions.map((suggestion) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _StarterSuggestionTile(
-                  suggestion: suggestion,
-                  onTap: () => _onSuggestionTap(suggestion),
-                ),
-              )),
-        ],
+            // Chips de sugerencias
+            _buildSuggestionChips(),
+
+            const SizedBox(height: 24),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildAIGreetingBubble() {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 500),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        return Transform.translate(
-          offset: Offset(-20 * (1 - value), 0),
-          child: Opacity(
-            opacity: value,
-            child: child,
+  Widget _buildSuggestionChips() {
+    // Sugerencias con emoji, texto corto y texto completo para el input
+    final suggestions = [
+      ('🙏', 'Oración para...', 'Necesito una oración para '),
+      ('📖', 'Duda sobre...', 'Tengo una duda sobre '),
+      ('💬', 'Hablar de...', 'Me gustaría hablar de '),
+    ];
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      alignment: WrapAlignment.center,
+      children: suggestions.map((s) => _buildChip(s.$1, s.$2, s.$3)).toList(),
+    );
+  }
+
+  Widget _buildChip(String emoji, String label, String fullText) {
+    return GestureDetector(
+      onTap: () => _fillInputWith(fullText),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceDark.withOpacity(0.6),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppTheme.surfaceLight.withOpacity(0.3),
           ),
-        );
-      },
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Container(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.85,
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18).copyWith(
-              bottomLeft: const Radius.circular(4),
-            ),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 14,
-                ),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppTheme.surfaceDark.withOpacity(0.7),
-                      AppTheme.surfaceDark.withOpacity(0.5),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(18).copyWith(
-                    bottomLeft: const Radius.circular(4),
-                  ),
-                  border: Border.all(
-                    color: AppTheme.surfaceLight.withOpacity(0.3),
-                  ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '¡Hola! 👋',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppTheme.textPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Soy tu acompañante espiritual. Estoy aquí para escucharte, '
-                      'conversar contigo y ayudarte a encontrar paz y guía en la Palabra de Dios.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.textPrimary,
-                            height: 1.4,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '¿Qué hay en tu corazón hoy?',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.textSecondary,
-                            fontStyle: FontStyle.italic,
-                          ),
-                    ),
-                  ],
-                ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppTheme.textSecondary,
               ),
             ),
-          ),
+          ],
         ),
       ),
     );
@@ -747,6 +735,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         ),
                         child: TextField(
                           controller: _messageController,
+                          focusNode: _messageFocusNode,
                           cursorColor: AppTheme.textPrimary,
                           enabled: !isSending,
                           style: const TextStyle(
@@ -834,102 +823,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                   textAlign: TextAlign.center,
                 ),
               ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StarterSuggestionTile extends StatefulWidget {
-  final StarterSuggestion suggestion;
-  final VoidCallback onTap;
-
-  const _StarterSuggestionTile({
-    required this.suggestion,
-    required this.onTap,
-  });
-
-  @override
-  State<_StarterSuggestionTile> createState() => _StarterSuggestionTileState();
-}
-
-class _StarterSuggestionTileState extends State<_StarterSuggestionTile>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 150),
-      vsync: this,
-    );
-
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.98).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _controller.forward(),
-      onTapUp: (_) => _controller.reverse(),
-      onTapCancel: () => _controller.reverse(),
-      onTap: widget.onTap,
-      child: AnimatedBuilder(
-        animation: _controller,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: child,
-          );
-        },
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-              decoration: BoxDecoration(
-                color: AppTheme.surfaceDark.withOpacity(0.4),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppTheme.surfaceLight.withOpacity(0.3),
-                ),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    widget.suggestion.icon,
-                    style: const TextStyle(fontSize: 24),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      widget.suggestion.text,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: AppTheme.textPrimary,
-                          ),
-                    ),
-                  ),
-                  const Icon(
-                    Icons.arrow_forward_ios,
-                    color: AppTheme.textTertiary,
-                    size: 16,
-                  ),
-                ],
-              ),
             ),
           ),
         ),
