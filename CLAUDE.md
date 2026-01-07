@@ -655,3 +655,23 @@ supabase functions serve
   - Se guarda como mensaje 'assistant' en BD (visible en el chat)
   - El provider recarga todos los mensajes de BD cuando hay `systemMessage`
   - Útil para: contenido de Stories que debe persistir en el historial
+- **Botones responsivos (content-sized):**
+  - Por defecto, `ElevatedButton` se expande en un `Column` debido a `minimumSize` (~64dp)
+  - `Center` wrapper NO funciona (da loose constraints, el botón sigue expandiéndose)
+  - **Solución robusta:** `Row(mainAxisSize: MainAxisSize.min)` + `minimumSize: Size.zero`
+  - Si el Column tiene `crossAxisAlignment.start`, añadir `Center` envolviendo el Row
+  - Ejemplo:
+    ```dart
+    Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            minimumSize: Size.zero,  // Elimina el mínimo por defecto
+            // ... resto del estilo
+          ),
+          child: Text('Botón'),
+        ),
+      ],
+    )
+    ```
