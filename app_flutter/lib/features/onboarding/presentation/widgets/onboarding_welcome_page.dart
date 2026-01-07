@@ -413,8 +413,8 @@ class _ShimmerButton extends StatelessWidget {
       animation: controller,
       builder: (context, child) {
         return Container(
-          width: double.infinity,
-          height: 60,
+          height: 56,
+          padding: const EdgeInsets.symmetric(horizontal: 32),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             gradient: AppTheme.goldGradient,
@@ -463,9 +463,9 @@ class _ShimmerButton extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
                     Text(
                       'Comenzar mi viaje',
                       style: TextStyle(

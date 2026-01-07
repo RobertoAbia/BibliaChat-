@@ -427,11 +427,12 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage>
   }
 
   Widget _buildButton() {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      width: double.infinity,
-      height: 56,
-      decoration: BoxDecoration(
+    return Center(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        height: 56,
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        decoration: BoxDecoration(
         gradient: AppTheme.goldGradient,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -482,7 +483,7 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage>
               ),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'Continuar',
@@ -502,6 +503,7 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage>
             ),
           ),
         ],
+      ),
       ),
     );
   }

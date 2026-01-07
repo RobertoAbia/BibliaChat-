@@ -191,30 +191,42 @@ class _OnboardingCountryPageState extends State<OnboardingCountryPage> {
           // Botón continuar
           Padding(
             padding: const EdgeInsets.only(bottom: 32),
-            child: SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: _selectedCode != null ? widget.onNext : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _selectedCode != null
-                      ? AppTheme.primaryColor
-                      : AppTheme.surfaceDark,
-                  foregroundColor: _selectedCode != null
-                      ? AppTheme.backgroundDark
-                      : AppTheme.textSecondary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
+            child: Center(
+              child: Container(
+                height: 56,
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                decoration: BoxDecoration(
+                  gradient: _selectedCode != null ? AppTheme.goldGradient : null,
+                  color: _selectedCode != null ? null : AppTheme.surfaceDark,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: _selectedCode != null
+                      ? [
+                          BoxShadow(
+                            color: AppTheme.primaryColor.withOpacity(0.4),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ]
+                      : null,
                 ),
-                child: Text(
-                  'Continuar',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: _selectedCode != null
-                            ? AppTheme.backgroundDark
-                            : AppTheme.textSecondary,
-                      ),
+                child: ElevatedButton(
+                  onPressed: _selectedCode != null ? widget.onNext : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.transparent,
+                    shadowColor: Colors.transparent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    'Continuar',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: _selectedCode != null
+                              ? AppTheme.textOnPrimary
+                              : AppTheme.textSecondary,
+                        ),
+                  ),
                 ),
               ),
             ),
