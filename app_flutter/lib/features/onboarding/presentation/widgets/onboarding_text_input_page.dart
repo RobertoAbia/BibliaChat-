@@ -98,39 +98,32 @@ class _OnboardingTextInputPageState extends State<OnboardingTextInputPage> {
           const Spacer(),
 
           // Continue button
-          UnconstrainedBox(
-            child: Container(
-              height: 56,
-              decoration: BoxDecoration(
-                gradient: AppTheme.goldGradient,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryColor.withOpacity(0.4),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ElevatedButton(
+                  onPressed: widget.onNext,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryColor,
+                    foregroundColor: AppTheme.textOnPrimary,
+                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    minimumSize: Size.zero,
+                    elevation: 8,
+                    shadowColor: AppTheme.primaryColor.withOpacity(0.4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                ],
-              ),
-              child: ElevatedButton(
-                onPressed: widget.onNext,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: const Text(
-                  'Continuar',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textOnPrimary,
+                  child: const Text(
+                    'Continuar',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
 

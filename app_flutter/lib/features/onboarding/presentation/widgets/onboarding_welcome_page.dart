@@ -409,26 +409,18 @@ class _ShimmerButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return UnconstrainedBox(
-      child: Container(
-        height: 56,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: AppTheme.goldGradient,
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.primaryColor.withOpacity(0.4),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: ElevatedButton(
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ElevatedButton(
           onPressed: onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            backgroundColor: AppTheme.primaryColor,
+            foregroundColor: AppTheme.textOnPrimary,
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            minimumSize: Size.zero,
+            elevation: 8,
+            shadowColor: AppTheme.primaryColor.withOpacity(0.4),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -441,19 +433,14 @@ class _ShimmerButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.textOnPrimary,
                 ),
               ),
               SizedBox(width: 8),
-              Icon(
-                Icons.arrow_forward,
-                size: 22,
-                color: AppTheme.textOnPrimary,
-              ),
+              Icon(Icons.arrow_forward, size: 22),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 }

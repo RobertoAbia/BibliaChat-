@@ -427,51 +427,38 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage>
   }
 
   Widget _buildButton() {
-    return UnconstrainedBox(
-      child: Container(
-        height: 56,
-        decoration: BoxDecoration(
-          gradient: AppTheme.goldGradient,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.primaryColor.withOpacity(0.4),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: ElevatedButton(
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ElevatedButton(
           onPressed: widget.onNext,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            backgroundColor: AppTheme.primaryColor,
+            foregroundColor: AppTheme.textOnPrimary,
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            minimumSize: Size.zero,
+            elevation: 8,
+            shadowColor: AppTheme.primaryColor.withOpacity(0.4),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
-            children: [
+            children: const [
               Text(
                 'Continuar',
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
-                  color: AppTheme.textOnPrimary,
                 ),
               ),
-              const SizedBox(width: 8),
-              const Icon(
-                Icons.arrow_forward,
-                size: 20,
-                color: AppTheme.textOnPrimary,
-              ),
+              SizedBox(width: 8),
+              Icon(Icons.arrow_forward, size: 20),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 }

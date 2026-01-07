@@ -468,30 +468,18 @@ class _AnimatedButtonState extends State<_AnimatedButton>
 
   @override
   Widget build(BuildContext context) {
-    return UnconstrainedBox(
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        height: 56,
-        decoration: BoxDecoration(
-          gradient: widget.isEnabled ? AppTheme.goldGradient : null,
-          color: widget.isEnabled ? null : AppTheme.surfaceDark,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: widget.isEnabled
-              ? [
-                  BoxShadow(
-                    color: AppTheme.primaryColor.withOpacity(0.4),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ]
-              : null,
-        ),
-        child: ElevatedButton(
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ElevatedButton(
           onPressed: widget.onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.transparent,
-            shadowColor: Colors.transparent,
-            padding: const EdgeInsets.symmetric(horizontal: 32),
+            backgroundColor: widget.isEnabled ? AppTheme.primaryColor : AppTheme.surfaceDark,
+            foregroundColor: widget.isEnabled ? AppTheme.textOnPrimary : AppTheme.textTertiary,
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            minimumSize: Size.zero,
+            elevation: widget.isEnabled ? 8 : 0,
+            shadowColor: AppTheme.primaryColor.withOpacity(0.4),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
             ),
@@ -504,23 +492,16 @@ class _AnimatedButtonState extends State<_AnimatedButton>
                 style: TextStyle(
                   fontSize: 17,
                   fontWeight: FontWeight.w600,
-                  color: widget.isEnabled
-                      ? AppTheme.textOnPrimary
-                      : AppTheme.textTertiary,
                 ),
               ),
               if (widget.isEnabled) ...[
                 const SizedBox(width: 8),
-                const Icon(
-                  Icons.arrow_forward,
-                  size: 20,
-                  color: AppTheme.textOnPrimary,
-                ),
+                const Icon(Icons.arrow_forward, size: 20),
               ],
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 }

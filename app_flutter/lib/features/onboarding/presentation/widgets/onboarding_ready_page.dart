@@ -88,26 +88,18 @@ class OnboardingReadyPage extends StatelessWidget {
           const SizedBox(height: 32),
 
           // CTA Button
-          UnconstrainedBox(
-            child: Container(
-              height: 56,
-              decoration: BoxDecoration(
-                gradient: AppTheme.goldGradient,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryColor.withOpacity(0.4),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: ElevatedButton(
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton(
                 onPressed: onStart,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.transparent,
-                  shadowColor: Colors.transparent,
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: AppTheme.textOnPrimary,
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                  minimumSize: Size.zero,
+                  elevation: 8,
+                  shadowColor: AppTheme.primaryColor.withOpacity(0.4),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -120,19 +112,14 @@ class OnboardingReadyPage extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.textOnPrimary,
                       ),
                     ),
                     SizedBox(width: 8),
-                    Icon(
-                      Icons.arrow_forward,
-                      size: 20,
-                      color: AppTheme.textOnPrimary,
-                    ),
+                    Icon(Icons.arrow_forward, size: 20),
                   ],
                 ),
               ),
-            ),
+            ],
           ),
 
           const SizedBox(height: 32),
