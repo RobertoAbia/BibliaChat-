@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/glass_container.dart';
 import '../../domain/entities/chat_message.dart';
 import '../providers/chat_provider.dart';
 import 'chat_screen.dart';
@@ -44,17 +43,19 @@ class ChatListScreen extends ConsumerWidget {
                       SliverToBoxAdapter(
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                          child: _NewConversationButton(
-                            onTap: () async {
-                              await Navigator.of(context, rootNavigator: true).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const ChatScreen(),
-                                  fullscreenDialog: true,
-                                ),
-                              );
-                              // Refrescar lista al volver del chat
-                              ref.read(userChatsRefreshProvider.notifier).state++;
-                            },
+                          child: Center(
+                            child: _NewConversationButton(
+                              onTap: () async {
+                                await Navigator.of(context, rootNavigator: true).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const ChatScreen(),
+                                    fullscreenDialog: true,
+                                  ),
+                                );
+                                // Refrescar lista al volver del chat
+                                ref.read(userChatsRefreshProvider.notifier).state++;
+                              },
+                            ),
                           ),
                         ),
                       ),
@@ -313,7 +314,7 @@ class _NewConversationButtonState extends State<_NewConversationButton>
           );
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
           decoration: BoxDecoration(
             gradient: AppTheme.goldGradient,
             borderRadius: BorderRadius.circular(16),
@@ -326,7 +327,7 @@ class _NewConversationButtonState extends State<_NewConversationButton>
             ],
           ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 32,
