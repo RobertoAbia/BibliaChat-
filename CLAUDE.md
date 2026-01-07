@@ -378,6 +378,11 @@ BibliaChat/
     - `lib/core/constants/route_constants.dart`
 
 - [x] Feature: Correcciones del Flujo Stories → Chat
+  - **IMPORTANTE - Contenido de Story como mensaje 'assistant':**
+    - Cuando el usuario envía un mensaje desde Stories, el contenido de la Story se guarda PRIMERO como mensaje con `role: 'assistant'` en la BD
+    - Esto hace que la IA SIEMPRE tenga el contexto de la lectura bíblica (forma parte de los últimos 12 mensajes)
+    - El usuario VE este mensaje en el chat (no es invisible)
+    - Edge Function recibe `system_message` y lo inserta como 'assistant' antes del mensaje del usuario
   - **Problema 1: Flash de Home al navegar**
     - Causa: Stories hacía `pop()` y luego Home hacía `push()`
     - Solución: Usar `pushReplacement` desde Stories directo a Chat
