@@ -583,14 +583,62 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           ),
           TextButton(
             onPressed: () async {
-              Navigator.pop(context); // Cerrar diálogo
+              // Guardar referencias ANTES de cerrar el diálogo
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+
+              navigator.pop(); // Cerrar diálogo
+
               final success = await ref
                   .read(chatNotifierProvider(_chatIdentifier).notifier)
                   .deleteChat();
-              if (success && mounted) {
-                // Refrescar lista de chats y volver
+
+              if (success) {
+                // Refrescar lista de chats
                 ref.read(userChatsRefreshProvider.notifier).state++;
-                Navigator.of(context).pop(); // Volver a la lista
+
+                // Mostrar confirmación con estilo premium
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Conversación eliminada',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: AppTheme.surfaceDark.withOpacity(0.95),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: AppTheme.primaryColor.withOpacity(0.3),
+                      ),
+                    ),
+                    margin: const EdgeInsets.all(16),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+
+                // Volver a la lista
+                navigator.pop();
               }
             },
             child: Text(
