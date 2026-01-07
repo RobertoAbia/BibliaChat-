@@ -427,83 +427,50 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage>
   }
 
   Widget _buildButton() {
-    return Center(
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
+    return UnconstrainedBox(
+      child: Container(
         height: 56,
-        padding: const EdgeInsets.symmetric(horizontal: 32),
         decoration: BoxDecoration(
-        gradient: AppTheme.goldGradient,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryColor.withOpacity(0.4),
-            blurRadius: 16,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Stack(
-        children: [
-          // Shimmer overlay
-          AnimatedBuilder(
-            animation: _shimmerController,
-            builder: (context, child) {
-              return ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: ShaderMask(
-                  shaderCallback: (bounds) {
-                    return LinearGradient(
-                      begin: Alignment(-1 + _shimmerController.value * 3, 0),
-                      end: Alignment(_shimmerController.value * 3, 0),
-                      colors: [
-                        Colors.transparent,
-                        Colors.white.withOpacity(0.2),
-                        Colors.transparent,
-                      ],
-                    ).createShader(bounds);
-                  },
-                  blendMode: BlendMode.srcATop,
-                  child: Container(
-                    color: Colors.white.withOpacity(0.1),
-                  ),
-                ),
-              );
-            },
-          ),
-
-          // Button
-          ElevatedButton(
-            onPressed: widget.onNext,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.transparent,
-              shadowColor: Colors.transparent,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
+          gradient: AppTheme.goldGradient,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryColor.withOpacity(0.4),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Continuar',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.textOnPrimary,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const Icon(
-                  Icons.arrow_forward,
-                  size: 20,
+          ],
+        ),
+        child: ElevatedButton(
+          onPressed: widget.onNext,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Continuar',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
                   color: AppTheme.textOnPrimary,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 8),
+              const Icon(
+                Icons.arrow_forward,
+                size: 20,
+                color: AppTheme.textOnPrimary,
+              ),
+            ],
           ),
-        ],
-      ),
+        ),
       ),
     );
   }

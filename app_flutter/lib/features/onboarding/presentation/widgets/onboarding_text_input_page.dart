@@ -98,10 +98,9 @@ class _OnboardingTextInputPageState extends State<OnboardingTextInputPage> {
           const Spacer(),
 
           // Continue button
-          Center(
+          UnconstrainedBox(
             child: Container(
               height: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 32),
               decoration: BoxDecoration(
                 gradient: AppTheme.goldGradient,
                 borderRadius: BorderRadius.circular(16),
@@ -118,6 +117,7 @@ class _OnboardingTextInputPageState extends State<OnboardingTextInputPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),

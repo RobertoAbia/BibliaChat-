@@ -191,10 +191,9 @@ class _OnboardingCountryPageState extends State<OnboardingCountryPage> {
           // Botón continuar
           Padding(
             padding: const EdgeInsets.only(bottom: 32),
-            child: Center(
+            child: UnconstrainedBox(
               child: Container(
                 height: 56,
-                padding: const EdgeInsets.symmetric(horizontal: 32),
                 decoration: BoxDecoration(
                   gradient: _selectedCode != null ? AppTheme.goldGradient : null,
                   color: _selectedCode != null ? null : AppTheme.surfaceDark,
@@ -214,6 +213,7 @@ class _OnboardingCountryPageState extends State<OnboardingCountryPage> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),

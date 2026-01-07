@@ -88,10 +88,9 @@ class OnboardingReadyPage extends StatelessWidget {
           const SizedBox(height: 32),
 
           // CTA Button
-          Center(
+          UnconstrainedBox(
             child: Container(
               height: 56,
-              padding: const EdgeInsets.symmetric(horizontal: 32),
               decoration: BoxDecoration(
                 gradient: AppTheme.goldGradient,
                 borderRadius: BorderRadius.circular(16),
@@ -108,6 +107,7 @@ class OnboardingReadyPage extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
