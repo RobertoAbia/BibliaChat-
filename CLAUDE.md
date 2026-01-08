@@ -510,9 +510,49 @@ BibliaChat/
   - **Archivo modificado:**
     - `lib/features/chat/presentation/screens/chat_screen.dart`
 
+- [x] T-0301: Auth Email (Upgrade de Cuenta Anónima)
+  - **Objetivo:** Permitir que usuarios anónimos vinculen email/password para no perder datos
+  - **Clean Architecture implementada:**
+    - `AuthRepository` interface + `AuthRepositoryImpl` con Supabase
+    - `AuthNotifier` StateNotifier para operaciones de auth
+    - Providers: `isAnonymousProvider`, `authStatusProvider`, `currentEmailProvider`
+  - **Pantallas nuevas:**
+    - `LinkEmailScreen` - Formulario para vincular email/password
+    - `VerifyEmailScreen` - "Revisa tu correo" con countdown para reenvío
+    - `LoginScreen` - Para usuarios que reinstalen la app
+  - **SettingsScreen actualizada:**
+    - Muestra "Guardar mi cuenta" (destacado) solo si es anónimo
+    - Muestra "Cuenta vinculada" + email si ya vinculó
+    - Badge "Sin guardar" junto a "Cuenta anónima"
+    - Dialog de advertencia al hacer logout si es anónimo
+  - **Fix bug logout:** Ahora navega a Splash después de `signOut()`
+  - **SplashScreen actualizada:** Detecta email pendiente de verificación
+  - **Manejo de errores:** Mensajes amigables en español para cada caso
+  - **Rutas añadidas:**
+    - `/auth/login` - Login con email
+    - `/auth/link-email` - Vincular email
+    - `/auth/verify-email` - Verificar email
+  - **Flujo de usuario:**
+    ```
+    Settings → "Guardar mi cuenta" → LinkEmailScreen → email/password
+        → updateUser() → Supabase envía verificación
+        → VerifyEmailScreen → Usuario confirma → Home
+    ```
+  - **Archivos creados:**
+    - `lib/features/auth/domain/repositories/auth_repository.dart`
+    - `lib/features/auth/data/repositories/auth_repository_impl.dart`
+    - `lib/features/auth/presentation/providers/auth_provider.dart`
+    - `lib/features/auth/presentation/screens/link_email_screen.dart`
+    - `lib/features/auth/presentation/screens/verify_email_screen.dart`
+    - `lib/features/auth/presentation/screens/login_screen.dart`
+  - **Archivos modificados:**
+    - `lib/features/settings/presentation/screens/settings_screen.dart`
+    - `lib/features/auth/presentation/screens/splash_screen.dart`
+    - `lib/core/router/app_router.dart`
+    - `lib/core/constants/route_constants.dart`
+
 ### Próximos Pasos
 - [ ] T-0003: Configurar proyecto Supabase (prod)
-- [ ] T-0301: Auth flow completo (email upgrade)
 - [ ] T-0401: Integrar RevenueCat
 - [ ] T-0701: Conectar pantallas con Supabase (datos reales)
 
