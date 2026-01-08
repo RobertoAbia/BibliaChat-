@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
-class SettingsScreen extends StatelessWidget {
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/constants/route_constants.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
+
+class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final user = Supabase.instance.client.auth.currentUser;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final isAnonymous = ref.watch(isAnonymousProvider);
+    final email = ref.watch(currentEmailProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -22,12 +29,12 @@ class SettingsScreen extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 48,
-                    backgroundColor: Theme.of(context).primaryColor,
-                    child: const Text(
-                      'U',
-                      style: TextStyle(
+                    backgroundColor: AppTheme.primaryColor,
+                    child: Text(
+                      _getInitial(email),
+                      style: const TextStyle(
                         fontSize: 32,
-                        color: Colors.white,
+                        color: AppTheme.textOnPrimary,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -38,9 +45,34 @@ class SettingsScreen extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    user?.email ?? 'Cuenta anónima',
-                    style: Theme.of(context).textTheme.bodyMedium,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (isAnonymous)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.warningColor.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Text(
+                            'Sin guardar',
+                            style: TextStyle(
+                              color: AppTheme.warningColor,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      Text(
+                        email ?? 'Cuenta anónima',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -71,12 +103,25 @@ class SettingsScreen extends StatelessWidget {
                   title: 'Editar Perfil',
                   onTap: () {},
                 ),
-                SettingsItem(
-                  icon: Icons.lock_outline,
-                  title: 'Guardar mi cuenta',
-                  subtitle: 'Vincular email para no perder datos',
-                  onTap: () {},
-                ),
+                // Solo mostrar "Guardar mi cuenta" si es anónimo
+                if (isAnonymous)
+                  SettingsItem(
+                    icon: Icons.shield_outlined,
+                    title: 'Guardar mi cuenta',
+                    subtitle: 'Vincular email para no perder datos',
+                    isHighlighted: true,
+                    onTap: () {
+                      context.push(RouteConstants.linkEmail);
+                    },
+                  ),
+                // Mostrar email vinculado si no es anónimo
+                if (!isAnonymous)
+                  SettingsItem(
+                    icon: Icons.verified_user_outlined,
+                    title: 'Cuenta vinculada',
+                    subtitle: email,
+                    onTap: () {},
+                  ),
               ],
             ),
 
@@ -163,7 +208,7 @@ class SettingsScreen extends StatelessWidget {
                   title: 'Cerrar sesión',
                   isDestructive: true,
                   onTap: () {
-                    _showLogoutDialog(context);
+                    _showLogoutDialog(context, ref, isAnonymous);
                   },
                 ),
                 SettingsItem(
@@ -189,13 +234,18 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  String _getInitial(String? email) {
+    if (email == null || email.isEmpty) return 'U';
+    return email[0].toUpperCase();
+  }
+
   Widget _buildStat(BuildContext context, String value, String label) {
     return Column(
       children: [
         Text(
           value,
           style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                color: Theme.of(context).primaryColor,
+                color: AppTheme.primaryColor,
               ),
         ),
         Text(
@@ -219,48 +269,108 @@ class SettingsScreen extends StatelessWidget {
           child: Text(
             title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                  color: Colors.grey[600],
+                  color: AppTheme.textTertiary,
                 ),
           ),
         ),
-        ...items.map((item) => ListTile(
-              leading: Icon(
-                item.icon,
-                color: item.isDestructive ? Colors.red : null,
-              ),
-              title: Text(
-                item.title,
-                style: TextStyle(
-                  color: item.isDestructive ? Colors.red : null,
-                ),
-              ),
-              subtitle: item.subtitle != null ? Text(item.subtitle!) : null,
-              trailing: const Icon(Icons.chevron_right),
-              onTap: item.onTap,
-            )),
+        ...items.map((item) => _buildSettingsItem(context, item)),
       ],
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
+  Widget _buildSettingsItem(BuildContext context, SettingsItem item) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      decoration: item.isHighlighted
+          ? BoxDecoration(
+              color: AppTheme.primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppTheme.primaryColor.withOpacity(0.3),
+              ),
+            )
+          : null,
+      child: ListTile(
+        leading: Icon(
+          item.icon,
+          color: item.isDestructive
+              ? AppTheme.errorColor
+              : item.isHighlighted
+                  ? AppTheme.primaryColor
+                  : null,
+        ),
+        title: Text(
+          item.title,
+          style: TextStyle(
+            color: item.isDestructive
+                ? AppTheme.errorColor
+                : item.isHighlighted
+                    ? AppTheme.primaryColor
+                    : null,
+            fontWeight: item.isHighlighted ? FontWeight.w600 : null,
+          ),
+        ),
+        subtitle: item.subtitle != null ? Text(item.subtitle!) : null,
+        trailing: const Icon(Icons.chevron_right),
+        onTap: item.onTap,
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext context, WidgetRef ref, bool isAnonymous) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Cerrar sesión'),
-        content: const Text('¿Estás seguro de que quieres cerrar sesión?'),
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          'Cerrar sesión',
+          style: TextStyle(color: AppTheme.textPrimary),
+        ),
+        content: Text(
+          isAnonymous
+              ? 'ATENCIÓN: Tu cuenta es anónima. Si cierras sesión, perderás TODOS tus datos (conversaciones, racha, progreso).\n\nEsta acción no se puede deshacer.\n\nTe recomendamos vincular un email primero.'
+              : '¿Estás seguro de que quieres cerrar sesión?',
+          style: TextStyle(
+            color: AppTheme.textSecondary,
+            height: 1.5,
+          ),
+        ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancelar'),
           ),
+          if (isAnonymous)
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+                context.push(RouteConstants.linkEmail);
+              },
+              child: Text(
+                'Vincular email',
+                style: TextStyle(color: AppTheme.primaryColor),
+              ),
+            ),
           TextButton(
             onPressed: () async {
               await Supabase.instance.client.auth.signOut();
+              if (dialogContext.mounted) {
+                Navigator.pop(dialogContext);
+              }
               if (context.mounted) {
-                Navigator.pop(context);
+                // FIX: Navegar a Splash después de logout
+                context.go(RouteConstants.splash);
               }
             },
-            child: const Text('Cerrar sesión'),
+            style: TextButton.styleFrom(
+              foregroundColor: isAnonymous ? AppTheme.errorColor : null,
+            ),
+            child: Text(
+              isAnonymous ? 'Cerrar (perder datos)' : 'Cerrar sesión',
+            ),
           ),
         ],
       ),
@@ -270,21 +380,29 @@ class SettingsScreen extends StatelessWidget {
   void _showDeleteAccountDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Borrar cuenta'),
-        content: const Text(
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(
+          'Borrar cuenta',
+          style: TextStyle(color: AppTheme.textPrimary),
+        ),
+        content: Text(
           'Esta acción eliminará permanentemente tu cuenta y todos tus datos. Esta acción no se puede deshacer.',
+          style: TextStyle(color: AppTheme.textSecondary),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancelar'),
           ),
           TextButton(
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             onPressed: () {
-              // Implement delete account
-              Navigator.pop(context);
+              // TODO: Implement delete account
+              Navigator.pop(dialogContext);
             },
             child: const Text('Borrar cuenta'),
           ),
@@ -299,6 +417,7 @@ class SettingsItem {
   final String title;
   final String? subtitle;
   final bool isDestructive;
+  final bool isHighlighted;
   final VoidCallback onTap;
 
   SettingsItem({
@@ -306,6 +425,7 @@ class SettingsItem {
     required this.title,
     this.subtitle,
     this.isDestructive = false,
+    this.isHighlighted = false,
     required this.onTap,
   });
 }

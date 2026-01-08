@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/screens/splash_screen.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/link_email_screen.dart';
+import '../../features/auth/presentation/screens/verify_email_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/chat/presentation/screens/chat_screen.dart';
@@ -28,6 +31,23 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RouteConstants.onboarding,
         name: 'onboarding',
         builder: (context, state) => const OnboardingScreen(),
+      ),
+
+      // Auth Routes
+      GoRoute(
+        path: RouteConstants.login,
+        name: 'login',
+        builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: RouteConstants.linkEmail,
+        name: 'linkEmail',
+        builder: (context, state) => const LinkEmailScreen(),
+      ),
+      GoRoute(
+        path: RouteConstants.verifyEmail,
+        name: 'verifyEmail',
+        builder: (context, state) => const VerifyEmailScreen(),
       ),
 
       // Main App with Bottom Navigation

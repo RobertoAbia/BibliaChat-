@@ -100,6 +100,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     final session = Supabase.instance.client.auth.currentSession;
 
     if (session != null) {
+      final user = session.user;
+
+      // Verificar si tiene email pendiente de verificación
+      if (user.email != null && user.emailConfirmedAt == null) {
+        if (mounted) {
+          context.go(RouteConstants.verifyEmail);
+        }
+        return;
+      }
+
       // Usuario autenticado - verificar si completó onboarding
       await _checkOnboardingAndNavigate();
     } else {

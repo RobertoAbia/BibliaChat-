@@ -5,6 +5,9 @@ class RouteConstants {
   // Auth & Onboarding
   static const String splash = '/';
   static const String onboarding = '/onboarding';
+  static const String login = '/auth/login';
+  static const String linkEmail = '/auth/link-email';
+  static const String verifyEmail = '/auth/verify-email';
 
   // Main App
   static const String home = '/home';
