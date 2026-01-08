@@ -80,4 +80,10 @@ abstract class AuthRepository {
 
   /// Envía email para recuperar contraseña
   Future<AuthResult> sendPasswordResetEmail(String email);
+
+  /// Refresca la sesión actual para obtener datos actualizados del usuario
+  Future<AuthResult> refreshSession();
+
+  /// Actualiza la contraseña del usuario (usado después de password recovery)
+  Future<AuthResult> updatePassword(String newPassword);
 }

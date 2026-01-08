@@ -510,34 +510,52 @@ BibliaChat/
   - **Archivo modificado:**
     - `lib/features/chat/presentation/screens/chat_screen.dart`
 
-- [x] T-0301: Auth Email (Upgrade de Cuenta Anónima)
+- [x] T-0301: Auth Email (Upgrade de Cuenta Anónima) - COMPLETO
   - **Objetivo:** Permitir que usuarios anónimos vinculen email/password para no perder datos
   - **Clean Architecture implementada:**
     - `AuthRepository` interface + `AuthRepositoryImpl` con Supabase
     - `AuthNotifier` StateNotifier para operaciones de auth
-    - Providers: `isAnonymousProvider`, `authStatusProvider`, `currentEmailProvider`
+    - Providers: `isAnonymousProvider`, `authStatusProvider`, `currentEmailProvider`, `isEmailVerifiedProvider`
   - **Pantallas nuevas:**
     - `LinkEmailScreen` - Formulario para vincular email/password
-    - `VerifyEmailScreen` - "Revisa tu correo" con countdown para reenvío
-    - `LoginScreen` - Para usuarios que reinstalen la app
+    - `VerifyEmailScreen` - "Revisa tu correo" con countdown para reenvío + botón "Ya verifiqué"
+    - `LoginScreen` - Para usuarios que reinstalen la app + "¿Olvidaste tu contraseña?"
+    - `ResetPasswordScreen` - Nueva contraseña después de recovery link
+  - **Deep Links configurados:**
+    - **Supabase Dashboard:** Site URL = `com.bibliachats://login-callback`
+    - **Android:** intent-filter en AndroidManifest.xml para scheme `com.bibliachats`
+    - **iOS:** CFBundleURLTypes en Info.plist para scheme `com.bibliachats`
+    - **Flutter:** PKCE auth flow en `Supabase.initialize()`
+    - **NOTA:** Deep links solo funcionan en móvil, no en web/desktop
+  - **SplashScreen actualizada:**
+    - Detecta email pendiente de verificación → navega a VerifyEmailScreen
+    - Escucha `AuthChangeEvent.passwordRecovery` → navega a ResetPasswordScreen
+  - **Auth providers reactivos:**
+    - Todos los providers (`isAnonymousProvider`, `isEmailVerifiedProvider`, `currentEmailProvider`, `authStatusProvider`) ahora dependen de `authStateChangesProvider`
+    - Se actualizan automáticamente cuando cambia el estado de auth
+  - **Fix "Olvidé contraseña":**
+    - `sendPasswordResetEmail()` NO establece `state.success` para evitar navegación automática a Home
+    - Solo retorna `true/false` sin cambiar estado del notifier
+  - **Flujo Password Recovery:**
+    ```
+    LoginScreen → "¿Olvidaste tu contraseña?" → Supabase envía email
+    Usuario hace clic en enlace → Deep link abre app → SplashScreen detecta passwordRecovery
+    → ResetPasswordScreen → Nueva contraseña → signOut() → LoginScreen (confirma con nueva contraseña)
+    ```
   - **SettingsScreen actualizada:**
     - Muestra "Guardar mi cuenta" (destacado) solo si es anónimo
     - Muestra "Cuenta vinculada" + email si ya vinculó
     - Badge "Sin guardar" junto a "Cuenta anónima"
     - Dialog de advertencia al hacer logout si es anónimo
   - **Fix bug logout:** Ahora navega a Splash después de `signOut()`
-  - **SplashScreen actualizada:** Detecta email pendiente de verificación
-  - **Manejo de errores:** Mensajes amigables en español para cada caso
+  - **Email como query parameter:**
+    - VerifyEmailScreen recibe `email` via URL en lugar de provider
+    - Soluciona que el email no se mostraba (Supabase guarda en `new_email` hasta confirmar)
   - **Rutas añadidas:**
     - `/auth/login` - Login con email
     - `/auth/link-email` - Vincular email
-    - `/auth/verify-email` - Verificar email
-  - **Flujo de usuario:**
-    ```
-    Settings → "Guardar mi cuenta" → LinkEmailScreen → email/password
-        → updateUser() → Supabase envía verificación
-        → VerifyEmailScreen → Usuario confirma → Home
-    ```
+    - `/auth/verify-email?email=xxx` - Verificar email (con query param)
+    - `/auth/reset-password` - Nueva contraseña
   - **Archivos creados:**
     - `lib/features/auth/domain/repositories/auth_repository.dart`
     - `lib/features/auth/data/repositories/auth_repository_impl.dart`
@@ -545,11 +563,41 @@ BibliaChat/
     - `lib/features/auth/presentation/screens/link_email_screen.dart`
     - `lib/features/auth/presentation/screens/verify_email_screen.dart`
     - `lib/features/auth/presentation/screens/login_screen.dart`
+    - `lib/features/auth/presentation/screens/reset_password_screen.dart`
   - **Archivos modificados:**
     - `lib/features/settings/presentation/screens/settings_screen.dart`
     - `lib/features/auth/presentation/screens/splash_screen.dart`
     - `lib/core/router/app_router.dart`
     - `lib/core/constants/route_constants.dart`
+    - `lib/main.dart` - PKCE auth flow
+    - `android/app/src/main/AndroidManifest.xml` - Deep link intent-filter
+    - `ios/Runner/Info.plist` - CFBundleURLTypes
+
+- [x] Feature: Login para usuarios existentes
+  - **"¿Ya tienes cuenta?" en Onboarding:**
+    - Enlace añadido en `OnboardingWelcomePage`
+    - Callback `onLogin` navega a LoginScreen
+  - **Archivo modificado:**
+    - `lib/features/onboarding/presentation/widgets/onboarding_welcome_page.dart`
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart`
+
+- [x] Feature: Botón "Atrás" en Onboarding
+  - **Navegación hacia atrás:**
+    - Botón `<` en la barra de progreso
+    - Método `_previousPage()` en OnboardingScreen
+    - Solo visible cuando `currentPage > 0`
+  - **Archivo modificado:**
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart`
+
+- [x] Feature: Estilo unificado página de país
+  - **Problema:** La página de selección de país tenía estilos diferentes al resto
+  - **Cambios aplicados:**
+    - Badge del versículo: Ahora usa `BackdropFilter` + icono libro + borde dorado (igual que `OnboardingSelectionPage`)
+    - Texto bíblico: Cambiado de `headlineSmall` bold a `titleLarge` italic con `textSecondary`
+    - Pregunta: Ahora en `GlassContainer` con barra dorada lateral
+    - Alineación: `crossAxisAlignment: CrossAxisAlignment.start` + botón centrado con `Center`
+  - **Archivo modificado:**
+    - `lib/features/onboarding/presentation/widgets/onboarding_country_page.dart`
 
 ### Próximos Pasos
 - [ ] T-0003: Configurar proyecto Supabase (prod)
@@ -720,3 +768,16 @@ supabase functions serve
       ],
     )
     ```
+- **Deep Links (Supabase Auth):**
+  - Custom URL schemes (`com.bibliachats://`) solo funcionan en móvil (iOS/Android)
+  - En web/desktop, el navegador no sabe manejar estos schemes → página en blanco
+  - Configuración requerida:
+    - Supabase Dashboard: Site URL y Redirect URLs
+    - Android: intent-filter en AndroidManifest.xml
+    - iOS: CFBundleURLTypes en Info.plist
+    - Flutter: `authOptions: FlutterAuthClientOptions(authFlowType: AuthFlowType.pkce)`
+  - Para detectar eventos como `passwordRecovery`, escuchar `onAuthStateChange` en SplashScreen
+- **Auth providers reactivos:**
+  - Los providers de auth deben depender de `authStateChangesProvider` para actualizarse automáticamente
+  - Patrón: `ref.watch(authStateChangesProvider)` al inicio del provider
+  - Sin esto, los valores no se actualizan cuando el usuario verifica email o cambia estado

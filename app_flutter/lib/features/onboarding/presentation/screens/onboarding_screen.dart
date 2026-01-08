@@ -41,6 +41,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  void _previousPage() {
+    if (_currentPage > 0) {
+      _pageController.previousPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   Future<void> _completeOnboarding() async {
     final notifier = ref.read(onboardingProvider.notifier);
     final success = await notifier.completeOnboarding();
@@ -95,11 +104,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         child: SafeArea(
           child: Column(
             children: [
-              // Progress indicator (show only on question pages)
+              // Progress indicator with back button (show only on question pages)
               if (_currentPage > 0 && _currentPage < _totalPages - 2)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-                  child: _buildProgressBar(),
+                  padding: const EdgeInsets.fromLTRB(16, 16, 24, 0),
+                  child: Row(
+                    children: [
+                      // Back button
+                      IconButton(
+                        onPressed: _previousPage,
+                        icon: const Icon(
+                          Icons.arrow_back_ios_rounded,
+                          color: AppTheme.textSecondary,
+                          size: 20,
+                        ),
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppTheme.surfaceDark.withOpacity(0.5),
+                          padding: const EdgeInsets.all(8),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Progress bar
+                      Expanded(child: _buildProgressBar()),
+                    ],
+                  ),
                 ),
 
               // Page content
@@ -116,6 +144,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     // Page 0: Welcome
                     OnboardingWelcomePage(
                       onGetStarted: _nextPage,
+                      onLogin: () => context.push(RouteConstants.login),
                     ),
 
                     // Page 1: Age selection

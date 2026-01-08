@@ -164,6 +164,42 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
 
+  @override
+  Future<AuthResult> refreshSession() async {
+    try {
+      final response = await _supabase.auth.refreshSession();
+      if (response.session != null) {
+        return AuthResult.success();
+      }
+      return AuthResult.error('No se pudo refrescar la sesión');
+    } on AuthException catch (e) {
+      return _handleAuthException(e);
+    } catch (e) {
+      return AuthResult.error('Error al refrescar sesión: $e');
+    }
+  }
+
+  @override
+  Future<AuthResult> updatePassword(String newPassword) async {
+    try {
+      if (newPassword.length < 6) {
+        return AuthResult.error(
+          'La contraseña debe tener mínimo 6 caracteres',
+          'weak_password',
+        );
+      }
+
+      await _supabase.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+      return AuthResult.success();
+    } on AuthException catch (e) {
+      return _handleAuthException(e);
+    } catch (e) {
+      return AuthResult.error('Error al cambiar contraseña: $e');
+    }
+  }
+
   /// Maneja las excepciones de Supabase Auth y devuelve mensajes amigables
   AuthResult _handleAuthException(AuthException e) {
     final message = e.message.toLowerCase();

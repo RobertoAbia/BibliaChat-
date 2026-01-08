@@ -9,34 +9,46 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl();
 });
 
+/// Stream provider para escuchar cambios en el estado de auth
+final authStateChangesProvider = StreamProvider<AuthState>((ref) {
+  final repo = ref.watch(authRepositoryProvider);
+  return repo.onAuthStateChange;
+});
+
 /// Provider que indica si el usuario actual es anónimo
+/// Se actualiza automáticamente cuando cambia el estado de auth
 final isAnonymousProvider = Provider<bool>((ref) {
+  // Escuchar cambios de auth para re-evaluar
+  ref.watch(authStateChangesProvider);
   final repo = ref.watch(authRepositoryProvider);
   return repo.isAnonymous;
 });
 
 /// Provider que indica si el email está verificado
+/// Se actualiza automáticamente cuando cambia el estado de auth
 final isEmailVerifiedProvider = Provider<bool>((ref) {
+  // Escuchar cambios de auth para re-evaluar
+  ref.watch(authStateChangesProvider);
   final repo = ref.watch(authRepositoryProvider);
   return repo.isEmailVerified;
 });
 
 /// Provider del email actual (null si es anónimo)
+/// Se actualiza automáticamente cuando cambia el estado de auth
 final currentEmailProvider = Provider<String?>((ref) {
+  // Escuchar cambios de auth para re-evaluar
+  ref.watch(authStateChangesProvider);
   final repo = ref.watch(authRepositoryProvider);
   return repo.currentEmail;
 });
 
 /// Provider del estado de autenticación actual
+/// Se actualiza automáticamente cuando cambia el estado de auth
 final authStatusProvider = Provider<AuthStatus>((ref) {
+  // Escuchar cambios de auth para re-evaluar
+  ref.watch(authStateChangesProvider);
   final repo = ref.watch(authRepositoryProvider);
   return repo.authStatus;
-});
-
-/// Stream provider para escuchar cambios en el estado de auth
-final authStateChangesProvider = StreamProvider<AuthState>((ref) {
-  final repo = ref.watch(authRepositoryProvider);
-  return repo.onAuthStateChange;
 });
 
 /// Estado para el notifier de auth
@@ -184,17 +196,53 @@ class AuthNotifier extends StateNotifier<AuthNotifierState> {
   }
 
   /// Envía email para recuperar contraseña
+  /// NO cambia el estado a success para evitar navegación automática en LoginScreen
   Future<bool> sendPasswordResetEmail(String email) async {
+    final result = await _repository.sendPasswordResetEmail(email.trim());
+
+    if (result.success) {
+      // NO establecer state.success - solo retornar true
+      // Esto evita que el listener en LoginScreen navegue a Home
+      return true;
+    } else {
+      state = AuthNotifierState.error(
+        result.errorMessage ?? 'Error al enviar email',
+        result.errorCode,
+      );
+      return false;
+    }
+  }
+
+  /// Actualiza la contraseña del usuario (usado después de password recovery)
+  Future<bool> updatePassword(String newPassword) async {
     state = AuthNotifierState.loading();
 
-    final result = await _repository.sendPasswordResetEmail(email.trim());
+    final result = await _repository.updatePassword(newPassword);
 
     if (result.success) {
       state = AuthNotifierState.success();
       return true;
     } else {
       state = AuthNotifierState.error(
-        result.errorMessage ?? 'Error al enviar email',
+        result.errorMessage ?? 'Error al cambiar contraseña',
+        result.errorCode,
+      );
+      return false;
+    }
+  }
+
+  /// Refresca la sesión para obtener datos actualizados
+  Future<bool> refreshSession() async {
+    state = AuthNotifierState.loading();
+
+    final result = await _repository.refreshSession();
+
+    if (result.success) {
+      state = AuthNotifierState.success();
+      return true;
+    } else {
+      state = AuthNotifierState.error(
+        result.errorMessage ?? 'Error al refrescar sesión',
         result.errorCode,
       );
       return false;

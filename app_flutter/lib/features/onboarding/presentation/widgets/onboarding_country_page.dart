@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
@@ -84,43 +86,109 @@ class _OnboardingCountryPageState extends State<OnboardingCountryPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 40),
+          const SizedBox(height: 20),
 
-          // Versículo
-          GlassContainer(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Text(
-              'Salmo 139:7-10',
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: AppTheme.primaryLight,
-                    fontWeight: FontWeight.w600,
+          // Verse reference badge with glass effect
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppTheme.primaryColor.withOpacity(0.3),
                   ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      blurRadius: 10,
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.menu_book_outlined,
+                      color: AppTheme.primaryColor,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Salmo 139:7-10',
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                            color: AppTheme.primaryColor,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
+
+          const SizedBox(height: 20),
+
+          // Bible verse (smaller, italic)
+          Text(
+            '¿A dónde me iré de tu Espíritu? Dondequiera que esté, allí estás tú.',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppTheme.textSecondary,
+                  height: 1.4,
+                  fontWeight: FontWeight.w400,
+                  fontStyle: FontStyle.italic,
+                ),
+          ),
+
           const SizedBox(height: 24),
 
-          // Título
-          Text(
-            '¿A dónde me iré de tu Espíritu?\nDondequiera que esté, allí estás tú.',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  color: AppTheme.textPrimary,
-                  fontWeight: FontWeight.w600,
-                  height: 1.3,
+          // Question with glass effect
+          GlassContainer(
+            blur: 8,
+            backgroundOpacity: 0.35,
+            borderRadius: 14,
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 4,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.goldGradient,
+                    borderRadius: BorderRadius.circular(2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppTheme.primaryColor.withOpacity(0.3),
+                        blurRadius: 8,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    '¿De qué país eres?',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: AppTheme.textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                  ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
 
-          // Subtítulo
-          Text(
-            '¿De qué país eres?',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppTheme.textSecondary,
-                ),
-          ),
-          const SizedBox(height: 32),
+          const SizedBox(height: 24),
 
           // Dropdown
           Expanded(
@@ -188,34 +256,59 @@ class _OnboardingCountryPageState extends State<OnboardingCountryPage> {
             ),
           ),
 
-          // Botón continuar
-          Padding(
-            padding: const EdgeInsets.only(bottom: 32),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ElevatedButton(
-                  onPressed: _selectedCode != null ? widget.onNext : null,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _selectedCode != null ? AppTheme.primaryColor : AppTheme.surfaceDark,
-                    foregroundColor: _selectedCode != null ? AppTheme.textOnPrimary : AppTheme.textSecondary,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                    minimumSize: Size.zero,
-                    elevation: _selectedCode != null ? 8 : 0,
-                    shadowColor: AppTheme.primaryColor.withOpacity(0.4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+          // Fixed bottom button with gradient fade
+          Center(
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(0, 16, 0, 24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppTheme.backgroundDark.withOpacity(0),
+                    AppTheme.backgroundDark,
+                  ],
+                ),
+              ),
+              child: SafeArea(
+                top: false,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ElevatedButton(
+                    onPressed: _selectedCode != null ? widget.onNext : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _selectedCode != null ? AppTheme.primaryColor : AppTheme.surfaceDark,
+                      foregroundColor: _selectedCode != null ? AppTheme.textOnPrimary : AppTheme.textTertiary,
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      minimumSize: Size.zero,
+                      elevation: _selectedCode != null ? 8 : 0,
+                      shadowColor: AppTheme.primaryColor.withOpacity(0.4),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Continuar',
+                          style: TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        if (_selectedCode != null) ...[
+                          const SizedBox(width: 8),
+                          const Icon(Icons.arrow_forward, size: 20),
+                        ],
+                      ],
                     ),
                   ),
-                  child: Text(
-                    'Continuar',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
+          ),
           ),
         ],
       ),

@@ -9,10 +9,12 @@ import '../../../../core/widgets/lottie_helper.dart';
 
 class OnboardingWelcomePage extends StatefulWidget {
   final VoidCallback onGetStarted;
+  final VoidCallback? onLogin;
 
   const OnboardingWelcomePage({
     super.key,
     required this.onGetStarted,
+    this.onLogin,
   });
 
   @override
@@ -222,6 +224,21 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
                                     height: 1.5,
                                   ),
                         ),
+
+                        const SizedBox(height: 20),
+
+                        // Ya tengo cuenta
+                        if (widget.onLogin != null)
+                          TextButton(
+                            onPressed: widget.onLogin,
+                            child: Text(
+                              '¿Ya tienes cuenta? Inicia sesión',
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppTheme.primaryColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                            ),
+                          ),
                       ],
                     ),
                   ),

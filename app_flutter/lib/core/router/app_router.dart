@@ -6,6 +6,7 @@ import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/link_email_screen.dart';
 import '../../features/auth/presentation/screens/verify_email_screen.dart';
+import '../../features/auth/presentation/screens/reset_password_screen.dart';
 import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/chat/presentation/screens/chat_screen.dart';
@@ -47,7 +48,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RouteConstants.verifyEmail,
         name: 'verifyEmail',
-        builder: (context, state) => const VerifyEmailScreen(),
+        builder: (context, state) {
+          final email = state.uri.queryParameters['email'];
+          return VerifyEmailScreen(email: email);
+        },
+      ),
+      GoRoute(
+        path: RouteConstants.resetPassword,
+        name: 'resetPassword',
+        builder: (context, state) => const ResetPasswordScreen(),
       ),
 
       // Main App with Bottom Navigation

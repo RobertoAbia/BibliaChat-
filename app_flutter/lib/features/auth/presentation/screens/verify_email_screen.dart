@@ -10,7 +10,9 @@ import '../../../../core/constants/route_constants.dart';
 import '../providers/auth_provider.dart';
 
 class VerifyEmailScreen extends ConsumerStatefulWidget {
-  const VerifyEmailScreen({super.key});
+  final String? email;
+
+  const VerifyEmailScreen({super.key, this.email});
 
   @override
   ConsumerState<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
@@ -73,7 +75,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final email = ref.watch(currentEmailProvider);
+    final email = widget.email;
     final authState = ref.watch(authNotifierProvider);
 
     return Scaffold(
@@ -83,90 +85,104 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: Column(
-              children: [
-                const Spacer(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: MediaQuery.of(context).size.height -
+                    MediaQuery.of(context).padding.top -
+                    MediaQuery.of(context).padding.bottom -
+                    48, // padding
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 20),
 
-                // Icono de email
-                _buildIcon(),
+                  // Icono de email
+                  _buildIcon(),
 
-                const SizedBox(height: 40),
+                  const SizedBox(height: 40),
 
-                // Título
-                Text(
-                  'Revisa tu correo',
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        color: AppTheme.textPrimary,
-                        fontWeight: FontWeight.bold,
+                  // Título
+                  Text(
+                    'Revisa tu correo',
+                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                          color: AppTheme.textPrimary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Subtítulo con email
+                  Text(
+                    'Hemos enviado un enlace de verificación a:',
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  // Email resaltado
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surfaceDark,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      email ?? 'tu email',
+                      style: const TextStyle(
+                        color: AppTheme.primaryColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
                       ),
-                ),
+                    ),
+                  ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 32),
 
-                // Subtítulo con email
-                Text(
-                  'Hemos enviado un enlace de verificación a:',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  // Instrucciones
+                  _buildInstructions(),
+
+                  const SizedBox(height: 32),
+
+                  // Error si hay
+                  if (authState.errorMessage != null)
+                    _buildErrorMessage(authState.errorMessage!),
+
+                  const SizedBox(height: 40),
+
+                  // Botón "Ya verifiqué" (para Windows/desktop)
+                  _buildVerifyButton(authState.isLoading),
+
+                  const SizedBox(height: 16),
+
+                  // Botón reenviar
+                  _buildResendButton(authState.isLoading),
+
+                  const SizedBox(height: 16),
+
+                  // Botón volver
+                  TextButton(
+                    onPressed: () => context.go(RouteConstants.settings),
+                    child: const Text(
+                      'Volver a ajustes',
+                      style: TextStyle(
                         color: AppTheme.textSecondary,
                       ),
-                  textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(height: 8),
-
-                // Email resaltado
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceDark,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    email ?? 'tu email',
-                    style: const TextStyle(
-                      color: AppTheme.primaryColor,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 32),
-
-                // Instrucciones
-                _buildInstructions(),
-
-                const SizedBox(height: 32),
-
-                // Error si hay
-                if (authState.errorMessage != null)
-                  _buildErrorMessage(authState.errorMessage!),
-
-                const Spacer(),
-
-                // Botón reenviar
-                _buildResendButton(authState.isLoading),
-
-                const SizedBox(height: 16),
-
-                // Botón volver
-                TextButton(
-                  onPressed: () => context.go(RouteConstants.settings),
-                  child: const Text(
-                    'Volver a ajustes',
-                    style: TextStyle(
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-              ],
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         ),
@@ -310,6 +326,40 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
     );
   }
 
+  Widget _buildVerifyButton(bool isLoading) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: isLoading ? null : _onCheckVerification,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppTheme.primaryColor,
+          foregroundColor: AppTheme.textOnPrimary,
+          disabledBackgroundColor: AppTheme.primaryColor.withOpacity(0.5),
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: isLoading
+            ? const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppTheme.textOnPrimary,
+                ),
+              )
+            : const Text(
+                'Ya verifiqué mi email',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+      ),
+    );
+  }
+
   Widget _buildResendButton(bool isLoading) {
     return SizedBox(
       width: double.infinity,
@@ -370,6 +420,40 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
           ),
         ),
       );
+    }
+  }
+
+  Future<void> _onCheckVerification() async {
+    ref.read(authNotifierProvider.notifier).reset();
+
+    // Refrescar la sesión para obtener datos actualizados
+    final success =
+        await ref.read(authNotifierProvider.notifier).refreshSession();
+
+    if (!mounted) return;
+
+    if (success) {
+      // Verificar si el email está confirmado
+      final isVerified = ref.read(isEmailVerifiedProvider);
+
+      if (isVerified) {
+        // Email verificado, ir a Home
+        context.go(RouteConstants.home);
+      } else {
+        // Aún no verificado
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'Tu email aún no está verificado. Revisa tu bandeja de entrada.',
+            ),
+            backgroundColor: AppTheme.warningColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
     }
   }
 }

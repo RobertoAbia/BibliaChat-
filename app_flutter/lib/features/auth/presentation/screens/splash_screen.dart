@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -27,6 +28,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late Animation<double> _scaleAnimation;
   late Animation<double> _pulseAnimation;
   late Animation<double> _gradientShift;
+  StreamSubscription<AuthState>? _authSubscription;
 
   @override
   void initState() {
@@ -81,11 +83,28 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _fadeController.forward();
     _pulseController.repeat(reverse: true);
     _gradientController.repeat(reverse: true);
+
+    // Escuchar cambios de auth para detectar password recovery
+    _listenToAuthChanges();
     _checkAuthAndNavigate();
+  }
+
+  void _listenToAuthChanges() {
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final event = data.event;
+
+      // Detectar password recovery (cuando el usuario hace clic en el enlace del email)
+      if (event == AuthChangeEvent.passwordRecovery) {
+        if (mounted) {
+          context.go(RouteConstants.resetPassword);
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     _fadeController.dispose();
     _pulseController.dispose();
     _gradientController.dispose();
