@@ -13,6 +13,7 @@ import '../../features/chat/presentation/screens/chat_screen.dart';
 import '../../features/chat/presentation/screens/chat_list_screen.dart';
 import '../../features/study/presentation/screens/study_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/subscription/presentation/screens/paywall_screen.dart';
 import '../constants/route_constants.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -57,6 +58,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RouteConstants.resetPassword,
         name: 'resetPassword',
         builder: (context, state) => const ResetPasswordScreen(),
+      ),
+
+      // Paywall (sin bottom navigation)
+      GoRoute(
+        path: RouteConstants.paywall,
+        name: 'paywall',
+        builder: (context, state) => const PaywallScreen(),
       ),
 
       // Main App with Bottom Navigation

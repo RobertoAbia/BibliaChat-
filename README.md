@@ -15,6 +15,14 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 | Notificaciones | Firebase Cloud Messaging |
 | Analytics | Firebase Analytics + Mixpanel |
 
+## Modelo de Negocio
+
+- **Freemium con trial 3 días** (toggle opcional en plan mensual)
+- **Free**: 5 mensajes/día de chat
+- **Premium**: Chat ilimitado + todas las features
+- Mensual: $14.99/mes
+- Anual: $39.99/año (ahorra 78%)
+
 ## 3 Pilares de la App
 
 1. **HOY** - Retención diaria (racha, evangelio del día con Stories, devoción, oración)
@@ -67,6 +75,19 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 - Gamificación con puntos y badges
 - Progreso guardado y sincronizado
 
+### Suscripción y Paywall
+- **RevenueCat** integrado (iOS configurado, Android pendiente)
+- **Paywall estilo Bible Chat**:
+  - Botón X discreto (gris, pequeño) para cerrar
+  - Toggle para activar/desactivar trial de 3 días (solo mensual)
+  - Plan anual sin trial (pago directo con descuento)
+- **Límite de mensajes para usuarios free**:
+  - 5 mensajes/día almacenados en BD (`daily_activity.messages_sent`)
+  - Badge con contador de mensajes restantes
+  - Diálogo al agotar con opción "Ver planes"
+  - Reset automático a medianoche
+- **Mock data en web** para preview (RevenueCat no funciona en web)
+
 ## Estructura del Proyecto
 
 ```
@@ -76,7 +97,7 @@ BibliaChat/
 │       ├── core/
 │       │   ├── theme/              # AppTheme, colores, estilos
 │       │   ├── widgets/            # GlassContainer, ShimmerLoading, LottieHelper
-│       │   ├── services/           # StoryViewedService (SharedPreferences)
+│       │   ├── services/           # StoryViewedService, MessageLimitService, RevenueCatService
 │       │   └── providers/          # story_viewed_provider
 │       └── features/
 │           ├── auth/               # SplashScreen
@@ -87,9 +108,10 @@ BibliaChat/
 │           ├── chat/               # ChatListScreen, ChatScreen
 │           ├── study/              # StudyScreen
 │           ├── profile/            # Perfil de usuario
-│           └── daily_gospel/       # Feature Evangelio + Stories
+│           ├── daily_gospel/       # Feature Evangelio + Stories
+│           └── subscription/       # PaywallScreen, subscription_provider
 ├── supabase/
-│   ├── migrations/                 # 15 migraciones SQL
+│   ├── migrations/                 # 16 migraciones SQL
 │   └── functions/
 │       ├── fetch-daily-gospel/     # Edge Function evangelio (desplegada como clever-worker)
 │       └── chat-send-message/      # Edge Function chat IA (combined.ts)
@@ -113,7 +135,11 @@ BibliaChat/
 - Dart >= 3.5
 - Cuenta de Supabase (con Edge Functions habilitadas)
 - Cuenta de OpenAI (GPT-5.2)
-- Cuenta de RevenueCat
+- Cuenta de RevenueCat con:
+  - App iOS configurada (Bundle ID: `ee.bikain.bibliachat`)
+  - Entitlement: `premium`
+  - Products: mensual ($14.99) y anual ($39.99)
+- Cuenta de App Store Connect (para iOS IAP)
 - Cuenta de Firebase
 - API.Bible key
 

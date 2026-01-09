@@ -2,12 +2,17 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lottie/lottie.dart';
 
+import '../../../../core/constants/route_constants.dart';
+import '../../../../core/services/message_limit_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/lottie_helper.dart';
 import '../../domain/entities/chat_message.dart';
 import '../providers/chat_provider.dart';
+import '../providers/message_limit_provider.dart';
+import '../../../subscription/presentation/providers/subscription_provider.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   /// ID del chat existente (para abrir conversación existente)
@@ -175,9 +180,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     return topics[key] ?? 'Conversación';
   }
 
-  void _sendMessage([String? suggestionText]) {
+  Future<void> _sendMessage([String? suggestionText]) async {
     final text = suggestionText ?? _messageController.text.trim();
     if (text.isEmpty) return;
+
+    // Verificar si el usuario puede enviar mensaje (premium o tiene mensajes restantes)
+    final canSend = ref.read(canSendMessageProvider);
+    if (!canSend) {
+      _showMessageLimitDialog();
+      return;
+    }
 
     _sendButtonController.forward().then((_) {
       _sendButtonController.reverse();
@@ -190,7 +202,93 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     // Enviar mensaje usando el provider
     ref.read(chatNotifierProvider(_chatIdentifier).notifier).sendMessage(text);
 
+    // Incrementar contador de mensajes (solo si no es premium)
+    final isPremium = ref.read(isPremiumProvider);
+    if (!isPremium) {
+      await ref.read(messageLimitProvider.notifier).incrementAndRefresh();
+    }
+
     _scrollToBottom();
+  }
+
+  void _showMessageLimitDialog() {
+    final remaining = ref.read(remainingMessagesProvider);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: AppTheme.surfaceLight.withOpacity(0.3),
+          ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                gradient: AppTheme.goldGradient,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.chat_bubble_outline,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Límite de mensajes',
+                style: TextStyle(color: AppTheme.textPrimary),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Has usado tus ${MessageLimitService.freeDailyLimit} mensajes gratuitos de hoy.',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Desbloquea mensajes ilimitados con Premium.',
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Volver mañana',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              context.push(RouteConstants.paywall);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Ver planes'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _onSuggestionTap(StarterSuggestion suggestion) {
@@ -862,19 +960,67 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  'Biblia Chat puede cometer errores. Verifica la información importante.',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.textTertiary,
-                        fontSize: 11,
-                      ),
-                  textAlign: TextAlign.center,
-                ),
+                _buildFooterWithMessageCount(),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFooterWithMessageCount() {
+    final isPremium = ref.watch(isPremiumProvider);
+    final remaining = ref.watch(remainingMessagesProvider);
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        // Badge de mensajes restantes (solo para usuarios free)
+        if (!isPremium && remaining >= 0) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: remaining <= 1
+                  ? AppTheme.errorColor.withOpacity(0.2)
+                  : AppTheme.surfaceLight.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  remaining <= 1 ? Icons.warning_amber_rounded : Icons.chat_bubble_outline,
+                  size: 12,
+                  color: remaining <= 1 ? AppTheme.errorColor : AppTheme.textTertiary,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '$remaining/${MessageLimitService.freeDailyLimit}',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: remaining <= 1 ? AppTheme.errorColor : AppTheme.textTertiary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+        // Texto de disclaimer
+        Flexible(
+          child: Text(
+            'Biblia Chat puede cometer errores.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppTheme.textTertiary,
+                  fontSize: 11,
+                ),
+            textAlign: TextAlign.center,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }

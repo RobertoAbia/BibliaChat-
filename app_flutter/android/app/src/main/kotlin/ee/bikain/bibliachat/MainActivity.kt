@@ -1,4 +1,4 @@
-package com.bibliahispana.biblia_chat
+package ee.bikain.bibliachat
 
 import io.flutter.embedding.android.FlutterActivity
 

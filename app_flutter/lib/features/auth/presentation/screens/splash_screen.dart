@@ -8,6 +8,7 @@ import 'package:lottie/lottie.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/route_constants.dart';
+import '../../../../core/services/revenue_cat_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/lottie_helper.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
@@ -121,6 +122,14 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (session != null) {
       final user = session.user;
 
+      // Inicializar RevenueCat con el user ID de Supabase
+      try {
+        await RevenueCatService.instance.init(user.id);
+      } catch (e) {
+        // RevenueCat no disponible (ej: Android sin configurar)
+        debugPrint('RevenueCat init error: $e');
+      }
+
       // Verificar si tiene email pendiente de verificación
       if (user.email != null && user.emailConfirmedAt == null) {
         if (mounted) {
@@ -134,7 +143,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     } else {
       // Usuario nuevo - crear sesión anónima
       try {
-        await Supabase.instance.client.auth.signInAnonymously();
+        final response = await Supabase.instance.client.auth.signInAnonymously();
+
+        // Inicializar RevenueCat para el nuevo usuario
+        if (response.user != null) {
+          try {
+            await RevenueCatService.instance.init(response.user!.id);
+          } catch (e) {
+            debugPrint('RevenueCat init error: $e');
+          }
+        }
+
         if (mounted) {
           context.go(RouteConstants.onboarding);
         }

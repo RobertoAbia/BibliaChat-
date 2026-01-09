@@ -58,12 +58,12 @@ BibliaChat/
 - `plans` + `plan_days` + `user_plans` + `user_plan_days`
 - `daily_verses` + `daily_verse_texts` (incluye `verse_summary`, `key_concept`, `practical_exercise`)
 - `devotions` + `devotion_variants` + `user_devotions`
-- `daily_activity` (rachas)
+- `daily_activity` (rachas + `messages_sent` para límite diario)
 - `user_points` + `badges` + `user_badges`
 - `user_devices` (FCM tokens)
 - `user_entitlements` (premium status)
 
-## Migraciones SQL (15 total)
+## Migraciones SQL (16 total)
 - 00001-00009: Tablas core, ENUMs, RLS, índices
 - 00010: `rc_app_user_id` para restaurar compras
 - 00011: `gender` + enum `gender_type`
@@ -71,6 +71,7 @@ BibliaChat/
 - 00013: `key_concept` + `practical_exercise` para Stories
 - 00014: `last_summary_message_count` para tracking de resúmenes IA
 - 00015: Sistema chat híbrido (topics Stories + quitar UNIQUE constraint)
+- 00016: `messages_sent` en `daily_activity` para límite de mensajes diarios
 
 ## EPICs del Proyecto (12 total)
 - **EPIC 0-1:** Foundation + Base de datos + RLS
@@ -599,9 +600,76 @@ BibliaChat/
   - **Archivo modificado:**
     - `lib/features/onboarding/presentation/widgets/onboarding_country_page.dart`
 
+- [x] T-0401: Integración RevenueCat SDK (Flutter)
+  - **Configuración RevenueCat Dashboard:**
+    - Proyecto: "Biblia Chat Cristiano"
+    - App iOS añadida con P8 In-App Purchase Key
+    - API Key iOS: `appl_gZbgVJRKEBpZNBeYWpdisQiQjYw`
+    - Entitlement: `premium`
+    - Products: `ee.bikain.bibliachat.premium.monthly` ($14.99), `ee.bikain.bibliachat.premium.annual` ($39.99)
+    - Offering: `default` con packages `$rc_monthly` y `$rc_annual`
+  - **App Store Connect:**
+    - App creada: "Biblia Chat Cristiano"
+    - Bundle ID: `ee.bikain.bibliachat`
+    - Subscription Group: "Biblia Chat Premium"
+    - In-App Purchases configurados (mensual y anual)
+  - **Flutter - Servicio RevenueCat:**
+    - `RevenueCatService` singleton con métodos: `init()`, `getOfferings()`, `purchasePackage()`, `restorePurchases()`, `checkPremiumStatus()`, `getCustomerInfo()`
+    - Inicialización con `appUserID = supabaseUserId`
+    - Stream de `CustomerInfo` para cambios en tiempo real
+  - **Flutter - Providers:**
+    - `SubscriptionState`: isPremium, isLoading, error, offerings, isPurchasing
+    - `SubscriptionNotifier`: maneja compras, restauraciones, refresco
+    - `isPremiumProvider`, `offeringsProvider`, `monthlyPackageProvider`, `annualPackageProvider`
+  - **Flutter - PaywallScreen:**
+    - UI glassmorphism con header, features list, plan cards
+    - Plan anual destacado con badge "MAS POPULAR"
+    - Ahorro mostrado: "3 días gratis + ahorra 50%"
+    - Botón "Restaurar compras" + términos
+  - **Bundle ID actualizado:**
+    - iOS: `ee.bikain.bibliachat` (project.pbxproj)
+    - Android: `ee.bikain.bibliachat` (build.gradle + MainActivity.kt)
+  - **Inicialización en SplashScreen:**
+    - RevenueCat se inicializa después de Supabase auth
+    - Funciona para usuarios existentes y nuevos (anónimos)
+  - **Archivos creados:**
+    - `lib/core/services/revenue_cat_service.dart`
+    - `lib/features/subscription/presentation/providers/subscription_provider.dart`
+    - `lib/features/subscription/presentation/screens/paywall_screen.dart`
+  - **Archivos modificados:**
+    - `lib/core/router/app_router.dart` - Ruta `/paywall`
+    - `lib/core/constants/route_constants.dart` - Constante `paywall`
+    - `lib/features/auth/presentation/screens/splash_screen.dart` - Init RevenueCat
+    - `app_flutter/ios/Runner.xcodeproj/project.pbxproj` - Bundle ID
+    - `app_flutter/android/app/build.gradle` - Application ID
+    - `app_flutter/android/app/src/main/kotlin/ee/bikain/bibliachat/MainActivity.kt` - Package name
+  - **NOTA:** Android pendiente de configurar en RevenueCat (se validará iOS primero)
+
+- [x] T-0402/T-0404: Paywall estilo Bible Chat + Límite de mensajes
+  - **PaywallScreen rediseñada:**
+    - Botón X discreto (color gris claro, muy pequeño)
+    - Toggle para activar trial de 3 días en plan mensual
+    - Plan anual sin trial (pago directo)
+    - Navegación: Onboarding → Paywall → Home
+    - Mock data para web preview (RevenueCat no funciona en web)
+  - **Sistema de límite de mensajes:**
+    - 5 mensajes/día para usuarios sin suscripción
+    - Contador almacenado en BD (`daily_activity.messages_sent`)
+    - Badge de mensajes restantes en ChatScreen
+    - Diálogo de límite alcanzado con opción "Ver planes"
+    - Premium = ilimitado
+  - **Archivos creados:**
+    - `lib/core/services/message_limit_service.dart` - Lógica de límite
+    - `lib/features/chat/presentation/providers/message_limit_provider.dart` - Providers
+    - `supabase/migrations/00016_add_messages_sent_column.sql` - Migración BD
+  - **Archivos modificados:**
+    - `lib/features/subscription/presentation/screens/paywall_screen.dart` - UI Bible Chat
+    - `lib/features/chat/presentation/screens/chat_screen.dart` - Verificación límite
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - Navega a paywall
+
 ### Próximos Pasos
 - [ ] T-0003: Configurar proyecto Supabase (prod)
-- [ ] T-0401: Integrar RevenueCat
+- [ ] T-0403: Purchase flow completo
 - [ ] T-0701: Conectar pantallas con Supabase (datos reales)
 
 ## Comandos Útiles
@@ -781,3 +849,14 @@ supabase functions serve
   - Los providers de auth deben depender de `authStateChangesProvider` para actualizarse automáticamente
   - Patrón: `ref.watch(authStateChangesProvider)` al inicio del provider
   - Sin esto, los valores no se actualizan cuando el usuario verifica email o cambia estado
+- **RevenueCat en Web (kIsWeb):**
+  - RevenueCat SDK NO funciona en web - usar mock data para preview
+  - El check `if (kIsWeb) return` en `init()` evita inicialización
+  - `customerInfoStream` no existe en compilación web - usar dynamic call:
+    ```dart
+    Stream<CustomerInfo> get customerInfoStream {
+      if (kIsWeb || !_isInitialized) return const Stream.empty();
+      return (Purchases as dynamic).customerInfoStream as Stream<CustomerInfo>;
+    }
+    ```
+  - Sin el cast dinámico, el compilador falla incluso con el check `kIsWeb`

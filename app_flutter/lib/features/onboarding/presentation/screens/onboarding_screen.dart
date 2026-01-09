@@ -55,7 +55,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final success = await notifier.completeOnboarding();
 
     if (success && mounted) {
-      context.go(RouteConstants.home);
+      // Mostrar paywall después del onboarding
+      context.go(RouteConstants.paywall);
     } else if (mounted) {
       // Mostrar error
       final state = ref.read(onboardingProvider);
