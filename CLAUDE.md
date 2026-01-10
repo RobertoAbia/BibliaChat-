@@ -667,10 +667,16 @@ BibliaChat/
     - `lib/features/chat/presentation/screens/chat_screen.dart` - Verificación límite
     - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - Navega a paywall
 
+### Tickets Descartados (bajo valor para MVP)
+- ~~T-0705~~: Devoción del día - Duplica Evangelio/Stories
+- ~~T-0706~~: Oración guiada - Solo es un shortcut, usuario puede pedir en chat
+- ~~T-0707~~: Recomendaciones de planes - Depende de EPIC 9
+
 ### Próximos Pasos
-- [ ] T-0003: Configurar proyecto Supabase (prod)
-- [ ] T-0403: Purchase flow completo
-- [ ] T-0701: Conectar pantallas con Supabase (datos reales)
+- [ ] **EPIC 9**: Planes de estudio (T-0901..T-0904)
+- [ ] T-0308: Borrar cuenta (obligatorio App Store)
+- [ ] T-0403: Purchase flow (requiere build iOS/Android)
+- [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 
 ## Comandos Útiles
 ```bash
