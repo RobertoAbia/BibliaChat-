@@ -520,6 +520,31 @@ class ShimmerWeekCalendar extends StatelessWidget {
   }
 }
 
+/// Convenience class with static factory methods for shimmer widgets
+class ShimmerLoading {
+  ShimmerLoading._();
+
+  /// Create a shimmer card placeholder
+  static Widget card({double height = 120, double? width}) {
+    return ShimmerCard(height: height, width: width);
+  }
+
+  /// Create a shimmer text placeholder
+  static Widget text({double width = double.infinity, double height = 16}) {
+    return ShimmerText(width: width, height: height);
+  }
+
+  /// Create a shimmer list placeholder
+  static Widget list({int itemCount = 5}) {
+    return ShimmerList(itemCount: itemCount);
+  }
+
+  /// Create a shimmer avatar placeholder
+  static Widget avatar({double size = 48}) {
+    return ShimmerAvatar(size: size);
+  }
+}
+
 /// Shimmer para botón con efecto especial
 class ShimmerButton extends StatelessWidget {
   final double width;

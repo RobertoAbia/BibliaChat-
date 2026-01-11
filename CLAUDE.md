@@ -63,7 +63,7 @@ BibliaChat/
 - `user_devices` (FCM tokens)
 - `user_entitlements` (premium status)
 
-## Migraciones SQL (16 total)
+## Migraciones SQL (18 total)
 - 00001-00009: Tablas core, ENUMs, RLS, índices
 - 00010: `rc_app_user_id` para restaurar compras
 - 00011: `gender` + enum `gender_type`
@@ -72,6 +72,8 @@ BibliaChat/
 - 00014: `last_summary_message_count` para tracking de resúmenes IA
 - 00015: Sistema chat híbrido (topics Stories + quitar UNIQUE constraint)
 - 00016: `messages_sent` en `daily_activity` para límite de mensajes diarios
+- 00017: `practical_exercise` en `plan_days` para ejercicios prácticos
+- 00018: Seed data de los 7 planes de pecados capitales (49 días de contenido)
 
 ## EPICs del Proyecto (12 total)
 - **EPIC 0-1:** Foundation + Base de datos + RLS
@@ -667,13 +669,50 @@ BibliaChat/
     - `lib/features/chat/presentation/screens/chat_screen.dart` - Verificación límite
     - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - Navega a paywall
 
+- [x] EPIC 9: Planes de Estudio (7 Pecados Capitales)
+  - **7 planes temáticos:** Soberbia→Humildad, Avaricia→Generosidad, Lujuria→Pureza, Ira→Paciencia, Gula→Templanza, Envidia→Gratitud, Pereza→Diligencia
+  - **Estructura por día:** Versículo + Reflexión (150-300 palabras) + Ejercicio práctico + Pregunta para chat
+  - **Migraciones:**
+    - `00017_add_practical_exercise_to_plan_days.sql` - Columna para ejercicios
+    - `00018_seed_seven_sins_plans.sql` - 7 planes con 49 días de contenido
+  - **Clean Architecture Flutter:**
+    - Domain: `Plan`, `PlanDay`, `UserPlan`, `UserPlanDay` entities + `StudyRepository`
+    - Data: Models con serialización JSON, `StudyRemoteDatasource` con Supabase
+    - Presentation: `StudyScreen`, `PlanDetailScreen`, `PlanDayScreen` + providers Riverpod
+  - **Tabla `user_plans`:** Usa `status` enum (`in_progress`, `completed`, `abandoned`) en lugar de `is_completed` boolean
+  - **Tabla `user_plan_days`:** Usa `day_number` + `user_answer` + `completed_via` (no `plan_day_id` ni `is_completed`)
+  - **Funcionalidades:**
+    - Ver lista de 7 planes disponibles
+    - Iniciar un plan (solo uno activo a la vez)
+    - Ver contenido del día actual
+    - Completar día y avanzar al siguiente
+    - Barra de progreso animada
+    - Celebración al completar plan
+  - **Rutas añadidas:**
+    - `/study/plan/:planId` - Detalle del plan
+    - `/study/day/:userPlanId` - Día actual del plan activo
+  - **Archivos creados:**
+    - `lib/features/study/domain/entities/` - plan.dart, plan_day.dart, user_plan.dart, user_plan_day.dart
+    - `lib/features/study/domain/repositories/study_repository.dart`
+    - `lib/features/study/data/models/` - Todos los models
+    - `lib/features/study/data/datasources/study_remote_datasource.dart`
+    - `lib/features/study/data/repositories/study_repository_impl.dart`
+    - `lib/features/study/presentation/providers/study_provider.dart`
+    - `lib/features/study/presentation/screens/plan_detail_screen.dart`
+    - `lib/features/study/presentation/screens/plan_day_screen.dart`
+  - **Archivos modificados:**
+    - `lib/features/study/presentation/screens/study_screen.dart` - Conectado a Supabase
+    - `lib/core/router/app_router.dart` - Nuevas rutas
+    - `lib/core/widgets/shimmer_loading.dart` - Añadido `ShimmerLoading` class
+    - `lib/features/subscription/presentation/screens/paywall_screen.dart` - Fix overflow
+
 ### Tickets Descartados (bajo valor para MVP)
 - ~~T-0705~~: Devoción del día - Duplica Evangelio/Stories
 - ~~T-0706~~: Oración guiada - Solo es un shortcut, usuario puede pedir en chat
 - ~~T-0707~~: Recomendaciones de planes - Depende de EPIC 9
 
 ### Próximos Pasos
-- [ ] **EPIC 9**: Planes de estudio (T-0901..T-0904)
+- [x] **EPIC 9**: Planes de estudio - COMPLETADO
 - [ ] T-0308: Borrar cuenta (obligatorio App Store)
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)

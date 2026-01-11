@@ -191,7 +191,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     Package? annualPackage,
     SubscriptionState subscriptionState,
   ) {
-    return Column(
+    return SingleChildScrollView(
+      child: Column(
       children: [
         // Plan mensual con toggle de trial
         if (monthlyPackage != null)
@@ -213,7 +214,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             onTap: () => _handlePurchase(annualPackage),
           ),
 
-        const Spacer(),
+        const SizedBox(height: 24),
 
         // Error
         if (subscriptionState.error != null)
@@ -257,11 +258,13 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
         const SizedBox(height: 16),
       ],
+      ),
     );
   }
 
   Widget _buildMockPlans(BuildContext context) {
-    return Column(
+    return SingleChildScrollView(
+      child: Column(
       children: [
         // Banner web
         Container(
@@ -296,7 +299,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         // Plan anual mock
         _MockAnnualPlanCard(),
 
-        const Spacer(),
+        const SizedBox(height: 24),
 
         // Restaurar
         TextButton(
@@ -329,6 +332,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
         const SizedBox(height: 16),
       ],
+      ),
     );
   }
 

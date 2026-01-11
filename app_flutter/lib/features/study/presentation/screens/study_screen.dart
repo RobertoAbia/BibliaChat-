@@ -1,85 +1,56 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
+import '../../../../core/widgets/shimmer_loading.dart';
+import '../../domain/entities/plan.dart';
+import '../providers/study_provider.dart';
 
-class StudyScreen extends StatelessWidget {
+class StudyScreen extends ConsumerWidget {
   const StudyScreen({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    final plans = [
-      StudyPlan(
-        id: '1',
-        name: 'Fe Cuando Familia Está Lejos',
-        description: 'Para migrantes separados de familiares',
-        days: 7,
-        icon: '🏠',
-        gradient: const LinearGradient(
+  /// Get gradient for plan based on its icon
+  LinearGradient _getGradientForPlan(Plan plan) {
+    switch (plan.icon) {
+      case 'self_improvement': // Humildad
+        return const LinearGradient(
           colors: [Color(0xFF6366F1), Color(0xFF8B5CF6)],
-        ),
-      ),
-      StudyPlan(
-        id: '2',
-        name: 'Trabajo y Provisión Divina',
-        description: 'Cuando el trabajo escasea',
-        days: 5,
-        icon: '💼',
-        gradient: const LinearGradient(
+        );
+      case 'volunteer_activism': // Generosidad
+        return const LinearGradient(
           colors: [Color(0xFF059669), Color(0xFF10B981)],
-        ),
-      ),
-      StudyPlan(
-        id: '3',
-        name: 'Soltería Enraizada en Cristo',
-        description: 'Vivir la soltería con propósito',
-        days: 7,
-        icon: '💝',
-        gradient: const LinearGradient(
+        );
+      case 'favorite': // Pureza
+        return const LinearGradient(
           colors: [Color(0xFFEC4899), Color(0xFFF472B6)],
-        ),
-      ),
-      StudyPlan(
-        id: '4',
-        name: 'Resiste la Ansiedad con Fe',
-        description: 'Encontrar paz en tiempos difíciles',
-        days: 5,
-        icon: '🕊️',
-        gradient: const LinearGradient(
+        );
+      case 'spa': // Paciencia
+        return const LinearGradient(
           colors: [Color(0xFF0EA5E9), Color(0xFF38BDF8)],
-        ),
-      ),
-      StudyPlan(
-        id: '5',
-        name: 'Gratitud en Medio del Caos',
-        description: 'Cultivar gratitud en tiempos difíciles',
-        days: 5,
-        icon: '🙏',
-        gradient: AppTheme.goldGradient,
-      ),
-      StudyPlan(
-        id: '6',
-        name: 'Discípulo en Dos Idiomas',
-        description: 'Fe entre dos mundos',
-        days: 7,
-        icon: '🌎',
-        gradient: const LinearGradient(
+        );
+      case 'restaurant': // Templanza
+        return const LinearGradient(
           colors: [Color(0xFFF59E0B), Color(0xFFFBBF24)],
-        ),
-      ),
-      StudyPlan(
-        id: '7',
-        name: 'Sanidad del Corazón Inmigrante',
-        description: 'Sanar heridas del camino',
-        days: 7,
-        icon: '❤️‍🩹',
-        gradient: const LinearGradient(
+        );
+      case 'celebration': // Gratitud
+        return AppTheme.goldGradient;
+      case 'fitness_center': // Diligencia
+        return const LinearGradient(
           colors: [Color(0xFFEF4444), Color(0xFFF87171)],
-        ),
-      ),
-    ];
+        );
+      default:
+        return AppTheme.goldGradient;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final plansAsync = ref.watch(allPlansProvider);
+    final activePlanAsync = ref.watch(activePlanDataProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,
@@ -88,180 +59,173 @@ class StudyScreen extends StatelessWidget {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          gradient: AppTheme.goldGradient,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primaryColor.withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.school_rounded,
-                          color: AppTheme.textOnPrimary,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Estudiar',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(
-                                  color: AppTheme.textPrimary,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                          ),
-                          Text(
-                            'Planes de estudio bíblico',
-                            style:
-                                Theme.of(context).textTheme.bodySmall?.copyWith(
-                                      color: AppTheme.textTertiary,
-                                    ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Active Plan Section
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: _ActivePlanCard(
-                    plan: plans[0],
-                    currentDay: 3,
-                  ),
-                ),
-
-                const SizedBox(height: 28),
-
-                // Plans List Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: GlassContainer(
-                    blur: 8,
-                    backgroundOpacity: 0.3,
-                    borderRadius: 14,
-                    padding: const EdgeInsets.all(16),
+          child: RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(allPlansProvider);
+              ref.invalidate(activePlanDataProvider);
+            },
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
                     child: Row(
                       children: [
                         Container(
-                          width: 4,
-                          height: 36,
+                          width: 44,
+                          height: 44,
                           decoration: BoxDecoration(
                             gradient: AppTheme.goldGradient,
-                            borderRadius: BorderRadius.circular(2),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Planes de Estudio',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .titleMedium
-                                    ?.copyWith(
-                                      color: AppTheme.textPrimary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Diseñados para hispanohablantes',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: AppTheme.textTertiary,
-                                    ),
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryColor.withOpacity(0.3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
                               ),
                             ],
                           ),
+                          child: const Icon(
+                            Icons.school_rounded,
+                            color: AppTheme.textOnPrimary,
+                            size: 22,
+                          ),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: AppTheme.primaryColor.withOpacity(0.3),
+                        const SizedBox(width: 14),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Estudiar',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineSmall
+                                  ?.copyWith(
+                                    color: AppTheme.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                             ),
-                          ),
-                          child: Text(
-                            '${plans.length} planes',
-                            style:
-                                Theme.of(context).textTheme.labelSmall?.copyWith(
-                                      color: AppTheme.primaryColor,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                          ),
+                            Text(
+                              'Planes de estudio bíblico',
+                              style:
+                                  Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: AppTheme.textTertiary,
+                                      ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
-                ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // Plans List
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  itemCount: plans.length,
-                  itemBuilder: (context, index) {
-                    final plan = plans[index];
-                    return TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0.0, end: 1.0),
-                      duration: Duration(milliseconds: 400 + (index * 60)),
-                      curve: Curves.easeOutCubic,
-                      builder: (context, value, child) {
-                        return Transform.translate(
-                          offset: Offset(0, 20 * (1 - value)),
-                          child: Opacity(
-                            opacity: value,
-                            child: child,
+                  // Active Plan Section
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: activePlanAsync.when(
+                      data: (activePlan) {
+                        if (activePlan == null) {
+                          return _NoActivePlanCard();
+                        }
+                        return _ActivePlanCard(
+                          activePlanData: activePlan,
+                          gradient: _getGradientForPlan(activePlan.plan),
+                        );
+                      },
+                      loading: () => const _ActivePlanCardLoading(),
+                      error: (_, __) => _NoActivePlanCard(),
+                    ),
+                  ),
+
+                  const SizedBox(height: 28),
+
+                  // Plans List Header
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: plansAsync.when(
+                      data: (plans) => _PlansHeader(planCount: plans.length),
+                      loading: () => _PlansHeader(planCount: 0),
+                      error: (_, __) => _PlansHeader(planCount: 0),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Plans List
+                  plansAsync.when(
+                    data: (plans) => ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: plans.length,
+                      itemBuilder: (context, index) {
+                        final plan = plans[index];
+                        return TweenAnimationBuilder<double>(
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          duration: Duration(milliseconds: 400 + (index * 60)),
+                          curve: Curves.easeOutCubic,
+                          builder: (context, value, child) {
+                            return Transform.translate(
+                              offset: Offset(0, 20 * (1 - value)),
+                              child: Opacity(
+                                opacity: value,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _StudyPlanTile(
+                              plan: plan,
+                              gradient: _getGradientForPlan(plan),
+                            ),
                           ),
                         );
                       },
-                      child: Padding(
+                    ),
+                    loading: () => ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: 5,
+                      itemBuilder: (context, index) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: _StudyPlanTile(plan: plan),
+                        child: ShimmerLoading.card(height: 100),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                    error: (error, _) => Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: AppTheme.textTertiary,
+                              size: 48,
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Error al cargar los planes',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodyMedium
+                                  ?.copyWith(
+                                    color: AppTheme.textTertiary,
+                                  ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
 
-                const SizedBox(height: 20),
-              ],
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
         ),
@@ -270,13 +234,146 @@ class StudyScreen extends StatelessWidget {
   }
 }
 
+class _PlansHeader extends StatelessWidget {
+  final int planCount;
+
+  const _PlansHeader({required this.planCount});
+
+  @override
+  Widget build(BuildContext context) {
+    return GlassContainer(
+      blur: 8,
+      backgroundOpacity: 0.3,
+      borderRadius: 14,
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 36,
+            decoration: BoxDecoration(
+              gradient: AppTheme.goldGradient,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Planes de Estudio',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Transforma tu vida en 7 días',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textTertiary,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 6,
+            ),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppTheme.primaryColor.withOpacity(0.3),
+              ),
+            ),
+            child: Text(
+              '$planCount planes',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: AppTheme.primaryColor,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoActivePlanCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.surfaceDark.withOpacity(0.6),
+                AppTheme.surfaceDark.withOpacity(0.4),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppTheme.surfaceLight.withOpacity(0.3),
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                Icons.menu_book_outlined,
+                size: 48,
+                color: AppTheme.textTertiary,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Sin plan activo',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: AppTheme.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Elige un plan para comenzar tu transformación espiritual',
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: AppTheme.textTertiary,
+                    ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActivePlanCardLoading extends StatelessWidget {
+  const _ActivePlanCardLoading();
+
+  @override
+  Widget build(BuildContext context) {
+    return ShimmerLoading.card(height: 200);
+  }
+}
+
 class _ActivePlanCard extends StatefulWidget {
-  final StudyPlan plan;
-  final int currentDay;
+  final ActivePlanData activePlanData;
+  final LinearGradient gradient;
 
   const _ActivePlanCard({
-    required this.plan,
-    required this.currentDay,
+    required this.activePlanData,
+    required this.gradient,
   });
 
   @override
@@ -305,7 +402,9 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
 
   @override
   Widget build(BuildContext context) {
-    final progress = widget.currentDay / widget.plan.days;
+    final plan = widget.activePlanData.plan;
+    final userPlan = widget.activePlanData.userPlan;
+    final progress = widget.activePlanData.progressPercent;
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(20),
@@ -371,7 +470,7 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
                   ),
                   const Spacer(),
                   Text(
-                    'Día ${widget.currentDay} de ${widget.plan.days}',
+                    'Día ${userPlan.currentDay} de ${plan.daysTotal}',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: AppTheme.textSecondary,
                         ),
@@ -388,12 +487,11 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
                     width: 56,
                     height: 56,
                     decoration: BoxDecoration(
-                      gradient: widget.plan.gradient,
+                      gradient: widget.gradient,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color:
-                              widget.plan.gradient.colors.first.withOpacity(0.3),
+                          color: widget.gradient.colors.first.withOpacity(0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -401,7 +499,7 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
                     ),
                     child: Center(
                       child: Text(
-                        widget.plan.icon,
+                        plan.iconEmoji,
                         style: const TextStyle(fontSize: 28),
                       ),
                     ),
@@ -412,7 +510,7 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          widget.plan.name,
+                          plan.name,
                           style:
                               Theme.of(context).textTheme.titleMedium?.copyWith(
                                     color: AppTheme.textPrimary,
@@ -421,7 +519,9 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          widget.plan.description,
+                          plan.shortDescription ?? plan.description,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: AppTheme.textTertiary,
@@ -485,7 +585,7 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
                                     ),
                           ),
                           Text(
-                            '${widget.plan.days - widget.currentDay} días restantes',
+                            '${plan.daysTotal - userPlan.currentDay + 1} días restantes',
                             style:
                                 Theme.of(context).textTheme.bodySmall?.copyWith(
                                       color: AppTheme.textTertiary,
@@ -516,7 +616,9 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
                   ],
                 ),
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    context.push('/study/day/${widget.activePlanData.userPlan.id}');
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
@@ -553,16 +655,20 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
   }
 }
 
-class _StudyPlanTile extends StatefulWidget {
-  final StudyPlan plan;
+class _StudyPlanTile extends ConsumerStatefulWidget {
+  final Plan plan;
+  final LinearGradient gradient;
 
-  const _StudyPlanTile({required this.plan});
+  const _StudyPlanTile({
+    required this.plan,
+    required this.gradient,
+  });
 
   @override
-  State<_StudyPlanTile> createState() => _StudyPlanTileState();
+  ConsumerState<_StudyPlanTile> createState() => _StudyPlanTileState();
 }
 
-class _StudyPlanTileState extends State<_StudyPlanTile>
+class _StudyPlanTileState extends ConsumerState<_StudyPlanTile>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
@@ -593,7 +699,7 @@ class _StudyPlanTileState extends State<_StudyPlanTile>
       onTapUp: (_) => _controller.reverse(),
       onTapCancel: () => _controller.reverse(),
       onTap: () {
-        // Navigate to plan detail
+        context.push('/study/plan/${widget.plan.id}');
       },
       child: AnimatedBuilder(
         animation: _controller,
@@ -623,12 +729,11 @@ class _StudyPlanTileState extends State<_StudyPlanTile>
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(
-                      gradient: widget.plan.gradient,
+                      gradient: widget.gradient,
                       borderRadius: BorderRadius.circular(14),
                       boxShadow: [
                         BoxShadow(
-                          color:
-                              widget.plan.gradient.colors.first.withOpacity(0.3),
+                          color: widget.gradient.colors.first.withOpacity(0.3),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -636,7 +741,7 @@ class _StudyPlanTileState extends State<_StudyPlanTile>
                     ),
                     child: Center(
                       child: Text(
-                        widget.plan.icon,
+                        widget.plan.iconEmoji,
                         style: const TextStyle(fontSize: 26),
                       ),
                     ),
@@ -659,7 +764,9 @@ class _StudyPlanTileState extends State<_StudyPlanTile>
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          widget.plan.description,
+                          widget.plan.shortDescription ?? widget.plan.description,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style:
                               Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: AppTheme.textTertiary,
@@ -675,7 +782,7 @@ class _StudyPlanTileState extends State<_StudyPlanTile>
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              '${widget.plan.days} días',
+                              '${widget.plan.daysTotal} días',
                               style: Theme.of(context)
                                   .textTheme
                                   .labelSmall
@@ -712,22 +819,4 @@ class _StudyPlanTileState extends State<_StudyPlanTile>
       ),
     );
   }
-}
-
-class StudyPlan {
-  final String id;
-  final String name;
-  final String description;
-  final int days;
-  final String icon;
-  final LinearGradient gradient;
-
-  StudyPlan({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.days,
-    required this.icon,
-    required this.gradient,
-  });
 }

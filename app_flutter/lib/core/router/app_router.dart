@@ -12,6 +12,8 @@ import '../../features/home/presentation/screens/home_screen.dart';
 import '../../features/chat/presentation/screens/chat_screen.dart';
 import '../../features/chat/presentation/screens/chat_list_screen.dart';
 import '../../features/study/presentation/screens/study_screen.dart';
+import '../../features/study/presentation/screens/plan_detail_screen.dart';
+import '../../features/study/presentation/screens/plan_day_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/subscription/presentation/screens/paywall_screen.dart';
 import '../constants/route_constants.dart';
@@ -113,6 +115,26 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: RouteConstants.study,
             name: 'study',
             builder: (context, state) => const StudyScreen(),
+            routes: [
+              // Plan detail
+              GoRoute(
+                path: 'plan/:planId',
+                name: 'planDetail',
+                builder: (context, state) {
+                  final planId = state.pathParameters['planId']!;
+                  return PlanDetailScreen(planId: planId);
+                },
+              ),
+              // Plan day (current day of active plan)
+              GoRoute(
+                path: 'day/:userPlanId',
+                name: 'planDay',
+                builder: (context, state) {
+                  final userPlanId = state.pathParameters['userPlanId']!;
+                  return PlanDayScreen(userPlanId: userPlanId);
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: RouteConstants.settings,
