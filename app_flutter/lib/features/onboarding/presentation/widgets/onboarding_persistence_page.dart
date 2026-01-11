@@ -133,7 +133,7 @@ class OnboardingPersistencePage extends StatelessWidget {
                   child: _OptionTile(
                     icon: Icons.check_circle_outline,
                     label: 'Sí, suelo terminar lo que empiezo',
-                    subtitle: 'Planes de 7 días',
+                    subtitle: 'Soy una persona comprometida con mis objetivos',
                     isSelected: selectedValue == true,
                     onTap: () => onSelect(true),
                   ),
@@ -157,8 +157,8 @@ class OnboardingPersistencePage extends StatelessWidget {
                   },
                   child: _OptionTile(
                     icon: Icons.timer_outlined,
-                    label: 'A veces me cuesta',
-                    subtitle: 'Planes de 5 días',
+                    label: 'No suelo terminar lo que empiezo',
+                    subtitle: 'Mis objetivos no son tan importantes para mí',
                     isSelected: selectedValue == false,
                     onTap: () => onSelect(false),
                   ),
