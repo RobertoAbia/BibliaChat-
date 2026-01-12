@@ -126,10 +126,10 @@ class StudyActionsNotifier extends StateNotifier<AsyncValue<void>> {
   StudyActionsNotifier(this._repository, this._datasource, this._ref)
       : super(const AsyncValue.data(null));
 
-  /// Start a new plan
-  Future<bool> startPlan(String planId) async {
+  /// Start a new plan - returns the UserPlan if successful, null if failed
+  Future<UserPlan?> startPlan(String planId) async {
     final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return false;
+    if (user == null) return null;
 
     state = const AsyncValue.loading();
 
@@ -138,16 +138,16 @@ class StudyActionsNotifier extends StateNotifier<AsyncValue<void>> {
       final existingPlan = await _repository.getActiveUserPlan(user.id);
       if (existingPlan != null) {
         state = AsyncValue.error('Ya tienes un plan activo', StackTrace.current);
-        return false;
+        return null;
       }
 
-      await _repository.startPlan(user.id, planId);
+      final userPlan = await _repository.startPlan(user.id, planId);
       _ref.read(activePlanRefreshProvider.notifier).state++;
       state = const AsyncValue.data(null);
-      return true;
+      return userPlan;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-      return false;
+      return null;
     }
   }
 

@@ -147,7 +147,14 @@ class StudyScreen extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: plansAsync.when(
-                      data: (plans) => _PlansHeader(planCount: plans.length),
+                      data: (plans) {
+                        // Show filtered count (excluding active plan)
+                        final activePlanId = activePlanAsync.valueOrNull?.plan.id;
+                        final availableCount = activePlanId != null
+                            ? plans.where((p) => p.id != activePlanId).length
+                            : plans.length;
+                        return _PlansHeader(planCount: availableCount);
+                      },
                       loading: () => _PlansHeader(planCount: 0),
                       error: (_, __) => _PlansHeader(planCount: 0),
                     ),
@@ -155,38 +162,46 @@ class StudyScreen extends ConsumerWidget {
 
                   const SizedBox(height: 16),
 
-                  // Plans List
+                  // Plans List (filtered to exclude active plan)
                   plansAsync.when(
-                    data: (plans) => ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: plans.length,
-                      itemBuilder: (context, index) {
-                        final plan = plans[index];
-                        return TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0.0, end: 1.0),
-                          duration: Duration(milliseconds: 400 + (index * 60)),
-                          curve: Curves.easeOutCubic,
-                          builder: (context, value, child) {
-                            return Transform.translate(
-                              offset: Offset(0, 20 * (1 - value)),
-                              child: Opacity(
-                                opacity: value,
-                                child: child,
+                    data: (plans) {
+                      // Filter out the active plan
+                      final activePlanId = activePlanAsync.valueOrNull?.plan.id;
+                      final filteredPlans = activePlanId != null
+                          ? plans.where((p) => p.id != activePlanId).toList()
+                          : plans;
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: filteredPlans.length,
+                        itemBuilder: (context, index) {
+                          final plan = filteredPlans[index];
+                          return TweenAnimationBuilder<double>(
+                            tween: Tween(begin: 0.0, end: 1.0),
+                            duration: Duration(milliseconds: 400 + (index * 60)),
+                            curve: Curves.easeOutCubic,
+                            builder: (context, value, child) {
+                              return Transform.translate(
+                                offset: Offset(0, 20 * (1 - value)),
+                                child: Opacity(
+                                  opacity: value,
+                                  child: child,
+                                ),
+                              );
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _StudyPlanTile(
+                                plan: plan,
+                                gradient: _getGradientForPlan(plan),
                               ),
-                            );
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _StudyPlanTile(
-                              plan: plan,
-                              gradient: _getGradientForPlan(plan),
                             ),
-                          ),
-                        );
-                      },
-                    ),
+                          );
+                        },
+                      );
+                    },
                     loading: () => ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),

@@ -682,10 +682,13 @@ BibliaChat/
   - **Tabla `user_plans`:** Usa `status` enum (`in_progress`, `completed`, `abandoned`) en lugar de `is_completed` boolean
   - **Tabla `user_plan_days`:** Usa `day_number` + `user_answer` + `completed_via` (no `plan_day_id` ni `is_completed`)
   - **Funcionalidades:**
-    - Ver lista de 7 planes disponibles
+    - Ver lista de planes disponibles (oculta el plan activo)
     - Iniciar un plan (solo uno activo a la vez)
+    - Al iniciar plan → navega directo al día 1
     - Ver contenido del día actual
     - Completar día y avanzar al siguiente
+    - Abandonar plan (menú ⋮ en PlanDayScreen)
+    - Reiniciar plan abandonado/completado (upsert en vez de insert)
     - Barra de progreso animada
     - Celebración al completar plan
   - **Rutas añadidas:**

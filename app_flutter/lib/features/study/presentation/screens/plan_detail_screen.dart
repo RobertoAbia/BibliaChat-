@@ -308,13 +308,14 @@ class PlanDetailScreen extends ConsumerWidget {
                 onPressed: actionsState.isLoading
                     ? null
                     : () async {
-                        final success = await ref
+                        final userPlan = await ref
                             .read(studyActionsProvider.notifier)
                             .startPlan(planId);
                         if (!context.mounted) return;
 
-                        if (success) {
-                          context.pop();
+                        if (userPlan != null) {
+                          // Navigate to day screen, replacing current route
+                          context.go('/study/day/${userPlan.id}');
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: const Text('¡Plan iniciado!'),

@@ -206,38 +206,57 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
                   ),
                   actions: [
                     // Progress indicator
-                    Padding(
-                      padding: const EdgeInsets.only(right: 16),
-                      child: Center(
-                        child: SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: Stack(
-                            fit: StackFit.expand,
+                    Center(
+                      child: SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: Stack(
+                          fit: StackFit.expand,
+                          children: [
+                            CircularProgressIndicator(
+                              value: data.currentDay / data.totalDays,
+                              backgroundColor:
+                                  AppTheme.surfaceLight.withOpacity(0.3),
+                              color: AppTheme.primaryColor,
+                              strokeWidth: 3,
+                            ),
+                            Center(
+                              child: Text(
+                                '${data.currentDay}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelMedium
+                                    ?.copyWith(
+                                      color: AppTheme.primaryColor,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Menu
+                    PopupMenuButton<String>(
+                      icon: const Icon(Icons.more_vert, color: AppTheme.textSecondary),
+                      color: AppTheme.surfaceDark,
+                      onSelected: (value) {
+                        if (value == 'abandon') {
+                          _showAbandonDialog(context, ref, data.userPlanId, data.plan.name);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'abandon',
+                          child: Row(
                             children: [
-                              CircularProgressIndicator(
-                                value: data.currentDay / data.totalDays,
-                                backgroundColor:
-                                    AppTheme.surfaceLight.withOpacity(0.3),
-                                color: AppTheme.primaryColor,
-                                strokeWidth: 3,
-                              ),
-                              Center(
-                                child: Text(
-                                  '${data.currentDay}',
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelMedium
-                                      ?.copyWith(
-                                        color: AppTheme.primaryColor,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                              ),
+                              Icon(Icons.exit_to_app, color: Colors.red, size: 20),
+                              SizedBox(width: 12),
+                              Text('Abandonar plan', style: TextStyle(color: Colors.red)),
                             ],
                           ),
                         ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -695,6 +714,126 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
                         ),
                       ),
                     ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showAbandonDialog(BuildContext context, WidgetRef ref, String userPlanId, String planName) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.surfaceDark.withOpacity(0.9),
+                    AppTheme.surfaceDark.withOpacity(0.7),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: AppTheme.surfaceLight.withOpacity(0.3),
+                ),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Warning icon
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.warning_amber_rounded,
+                      size: 32,
+                      color: Colors.red,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    '¿Abandonar plan?',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppTheme.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Perderás todo tu progreso en "$planName". Esta acción no se puede deshacer.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textSecondary,
+                        ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  // Buttons
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(dialogContext).pop(),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppTheme.textSecondary,
+                            side: BorderSide(color: AppTheme.surfaceLight.withOpacity(0.5)),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Cancelar'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            Navigator.of(dialogContext).pop();
+                            final success = await ref
+                                .read(studyActionsProvider.notifier)
+                                .abandonPlan(userPlanId);
+                            if (success && context.mounted) {
+                              context.pop();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: const Text('Plan abandonado'),
+                                  backgroundColor: AppTheme.textTertiary,
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Abandonar'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

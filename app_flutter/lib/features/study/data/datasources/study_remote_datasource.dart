@@ -89,20 +89,46 @@ class StudyRemoteDatasource {
         .toList();
   }
 
-  /// Start a new plan for the user
+  /// Start a new plan for the user (or restart an abandoned/completed one)
   Future<UserPlanModel> startPlan(String userId, String planId) async {
-    final response = await _supabase
+    // Check if user already has a record for this plan (abandoned or completed)
+    final existing = await _supabase
         .from('user_plans')
-        .insert({
-          'user_id': userId,
-          'plan_id': planId,
-          'status': 'in_progress',
-          'current_day': 1,
-        })
         .select()
-        .single();
+        .eq('user_id', userId)
+        .eq('plan_id', planId)
+        .maybeSingle();
 
-    return UserPlanModel.fromJson(response);
+    if (existing != null) {
+      // Reactivate existing plan - reset to day 1
+      final response = await _supabase
+          .from('user_plans')
+          .update({
+            'status': 'in_progress',
+            'current_day': 1,
+            'started_at': DateTime.now().toIso8601String(),
+            'completed_at': null,
+          })
+          .eq('id', existing['id'])
+          .select()
+          .single();
+
+      return UserPlanModel.fromJson(response);
+    } else {
+      // Create new plan record
+      final response = await _supabase
+          .from('user_plans')
+          .insert({
+            'user_id': userId,
+            'plan_id': planId,
+            'status': 'in_progress',
+            'current_day': 1,
+          })
+          .select()
+          .single();
+
+      return UserPlanModel.fromJson(response);
+    }
   }
 
   /// Mark a day as completed (insert into user_plan_days)
