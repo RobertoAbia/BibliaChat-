@@ -30,6 +30,24 @@ final allPlansProvider = FutureProvider<List<Plan>>((ref) async {
 });
 
 // ============================================================================
+// All User Plans Provider (for checking completed status)
+// ============================================================================
+
+/// Refresh trigger for user plans
+final userPlansRefreshProvider = StateProvider<int>((ref) => 0);
+
+/// Get all user plans (to check completed/abandoned status)
+final allUserPlansProvider = FutureProvider<List<UserPlan>>((ref) async {
+  ref.watch(userPlansRefreshProvider);
+
+  final user = Supabase.instance.client.auth.currentUser;
+  if (user == null) return [];
+
+  final datasource = ref.watch(studyDatasourceProvider);
+  return await datasource.getUserPlans(user.id);
+});
+
+// ============================================================================
 // Active User Plan Provider
 // ============================================================================
 

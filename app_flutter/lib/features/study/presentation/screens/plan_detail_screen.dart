@@ -8,6 +8,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../domain/entities/plan.dart';
+import '../../domain/entities/user_plan.dart';
 import '../providers/study_provider.dart';
 
 class PlanDetailScreen extends ConsumerWidget {
@@ -53,6 +54,15 @@ class PlanDetailScreen extends ConsumerWidget {
     final planAsync = ref.watch(planDetailProvider(planId));
     final daysAsync = ref.watch(planDaysProvider(planId));
     final actionsState = ref.watch(studyActionsProvider);
+    final userPlansAsync = ref.watch(allUserPlansProvider);
+
+    // Find userPlan for this plan (if exists)
+    final userPlans = userPlansAsync.valueOrNull ?? [];
+    final userPlan = userPlans.cast<UserPlan?>().firstWhere(
+          (up) => up?.planId == planId,
+          orElse: () => null,
+        );
+    final isCompleted = userPlan?.status == 'completed';
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,
@@ -153,6 +163,66 @@ class PlanDetailScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(20),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
+                      // Completion Banner (if completed)
+                      if (isCompleted) ...[
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: const Color(0xFF10B981).withOpacity(0.4),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withOpacity(0.2),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(
+                                  Icons.check_circle_rounded,
+                                  color: Color(0xFF10B981),
+                                  size: 26,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '¡Plan completado!',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .titleSmall
+                                          ?.copyWith(
+                                            color: const Color(0xFF10B981),
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Has terminado los 7 días de este plan',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: AppTheme.textSecondary,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+
                       // Description Card
                       GlassContainer(
                         blur: 8,
@@ -274,7 +344,7 @@ class PlanDetailScreen extends ConsumerWidget {
           ),
         ),
       ),
-      // Start Plan Button
+      // Start Plan Button (or Review Content if completed)
       bottomNavigationBar: planAsync.when(
         data: (plan) {
           if (plan == null) return const SizedBox.shrink();
@@ -294,11 +364,17 @@ class PlanDetailScreen extends ConsumerWidget {
             child: Container(
               height: 56,
               decoration: BoxDecoration(
-                gradient: AppTheme.goldGradient,
+                gradient: isCompleted
+                    ? const LinearGradient(
+                        colors: [Color(0xFF10B981), Color(0xFF059669)],
+                      )
+                    : AppTheme.goldGradient,
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primaryColor.withOpacity(0.4),
+                    color: isCompleted
+                        ? const Color(0xFF10B981).withOpacity(0.4)
+                        : AppTheme.primaryColor.withOpacity(0.4),
                     blurRadius: 16,
                     offset: const Offset(0, 6),
                   ),
@@ -308,41 +384,47 @@ class PlanDetailScreen extends ConsumerWidget {
                 onPressed: actionsState.isLoading
                     ? null
                     : () async {
-                        final userPlan = await ref
-                            .read(studyActionsProvider.notifier)
-                            .startPlan(planId);
-                        if (!context.mounted) return;
-
-                        if (userPlan != null) {
-                          // Navigate to day screen, replacing current route
-                          context.go('/study/day/${userPlan.id}');
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: const Text('¡Plan iniciado!'),
-                              backgroundColor: AppTheme.primaryColor,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                          );
+                        if (isCompleted && userPlan != null) {
+                          // Navigate to day 1 in readOnly mode
+                          context.push('/study/day/${userPlan.id}?readOnly=true&day=1');
                         } else {
-                          // Show error
-                          final errorState = ref.read(studyActionsProvider);
-                          String errorMsg = 'Error al iniciar el plan';
-                          if (errorState.hasError) {
-                            errorMsg = errorState.error.toString();
-                          }
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(errorMsg),
-                              backgroundColor: Colors.red,
-                              behavior: SnackBarBehavior.floating,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                          // Start new plan
+                          final newUserPlan = await ref
+                              .read(studyActionsProvider.notifier)
+                              .startPlan(planId);
+                          if (!context.mounted) return;
+
+                          if (newUserPlan != null) {
+                            // Navigate to day screen, replacing current route
+                            context.go('/study/day/${newUserPlan.id}');
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: const Text('¡Plan iniciado!'),
+                                backgroundColor: AppTheme.primaryColor,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
-                            ),
-                          );
+                            );
+                          } else {
+                            // Show error
+                            final errorState = ref.read(studyActionsProvider);
+                            String errorMsg = 'Error al iniciar el plan';
+                            if (errorState.hasError) {
+                              errorMsg = errorState.error.toString();
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(errorMsg),
+                                backgroundColor: Colors.red,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            );
+                          }
                         }
                       },
                 style: ElevatedButton.styleFrom(
@@ -361,18 +443,20 @@ class PlanDetailScreen extends ConsumerWidget {
                           strokeWidth: 2,
                         ),
                       )
-                    : const Row(
+                    : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            Icons.play_arrow_rounded,
+                            isCompleted
+                                ? Icons.visibility_rounded
+                                : Icons.play_arrow_rounded,
                             color: AppTheme.textOnPrimary,
                             size: 24,
                           ),
-                          SizedBox(width: 8),
+                          const SizedBox(width: 8),
                           Text(
-                            'Comenzar plan',
-                            style: TextStyle(
+                            isCompleted ? 'Revisar contenido' : 'Comenzar plan',
+                            style: const TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w600,
                               color: AppTheme.textOnPrimary,

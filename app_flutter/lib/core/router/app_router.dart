@@ -125,13 +125,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   return PlanDetailScreen(planId: planId);
                 },
               ),
-              // Plan day (current day of active plan)
+              // Plan day (current day of active plan, or any day in readOnly mode)
               GoRoute(
                 path: 'day/:userPlanId',
                 name: 'planDay',
                 builder: (context, state) {
                   final userPlanId = state.pathParameters['userPlanId']!;
-                  return PlanDayScreen(userPlanId: userPlanId);
+                  // Query params for readOnly mode
+                  final readOnly = state.uri.queryParameters['readOnly'] == 'true';
+                  final dayParam = state.uri.queryParameters['day'];
+                  final day = dayParam != null ? int.tryParse(dayParam) : null;
+                  return PlanDayScreen(
+                    userPlanId: userPlanId,
+                    readOnly: readOnly,
+                    day: day,
+                  );
                 },
               ),
             ],

@@ -8,6 +8,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../domain/entities/plan.dart';
+import '../../domain/entities/user_plan.dart';
 import '../providers/study_provider.dart';
 
 class StudyScreen extends ConsumerWidget {
@@ -51,6 +52,7 @@ class StudyScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final plansAsync = ref.watch(allPlansProvider);
     final activePlanAsync = ref.watch(activePlanDataProvider);
+    final userPlansAsync = ref.watch(allUserPlansProvider);
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,
@@ -63,6 +65,7 @@ class StudyScreen extends ConsumerWidget {
             onRefresh: () async {
               ref.invalidate(allPlansProvider);
               ref.invalidate(activePlanDataProvider);
+              ref.invalidate(allUserPlansProvider);
             },
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -171,6 +174,9 @@ class StudyScreen extends ConsumerWidget {
                           ? plans.where((p) => p.id != activePlanId).toList()
                           : plans;
 
+                      // Get user plans list (empty if loading/error)
+                      final userPlans = userPlansAsync.valueOrNull ?? [];
+
                       return ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
@@ -178,6 +184,11 @@ class StudyScreen extends ConsumerWidget {
                         itemCount: filteredPlans.length,
                         itemBuilder: (context, index) {
                           final plan = filteredPlans[index];
+                          // Find if user has a record for this plan
+                          final userPlan = userPlans.cast<UserPlan?>().firstWhere(
+                            (up) => up?.planId == plan.id,
+                            orElse: () => null,
+                          );
                           return TweenAnimationBuilder<double>(
                             tween: Tween(begin: 0.0, end: 1.0),
                             duration: Duration(milliseconds: 400 + (index * 60)),
@@ -196,6 +207,7 @@ class StudyScreen extends ConsumerWidget {
                               child: _StudyPlanTile(
                                 plan: plan,
                                 gradient: _getGradientForPlan(plan),
+                                userPlan: userPlan,
                               ),
                             ),
                           );
@@ -673,11 +685,15 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
 class _StudyPlanTile extends ConsumerStatefulWidget {
   final Plan plan;
   final LinearGradient gradient;
+  final UserPlan? userPlan;
 
   const _StudyPlanTile({
     required this.plan,
     required this.gradient,
+    this.userPlan,
   });
+
+  bool get isCompleted => userPlan?.status == 'completed';
 
   @override
   ConsumerState<_StudyPlanTile> createState() => _StudyPlanTileState();
@@ -806,6 +822,45 @@ class _StudyPlanTileState extends ConsumerState<_StudyPlanTile>
                                     fontWeight: FontWeight.w600,
                                   ),
                             ),
+                            // Badge de completado
+                            if (widget.isCompleted) ...[
+                              const SizedBox(width: 10),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF10B981).withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: const Color(0xFF10B981).withOpacity(0.4),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle,
+                                      size: 12,
+                                      color: Color(0xFF10B981),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Completado',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                            color: const Color(0xFF10B981),
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 10,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                           ],
                         ),
                       ],

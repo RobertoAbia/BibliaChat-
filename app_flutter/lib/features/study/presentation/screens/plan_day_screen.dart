@@ -9,10 +9,11 @@ import '../../../../core/widgets/glass_container.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../domain/entities/plan.dart';
 import '../../domain/entities/plan_day.dart';
+import '../../domain/entities/user_plan.dart';
 import '../providers/study_provider.dart';
 import '../../../chat/presentation/providers/chat_provider.dart';
 
-/// Provider for loading the current day's data
+/// Provider for loading the current day's data (active plan)
 final currentDayDataProvider = FutureProvider.family<_DayScreenData?, String>(
   (ref, userPlanId) async {
     final activePlanData = await ref.watch(activePlanDataProvider.future);
@@ -24,6 +25,57 @@ final currentDayDataProvider = FutureProvider.family<_DayScreenData?, String>(
       planDay: activePlanData.currentPlanDay,
       currentDay: activePlanData.userPlan.currentDay,
       totalDays: activePlanData.plan.daysTotal,
+    );
+  },
+);
+
+/// Parameters for readOnly day view
+class ReadOnlyDayParams {
+  final String userPlanId;
+  final int dayNumber;
+
+  ReadOnlyDayParams(this.userPlanId, this.dayNumber);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ReadOnlyDayParams &&
+          runtimeType == other.runtimeType &&
+          userPlanId == other.userPlanId &&
+          dayNumber == other.dayNumber;
+
+  @override
+  int get hashCode => userPlanId.hashCode ^ dayNumber.hashCode;
+}
+
+/// Provider for loading any specific day (for readOnly mode)
+final readOnlyDayDataProvider = FutureProvider.family<_DayScreenData?, ReadOnlyDayParams>(
+  (ref, params) async {
+    final datasource = ref.watch(studyDatasourceProvider);
+    final repository = ref.watch(studyRepositoryProvider);
+
+    // Get all user plans to find this one
+    final userPlans = await ref.watch(allUserPlansProvider.future);
+    final userPlan = userPlans.cast<UserPlan?>().firstWhere(
+          (up) => up?.id == params.userPlanId,
+          orElse: () => null,
+        );
+    if (userPlan == null) return null;
+
+    // Get the plan details
+    final plan = await repository.getPlanById(userPlan.planId);
+    if (plan == null) return null;
+
+    // Get the specific day
+    final planDay = await datasource.getPlanDayByNumber(userPlan.planId, params.dayNumber);
+    if (planDay == null) return null;
+
+    return _DayScreenData(
+      plan: plan,
+      userPlanId: params.userPlanId,
+      planDay: planDay,
+      currentDay: params.dayNumber,
+      totalDays: plan.daysTotal,
     );
   },
 );
@@ -46,8 +98,15 @@ class _DayScreenData {
 
 class PlanDayScreen extends ConsumerStatefulWidget {
   final String userPlanId;
+  final bool readOnly;
+  final int? day;
 
-  const PlanDayScreen({super.key, required this.userPlanId});
+  const PlanDayScreen({
+    super.key,
+    required this.userPlanId,
+    this.readOnly = false,
+    this.day,
+  });
 
   @override
   ConsumerState<PlanDayScreen> createState() => _PlanDayScreenState();
@@ -56,10 +115,12 @@ class PlanDayScreen extends ConsumerStatefulWidget {
 class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _hasScrolledToBottom = false;
+  late int _displayDay;
 
   @override
   void initState() {
     super.initState();
+    _displayDay = widget.day ?? 1;
     _scrollController.addListener(_onScroll);
   }
 
@@ -68,6 +129,26 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
     _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _goToPreviousDay() {
+    if (_displayDay > 1) {
+      setState(() {
+        _displayDay--;
+        _hasScrolledToBottom = false;
+      });
+      _scrollController.jumpTo(0);
+    }
+  }
+
+  void _goToNextDay(int totalDays) {
+    if (_displayDay < totalDays) {
+      setState(() {
+        _displayDay++;
+        _hasScrolledToBottom = false;
+      });
+      _scrollController.jumpTo(0);
+    }
   }
 
   void _onScroll() {
@@ -83,6 +164,7 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
 
   /// Open chat for this plan - creates one if doesn't exist
   /// Also marks the current day as complete (user engaged with the content)
+  /// In readOnly mode, just opens the chat without marking complete or sending content
   Future<void> _openPlanChat(
     BuildContext context,
     WidgetRef ref,
@@ -91,8 +173,9 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
     String planName,
     PlanDay planDay,
     int currentDay,
-    int totalDays,
-  ) async {
+    int totalDays, {
+    bool readOnly = false,
+  }) async {
     final studyDatasource = ref.read(studyDatasourceProvider);
     final chatDatasource = ref.read(chatRemoteDatasourceProvider);
 
@@ -108,20 +191,24 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
       await studyDatasource.setPlanChatId(userPlanId, chatId);
     }
 
-    // Mark day as complete (user engaged by clicking chat)
-    await ref.read(studyActionsProvider.notifier).completeDay(
-      userPlanId,
-      currentDay,
-      totalDays,
-    );
+    // Only mark day as complete if NOT in readOnly mode
+    if (!readOnly) {
+      await ref.read(studyActionsProvider.notifier).completeDay(
+        userPlanId,
+        currentDay,
+        totalDays,
+      );
+    }
 
     if (!context.mounted) return;
 
-    // Build the day content to send as system message (AI message)
-    final dayContent = _buildDayContentForChat(planDay, currentDay);
-
-    // Guardar el contenido en el provider (GoRouter extra no funciona con ShellRoute)
-    ref.read(pendingPlanContentProvider.notifier).state = dayContent;
+    // Only send content to provider if NOT in readOnly mode
+    if (!readOnly) {
+      // Build the day content to send as system message (AI message)
+      final dayContent = _buildDayContentForChat(planDay, currentDay);
+      // Guardar el contenido en el provider (GoRouter extra no funciona con ShellRoute)
+      ref.read(pendingPlanContentProvider.notifier).state = dayContent;
+    }
 
     // Navigate to chat
     context.push('/chat/id/$chatId');
@@ -172,7 +259,10 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dayDataAsync = ref.watch(currentDayDataProvider(widget.userPlanId));
+    // Use different provider based on readOnly mode
+    final dayDataAsync = widget.readOnly
+        ? ref.watch(readOnlyDayDataProvider(ReadOnlyDayParams(widget.userPlanId, _displayDay)))
+        : ref.watch(currentDayDataProvider(widget.userPlanId));
     final actionsState = ref.watch(studyActionsProvider);
 
     return Scaffold(
@@ -293,28 +383,31 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
                         ),
                       ),
                     ),
-                    // Menu
-                    PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert, color: AppTheme.textSecondary),
-                      color: AppTheme.surfaceDark,
-                      onSelected: (value) {
-                        if (value == 'abandon') {
-                          _showAbandonDialog(context, ref, data.userPlanId, data.plan.name);
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(
-                          value: 'abandon',
-                          child: Row(
-                            children: [
-                              Icon(Icons.exit_to_app, color: Colors.red, size: 20),
-                              SizedBox(width: 12),
-                              Text('Abandonar plan', style: TextStyle(color: Colors.red)),
-                            ],
+                    // Menu (hide in readOnly mode)
+                    if (!widget.readOnly)
+                      PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert, color: AppTheme.textSecondary),
+                        color: AppTheme.surfaceDark,
+                        onSelected: (value) {
+                          if (value == 'abandon') {
+                            _showAbandonDialog(context, ref, data.userPlanId, data.plan.name);
+                          }
+                        },
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 'abandon',
+                            child: Row(
+                              children: [
+                                Icon(Icons.exit_to_app, color: Colors.red, size: 20),
+                                SizedBox(width: 12),
+                                Text('Abandonar plan', style: TextStyle(color: Colors.red)),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
+                        ],
+                      )
+                    else
+                      const SizedBox(width: 16), // Padding for readOnly mode
                   ],
                 ),
 
@@ -451,6 +544,7 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
                                   planDay,
                                   data.currentDay,
                                   data.totalDays,
+                                  readOnly: widget.readOnly,
                                 ),
                                 icon: const Icon(Icons.chat, size: 18),
                                 label: const Text('Hablar con Biblia Chat'),
@@ -543,11 +637,104 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
           ),
         ),
       ),
-      // Complete Day Button
+      // Complete Day Button (or Day Navigation in readOnly mode)
       bottomNavigationBar: dayDataAsync.when(
         data: (data) {
           if (data == null) return const SizedBox.shrink();
 
+          // In readOnly mode, show day navigation instead
+          if (widget.readOnly) {
+            return Container(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 32),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppTheme.backgroundDark.withOpacity(0),
+                    AppTheme.backgroundDark,
+                  ],
+                ),
+              ),
+              child: Row(
+                children: [
+                  // Previous day button
+                  Expanded(
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: _displayDay > 1
+                            ? AppTheme.surfaceLight.withOpacity(0.3)
+                            : AppTheme.surfaceLight.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppTheme.surfaceLight.withOpacity(0.3),
+                        ),
+                      ),
+                      child: TextButton.icon(
+                        onPressed: _displayDay > 1 ? _goToPreviousDay : null,
+                        icon: Icon(
+                          Icons.arrow_back,
+                          size: 18,
+                          color: _displayDay > 1
+                              ? AppTheme.textSecondary
+                              : AppTheme.textTertiary.withOpacity(0.3),
+                        ),
+                        label: Text(
+                          'Día anterior',
+                          style: TextStyle(
+                            color: _displayDay > 1
+                                ? AppTheme.textSecondary
+                                : AppTheme.textTertiary.withOpacity(0.3),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Next day button
+                  Expanded(
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: _displayDay < data.totalDays
+                            ? AppTheme.surfaceLight.withOpacity(0.3)
+                            : AppTheme.surfaceLight.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: AppTheme.surfaceLight.withOpacity(0.3),
+                        ),
+                      ),
+                      child: TextButton.icon(
+                        onPressed: _displayDay < data.totalDays
+                            ? () => _goToNextDay(data.totalDays)
+                            : null,
+                        icon: Text(
+                          'Día siguiente',
+                          style: TextStyle(
+                            color: _displayDay < data.totalDays
+                                ? AppTheme.textSecondary
+                                : AppTheme.textTertiary.withOpacity(0.3),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        label: Icon(
+                          Icons.arrow_forward,
+                          size: 18,
+                          color: _displayDay < data.totalDays
+                              ? AppTheme.textSecondary
+                              : AppTheme.textTertiary.withOpacity(0.3),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          // Normal mode: Complete Day Button
           final isLastDay = data.currentDay >= data.totalDays;
 
           return AnimatedOpacity(
