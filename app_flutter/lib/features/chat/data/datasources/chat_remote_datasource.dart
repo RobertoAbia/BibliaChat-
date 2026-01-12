@@ -23,7 +23,8 @@ abstract class ChatRemoteDatasource {
   Future<void> deleteChat(String chatId);
 
   /// Create a new chat with a fixed title (for plan chats)
-  Future<String> createChatWithTitle(String title);
+  /// Optionally set a topic_key for AI context
+  Future<String> createChatWithTitle(String title, {String? topicKey});
 }
 
 class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
@@ -144,16 +145,23 @@ class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
   }
 
   @override
-  Future<String> createChatWithTitle(String title) async {
+  Future<String> createChatWithTitle(String title, {String? topicKey}) async {
     final userId = _supabase.auth.currentUser?.id;
     if (userId == null) throw Exception('User not authenticated');
 
+    final insertData = <String, dynamic>{
+      'user_id': userId,
+      'title': title,
+    };
+
+    // Add topic_key if provided (for AI context in plan chats)
+    if (topicKey != null) {
+      insertData['topic_key'] = topicKey;
+    }
+
     final response = await _supabase
         .from('chats')
-        .insert({
-          'user_id': userId,
-          'title': title,
-        })
+        .insert(insertData)
         .select('id')
         .single();
 

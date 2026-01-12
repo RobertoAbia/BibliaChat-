@@ -82,13 +82,16 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
   }
 
   /// Open chat for this plan - creates one if doesn't exist
+  /// Also marks the current day as complete (user engaged with the content)
   Future<void> _openPlanChat(
     BuildContext context,
     WidgetRef ref,
     String userPlanId,
+    String planId,
     String planName,
     PlanDay planDay,
     int currentDay,
+    int totalDays,
   ) async {
     final studyDatasource = ref.read(studyDatasourceProvider);
     final chatDatasource = ref.read(chatRemoteDatasourceProvider);
@@ -97,11 +100,20 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
     String? chatId = await studyDatasource.getPlanChatId(userPlanId);
 
     if (chatId == null) {
-      // Create new chat with plan name as title
-      chatId = await chatDatasource.createChatWithTitle(planName);
+      // Get topic_key for AI context (e.g., 'plan_soberbia')
+      final topicKey = studyDatasource.getPlanTopicKey(planId);
+      // Create new chat with plan name as title and topic_key
+      chatId = await chatDatasource.createChatWithTitle(planName, topicKey: topicKey);
       // Save chat_id to user_plans
       await studyDatasource.setPlanChatId(userPlanId, chatId);
     }
+
+    // Mark day as complete (user engaged by clicking chat)
+    await ref.read(studyActionsProvider.notifier).completeDay(
+      userPlanId,
+      currentDay,
+      totalDays,
+    );
 
     if (!context.mounted) return;
 
@@ -434,9 +446,11 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
                                   context,
                                   ref,
                                   data.userPlanId,
+                                  data.plan.id,
                                   data.plan.name,
                                   planDay,
                                   data.currentDay,
+                                  data.totalDays,
                                 ),
                                 icon: const Icon(Icons.chat, size: 18),
                                 label: const Text('Hablar con Biblia Chat'),

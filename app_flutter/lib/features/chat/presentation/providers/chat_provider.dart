@@ -304,7 +304,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     );
 
     state = state.copyWith(
-      messages: [initialMessage, ...state.messages],
+      messages: [...state.messages, initialMessage],
       showStarterSuggestions: false,
     );
   }
@@ -333,7 +333,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }
 
     state = state.copyWith(
-      messages: [...messages, ...state.messages],
+      messages: [...state.messages, ...messages],
       showStarterSuggestions: false,
     );
   }

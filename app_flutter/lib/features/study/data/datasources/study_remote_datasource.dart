@@ -245,4 +245,19 @@ class StudyRemoteDatasource {
         .update({'chat_id': chatId})
         .eq('id', userPlanId);
   }
+
+  /// Get the topic_key for a plan (for AI context)
+  /// Maps plan IDs to topic_keys like 'plan_soberbia', 'plan_avaricia', etc.
+  String? getPlanTopicKey(String planId) {
+    const planTopicKeys = {
+      'a1000000-0000-0000-0000-000000000001': 'plan_soberbia',
+      'a1000000-0000-0000-0000-000000000002': 'plan_avaricia',
+      'a1000000-0000-0000-0000-000000000003': 'plan_lujuria',
+      'a1000000-0000-0000-0000-000000000004': 'plan_ira',
+      'a1000000-0000-0000-0000-000000000005': 'plan_gula',
+      'a1000000-0000-0000-0000-000000000006': 'plan_envidia',
+      'a1000000-0000-0000-0000-000000000007': 'plan_pereza',
+    };
+    return planTopicKeys[planId];
+  }
 }

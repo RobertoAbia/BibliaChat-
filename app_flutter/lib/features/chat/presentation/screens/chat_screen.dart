@@ -85,6 +85,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   Future<void> _initializeChat() async {
+    debugPrint('🔍 _initializeChat START - mounted: $mounted');
+    debugPrint('   chatId: ${widget.chatId}');
+    debugPrint('   pendingContent: ${ref.read(pendingPlanContentProvider) != null}');
+
     if (!mounted) return;
 
     final notifier = ref.read(chatNotifierProvider(_chatIdentifier).notifier);
@@ -108,6 +112,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     final pendingPlanContent = ref.read(pendingPlanContentProvider);
     final initialContent = widget.initialGospelText ?? pendingPlanContent;
 
+    debugPrint('🔍 ChatScreen _initializeChat:');
+    debugPrint('   pendingPlanContent: ${pendingPlanContent != null ? "${pendingPlanContent.length} chars" : "null"}');
+    debugPrint('   initialContent: ${initialContent != null ? "${initialContent.length} chars" : "null"}');
+
     // Limpiar el provider después de leerlo
     if (pendingPlanContent != null) {
       ref.read(pendingPlanContentProvider.notifier).state = null;
@@ -117,9 +125,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     if (initialContent != null) {
       // Para chats existentes (plan), verificar si el contenido ya existe para no duplicar
       final state = ref.read(chatNotifierProvider(_chatIdentifier));
+      debugPrint('   messages count: ${state.messages.length}');
       final contentAlreadyExists = state.messages.any(
         (m) => m.role == 'assistant' && m.content == initialContent,
       );
+      debugPrint('   contentAlreadyExists: $contentAlreadyExists');
 
       if (!contentAlreadyExists) {
         // Mostrar el contenido localmente como mensaje del asistente
