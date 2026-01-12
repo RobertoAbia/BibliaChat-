@@ -723,6 +723,38 @@ BibliaChat/
     - `lib/core/widgets/shimmer_loading.dart` - Añadido `ShimmerLoading` class
     - `lib/features/subscription/presentation/screens/paywall_screen.dart` - Fix overflow
 
+- [x] Feature: Indicadores visuales de planes completados
+  - **Problema:** Al completar un plan de 7 días, no había indicador visual. Si el usuario volvía a entrar, podía "completar" días de nuevo.
+  - **Solución implementada:**
+  - **StudyScreen:**
+    - Badge verde "✓ Completado" en los planes terminados (junto a "7 días")
+    - Usa `allUserPlansProvider` para cargar todos los `user_plans` del usuario
+    - Compara `userPlan.isCompleted` (getter del entity, NO string)
+  - **PlanDetailScreen:**
+    - Banner verde "¡Plan completado!" cuando el plan tiene `status: completed`
+    - Botón cambia de "Comenzar plan" (dorado) a "Revisar contenido" (verde)
+    - Navega a `/study/day/:userPlanId?readOnly=true&day=1`
+  - **PlanDayScreen - Modo readOnly:**
+    - Parámetros: `readOnly: bool` y `day: int?`
+    - Si `readOnly == true`:
+      - Oculta botón "Completar día" del bottomNavigationBar
+      - Oculta menú ⋮ (abandonar plan)
+      - Muestra navegación entre días: "< Día anterior | Día siguiente >"
+      - "Hablar con Biblia Chat" NO envía `pendingPlanContentProvider` (evita spam)
+    - Provider `readOnlyDayDataProvider` para cargar cualquier día (no solo el actual)
+    - Clase `ReadOnlyDayParams` para los parámetros del provider family
+  - **app_router.dart:**
+    - Ruta `/study/day/:userPlanId` ahora parsea query params `readOnly` y `day`
+  - **Bug corregido:**
+    - `userPlan.status` es un enum `PlanStatus`, NO un string
+    - Comparar con `userPlan.isCompleted` (getter del entity) en lugar de `== 'completed'`
+  - **Archivos modificados:**
+    - `lib/features/study/presentation/screens/study_screen.dart` - Badge + provider
+    - `lib/features/study/presentation/screens/plan_detail_screen.dart` - Banner + botón
+    - `lib/features/study/presentation/screens/plan_day_screen.dart` - Modo readOnly completo
+    - `lib/features/study/presentation/providers/study_provider.dart` - `allUserPlansProvider`
+    - `lib/core/router/app_router.dart` - Query params
+
 ### Tickets Descartados (bajo valor para MVP)
 - ~~T-0705~~: Devoción del día - Duplica Evangelio/Stories
 - ~~T-0706~~: Oración guiada - Solo es un shortcut, usuario puede pedir en chat
@@ -926,3 +958,8 @@ supabase functions serve
     }
     ```
   - Sin el cast dinámico, el compilador falla incluso con el check `kIsWeb`
+- **Comparación de enums vs strings:**
+  - Los campos parseados de JSON como `status` pueden ser enums en el modelo
+  - Comparar con el valor del enum, NO con string: `status == PlanStatus.completed` (no `== 'completed'`)
+  - Mejor aún: usar getters del entity como `userPlan.isCompleted` que ya hacen la comparación correcta
+  - Error silencioso: `enum == 'string'` siempre es `false` sin error de compilación
