@@ -501,7 +501,7 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
             );
           },
           loading: () => SafeArea(
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
                 children: [
@@ -518,6 +518,7 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
           ),
           error: (error, _) => Center(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Icon(
