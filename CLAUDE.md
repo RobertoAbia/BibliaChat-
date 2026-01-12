@@ -699,6 +699,12 @@ BibliaChat/
     - La pregunta del día se envía como mensaje `assistant` para dar contexto
     - Todos los días del plan comparten el mismo chat (historial continuo)
     - Usa `pendingPlanContentProvider` porque GoRouter extra no funciona con ShellRoute
+    - Auto-completa el día al pulsar chat (el usuario interactuó con el contenido)
+  - **Contexto IA para planes:**
+    - 7 `topic_key` específicos: `plan_soberbia`, `plan_avaricia`, `plan_lujuria`, `plan_ira`, `plan_gula`, `plan_envidia`, `plan_pereza`
+    - 7 `TOPIC_PROMPTS` en Edge Function con contexto del pecado/virtud
+    - El chat del plan guarda `topic_key` para que la IA sepa el contexto
+    - Método `getPlanTopicKey(planId)` mapea plan ID → topic_key
   - **Rutas añadidas:**
     - `/study/plan/:planId` - Detalle del plan
     - `/study/day/:userPlanId` - Día actual del plan activo
@@ -781,10 +787,9 @@ supabase functions serve
 - **Modelo principal:** GPT-4o (`role: "developer"`, `max_completion_tokens: 400`, `temperature: 0.8`)
 - **Modelo para memorias y títulos:** GPT-4o-mini (resúmenes, ai_memory, títulos)
 - **Secrets requeridos:** `OPENAI_API_KEY`
-- **Topics soportados (12):**
-  - `familia_separada`, `desempleo`, `solteria`, `ansiedad_miedo`
-  - `identidad_bicultural`, `reconciliacion`, `sacramentos`, `oracion`
-  - `preguntas_biblia`, `evangelio_del_dia`, `lectura_del_dia`, `otro`
+- **Topics soportados (19):**
+  - *Generales (12):* `familia_separada`, `desempleo`, `solteria`, `ansiedad_miedo`, `identidad_bicultural`, `reconciliacion`, `sacramentos`, `oracion`, `preguntas_biblia`, `evangelio_del_dia`, `lectura_del_dia`, `otro`
+  - *Planes de estudio (7):* `plan_soberbia`, `plan_avaricia`, `plan_lujuria`, `plan_ira`, `plan_gula`, `plan_envidia`, `plan_pereza`
 - **Request actualizado:** `{ topic_key?, user_message, chat_id?, system_message? }`
   - `system_message`: Contenido de Story, se guarda como mensaje 'assistant' en BD
 - **BASE_PROMPT (estilo WhatsApp corto):**
@@ -872,6 +877,11 @@ supabase functions serve
   - Se guarda como mensaje 'assistant' en BD (visible en el chat)
   - El provider recarga todos los mensajes de BD cuando hay `systemMessage`
   - Útil para: contenido de Stories que debe persistir en el historial
+- **Orden de mensajes en addInitialMessages:**
+  - Los mensajes deben añadirse al FINAL del array (no al principio)
+  - Correcto: `messages: [...state.messages, ...newMessages]`
+  - Incorrecto: `messages: [...newMessages, ...state.messages]` (mensajes quedan ocultos arriba)
+  - Esto afecta cuando se añade contenido del día del plan al chat
 - **Botones responsivos (content-sized):**
   - Por defecto, `ElevatedButton` se expande en un `Column` debido a `minimumSize` (~64dp)
   - `Center` wrapper NO funciona (da loose constraints, el botón sigue expandiéndose)
