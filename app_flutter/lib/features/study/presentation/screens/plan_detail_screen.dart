@@ -62,7 +62,7 @@ class PlanDetailScreen extends ConsumerWidget {
           (up) => up?.planId == planId,
           orElse: () => null,
         );
-    final isCompleted = userPlan?.status == 'completed';
+    final isCompleted = userPlan?.isCompleted ?? false;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundDark,

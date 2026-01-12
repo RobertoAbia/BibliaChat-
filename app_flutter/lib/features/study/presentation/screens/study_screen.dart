@@ -693,7 +693,7 @@ class _StudyPlanTile extends ConsumerStatefulWidget {
     this.userPlan,
   });
 
-  bool get isCompleted => userPlan?.status == 'completed';
+  bool get isCompleted => userPlan?.isCompleted ?? false;
 
   @override
   ConsumerState<_StudyPlanTile> createState() => _StudyPlanTileState();
