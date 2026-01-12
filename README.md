@@ -55,7 +55,7 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 
 ### Chat IA Denominacional (Sistema Híbrido)
 - **Estilo ChatGPT**: Conversaciones libres + temas guiados
-- **12 topics específicos** para hispanohablantes:
+- **19 topics** (12 generales + 7 de planes de estudio):
   - `familia_separada`, `desempleo`, `solteria`, `ansiedad_miedo`
   - `identidad_bicultural`, `reconciliacion`, `sacramentos`, `oracion`
   - `preguntas_biblia`, `evangelio_del_dia`, `lectura_del_dia`, `otro`
@@ -70,10 +70,24 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 - **Tono**: "Amigo cristiano de WhatsApp" - casual, cercano, sin sermones
 - **Modelos IA**: GPT-4o (chat) + GPT-4o-mini (memorias)
 
-### Planes de Estudio
-- 7 planes temáticos para hispanos
+### Planes de Estudio (7 Pecados Capitales)
+- **7 planes de 7 días** cada uno:
+  - Soberbia → Humildad
+  - Avaricia → Generosidad
+  - Lujuria → Pureza
+  - Ira → Paciencia
+  - Gula → Templanza
+  - Envidia → Gratitud
+  - Pereza → Diligencia
+- **Estructura por día**: Versículo + Reflexión + Ejercicio práctico + Pregunta para chat
+- **Chat integrado por plan** (un chat compartido entre los 7 días con contexto IA)
+- **Indicadores visuales de progreso**:
+  - Badge "✓ Completado" en planes terminados
+  - Banner verde en detalle del plan completado
+  - Modo lectura para revisar contenido sin modificar progreso
+  - Navegación entre días (Día anterior / Día siguiente)
+- **Status del plan**: `in_progress`, `completed`, `abandoned`
 - Gamificación con puntos y badges
-- Progreso guardado y sincronizado
 
 ### Suscripción y Paywall
 - **RevenueCat** integrado (iOS configurado, Android pendiente)
@@ -111,7 +125,7 @@ BibliaChat/
 │           ├── daily_gospel/       # Feature Evangelio + Stories
 │           └── subscription/       # PaywallScreen, subscription_provider
 ├── supabase/
-│   ├── migrations/                 # 16 migraciones SQL
+│   ├── migrations/                 # 19 migraciones SQL
 │   └── functions/
 │       ├── fetch-daily-gospel/     # Edge Function evangelio (desplegada como clever-worker)
 │       └── chat-send-message/      # Edge Function chat IA (combined.ts)
