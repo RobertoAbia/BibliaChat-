@@ -21,6 +21,9 @@ abstract class ChatRemoteDatasource {
   Future<void> updateChatTitle(String chatId, String newTitle);
 
   Future<void> deleteChat(String chatId);
+
+  /// Create a new chat with a fixed title (for plan chats)
+  Future<String> createChatWithTitle(String title);
 }
 
 class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
@@ -138,5 +141,22 @@ class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
     await _supabase.from('chat_messages').delete().eq('chat_id', chatId);
     // Luego eliminar el chat
     await _supabase.from('chats').delete().eq('id', chatId);
+  }
+
+  @override
+  Future<String> createChatWithTitle(String title) async {
+    final userId = _supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception('User not authenticated');
+
+    final response = await _supabase
+        .from('chats')
+        .insert({
+          'user_id': userId,
+          'title': title,
+        })
+        .select('id')
+        .single();
+
+    return response['id'] as String;
   }
 }

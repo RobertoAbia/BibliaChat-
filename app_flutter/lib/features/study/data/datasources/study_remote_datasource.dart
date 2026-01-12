@@ -226,4 +226,23 @@ class StudyRemoteDatasource {
     if (response == null) return null;
     return PlanDayModel.fromJson(response);
   }
+
+  /// Get chat_id for a user plan (returns null if not linked yet)
+  Future<String?> getPlanChatId(String userPlanId) async {
+    final response = await _supabase
+        .from('user_plans')
+        .select('chat_id')
+        .eq('id', userPlanId)
+        .single();
+
+    return response['chat_id'] as String?;
+  }
+
+  /// Link a chat to a user plan
+  Future<void> setPlanChatId(String userPlanId, String chatId) async {
+    await _supabase
+        .from('user_plans')
+        .update({'chat_id': chatId})
+        .eq('id', userPlanId);
+  }
 }

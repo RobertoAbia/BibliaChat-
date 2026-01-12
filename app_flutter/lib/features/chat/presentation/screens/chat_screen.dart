@@ -49,6 +49,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
   late ChatIdentifier _chatIdentifier;
 
+  /// Contenido del día (plan/Stories) pendiente de enviar como systemMessage
+  /// Se envía con el primer mensaje del usuario y luego se limpia
+  String? _pendingSystemMessage;
+
   @override
   void initState() {
     super.initState();
@@ -100,24 +104,44 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
     if (!mounted) return;
 
-    // Para chats desde Stories, SIEMPRE añadir mensajes iniciales (es un chat nuevo)
-    if (widget.initialGospelText != null) {
-      // Solo añadir el mensaje del asistente (el contenido de la Story)
-      // NO añadir userContent aquí porque sendMessage() lo añadirá después
-      notifier.addInitialMessages(
-        assistantContent: widget.initialGospelText!,
+    // Obtener contenido del plan desde provider (alternativa a widget.initialGospelText)
+    final pendingPlanContent = ref.read(pendingPlanContentProvider);
+    final initialContent = widget.initialGospelText ?? pendingPlanContent;
+
+    // Limpiar el provider después de leerlo
+    if (pendingPlanContent != null) {
+      ref.read(pendingPlanContentProvider.notifier).state = null;
+    }
+
+    // Si hay contenido inicial (Stories o Plan del día), prepararlo para enviar
+    if (initialContent != null) {
+      // Para chats existentes (plan), verificar si el contenido ya existe para no duplicar
+      final state = ref.read(chatNotifierProvider(_chatIdentifier));
+      final contentAlreadyExists = state.messages.any(
+        (m) => m.role == 'assistant' && m.content == initialContent,
       );
 
-      // Si hay mensaje del usuario, enviarlo para obtener respuesta real
+      if (!contentAlreadyExists) {
+        // Mostrar el contenido localmente como mensaje del asistente
+        notifier.addInitialMessages(
+          assistantContent: initialContent,
+        );
+        // Guardar para enviar con el primer mensaje del usuario
+        _pendingSystemMessage = initialContent;
+      }
+
+      // Si hay mensaje del usuario (solo desde Stories con mensaje predefinido), enviarlo
       if (widget.initialUserMessage != null &&
           widget.initialUserMessage!.isNotEmpty) {
-        // Pasar el topicKey y el contenido de la Story (se guarda como mensaje 'system' en BD)
         notifier.sendMessage(
           widget.initialUserMessage!,
           topicKey: widget.topicKey,
-          systemMessage: widget.initialGospelText,
+          systemMessage: initialContent,
         );
+        _pendingSystemMessage = null; // Ya se envió
       }
+
+      _scrollToBottom();
     } else {
       // Para otros casos, solo añadir si está vacío
       final state = ref.read(chatNotifierProvider(_chatIdentifier));
@@ -200,7 +224,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
     }
 
     // Enviar mensaje usando el provider
-    ref.read(chatNotifierProvider(_chatIdentifier).notifier).sendMessage(text);
+    // Si hay contenido pendiente (del día del plan), incluirlo como systemMessage
+    ref.read(chatNotifierProvider(_chatIdentifier).notifier).sendMessage(
+      text,
+      systemMessage: _pendingSystemMessage,
+    );
+
+    // Limpiar el contenido pendiente (ya se envió)
+    if (_pendingSystemMessage != null) {
+      setState(() {
+        _pendingSystemMessage = null;
+      });
+    }
 
     // Incrementar contador de mensajes (solo si no es premium)
     final isPremium = ref.read(isPremiumProvider);

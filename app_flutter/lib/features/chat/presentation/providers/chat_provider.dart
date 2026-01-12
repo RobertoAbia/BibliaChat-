@@ -7,6 +7,10 @@ import '../../data/repositories/chat_repository_impl.dart';
 import '../../domain/entities/chat_message.dart';
 import '../../domain/repositories/chat_repository.dart';
 
+/// Provider para pasar contenido del día del plan al chat
+/// Se usa porque GoRouter extra no funciona bien con ShellRoute
+final pendingPlanContentProvider = StateProvider<String?>((ref) => null);
+
 // Datasource provider
 final chatRemoteDatasourceProvider = Provider<ChatRemoteDatasource>((ref) {
   return ChatRemoteDatasourceImpl(Supabase.instance.client);

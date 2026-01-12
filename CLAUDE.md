@@ -63,7 +63,7 @@ BibliaChat/
 - `user_devices` (FCM tokens)
 - `user_entitlements` (premium status)
 
-## Migraciones SQL (18 total)
+## Migraciones SQL (19 total)
 - 00001-00009: Tablas core, ENUMs, RLS, índices
 - 00010: `rc_app_user_id` para restaurar compras
 - 00011: `gender` + enum `gender_type`
@@ -74,6 +74,7 @@ BibliaChat/
 - 00016: `messages_sent` en `daily_activity` para límite de mensajes diarios
 - 00017: `practical_exercise` en `plan_days` para ejercicios prácticos
 - 00018: Seed data de los 7 planes de pecados capitales (49 días de contenido)
+- 00019: `chat_id` en `user_plans` para vincular plan con chat
 
 ## EPICs del Proyecto (12 total)
 - **EPIC 0-1:** Foundation + Base de datos + RLS
@@ -689,8 +690,15 @@ BibliaChat/
     - Completar día y avanzar al siguiente
     - Abandonar plan (menú ⋮ en PlanDayScreen)
     - Reiniciar plan abandonado/completado (upsert en vez de insert)
+    - **Chat integrado por plan** (un chat por plan, compartido entre todos los días)
     - Barra de progreso animada
     - Celebración al completar plan
+  - **Chat del plan:**
+    - Columna `chat_id` en `user_plans` (migración 00019)
+    - Al pulsar "Hablar con Biblia Chat" → crea chat con título del plan (si no existe)
+    - La pregunta del día se envía como mensaje `assistant` para dar contexto
+    - Todos los días del plan comparten el mismo chat (historial continuo)
+    - Usa `pendingPlanContentProvider` porque GoRouter extra no funciona con ShellRoute
   - **Rutas añadidas:**
     - `/study/plan/:planId` - Detalle del plan
     - `/study/day/:userPlanId` - Día actual del plan activo

@@ -10,6 +10,7 @@ import '../../../../core/widgets/shimmer_loading.dart';
 import '../../domain/entities/plan.dart';
 import '../../domain/entities/plan_day.dart';
 import '../providers/study_provider.dart';
+import '../../../chat/presentation/providers/chat_provider.dart';
 
 /// Provider for loading the current day's data
 final currentDayDataProvider = FutureProvider.family<_DayScreenData?, String>(
@@ -78,6 +79,50 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
         });
       }
     }
+  }
+
+  /// Open chat for this plan - creates one if doesn't exist
+  Future<void> _openPlanChat(
+    BuildContext context,
+    WidgetRef ref,
+    String userPlanId,
+    String planName,
+    PlanDay planDay,
+    int currentDay,
+  ) async {
+    final studyDatasource = ref.read(studyDatasourceProvider);
+    final chatDatasource = ref.read(chatRemoteDatasourceProvider);
+
+    // Check if chat already exists for this plan
+    String? chatId = await studyDatasource.getPlanChatId(userPlanId);
+
+    if (chatId == null) {
+      // Create new chat with plan name as title
+      chatId = await chatDatasource.createChatWithTitle(planName);
+      // Save chat_id to user_plans
+      await studyDatasource.setPlanChatId(userPlanId, chatId);
+    }
+
+    if (!context.mounted) return;
+
+    // Build the day content to send as system message (AI message)
+    final dayContent = _buildDayContentForChat(planDay, currentDay);
+
+    // Guardar el contenido en el provider (GoRouter extra no funciona con ShellRoute)
+    ref.read(pendingPlanContentProvider.notifier).state = dayContent;
+
+    // Navigate to chat
+    context.push('/chat/id/$chatId');
+  }
+
+  /// Build the day content string to show in chat
+  /// Solo incluye la pregunta del día (el usuario ya leyó el resto)
+  String _buildDayContentForChat(PlanDay planDay, int currentDay) {
+    if (planDay.question == null) {
+      return '📖 Día $currentDay - ¿Qué reflexiones tienes sobre la lectura de hoy?';
+    }
+
+    return '📖 **Día $currentDay - Pregunta para reflexionar:**\n\n${planDay.question}';
   }
 
   LinearGradient _getGradientForPlan(Plan plan) {
@@ -385,10 +430,14 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
                               ),
                               const SizedBox(height: 12),
                               OutlinedButton.icon(
-                                onPressed: () {
-                                  // Navigate to chat with this question as context
-                                  context.push('/chat/new');
-                                },
+                                onPressed: () => _openPlanChat(
+                                  context,
+                                  ref,
+                                  data.userPlanId,
+                                  data.plan.name,
+                                  planDay,
+                                  data.currentDay,
+                                ),
                                 icon: const Icon(Icons.chat, size: 18),
                                 label: const Text('Hablar con Biblia Chat'),
                                 style: OutlinedButton.styleFrom(
