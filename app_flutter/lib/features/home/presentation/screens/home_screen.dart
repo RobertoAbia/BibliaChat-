@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/providers/story_viewed_provider.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -13,6 +14,7 @@ import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart'
 import '../../../daily_gospel/presentation/screens/gospel_stories_screen.dart';
 import '../../../profile/domain/entities/user_profile.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
+import '../../../study/presentation/providers/study_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -461,6 +463,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget _buildContentCards() {
     final viewedSlidesAsync = ref.watch(viewedSlidesProvider);
     final gospelAsync = ref.watch(dailyGospelProvider);
+    final activePlanAsync = ref.watch(activePlanDataProvider);
 
     // Get viewed slides (default to empty if loading/error)
     final viewedSlides = viewedSlidesAsync.valueOrNull ?? <int>{};
@@ -499,7 +502,61 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             onTap: () => _openStoriesAtIndex(2),
           ),
 
-          const SizedBox(height: 32),
+          // Active Plan Card (only if user has an active plan)
+          // Separated from daily content with divider
+          activePlanAsync.when(
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
+            data: (activePlan) {
+              if (activePlan == null) return const SizedBox(height: 32);
+              return Column(
+                children: [
+                  const SizedBox(height: 24),
+                  // Divider with label
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 1,
+                          color: AppTheme.surfaceLight.withOpacity(0.3),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'TU PLAN ACTIVO',
+                          style: TextStyle(
+                            color: AppTheme.textTertiary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: Container(
+                          height: 1,
+                          color: AppTheme.surfaceLight.withOpacity(0.3),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  _ActivePlanCard(
+                    planName: activePlan.plan.name,
+                    planEmoji: activePlan.plan.iconEmoji,
+                    currentDay: activePlan.userPlan.currentDay,
+                    totalDays: activePlan.plan.daysTotal,
+                    progressPercent: activePlan.progressPercent,
+                    onTap: () {
+                      context.push('/study/day/${activePlan.userPlan.id}');
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                ],
+              );
+            },
+          ),
         ],
       ),
     );
@@ -1218,6 +1275,228 @@ class _GospelErrorCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActivePlanCard extends StatefulWidget {
+  final String planName;
+  final String planEmoji;
+  final int currentDay;
+  final int totalDays;
+  final double progressPercent;
+  final VoidCallback onTap;
+
+  const _ActivePlanCard({
+    required this.planName,
+    required this.planEmoji,
+    required this.currentDay,
+    required this.totalDays,
+    required this.progressPercent,
+    required this.onTap,
+  });
+
+  @override
+  State<_ActivePlanCard> createState() => _ActivePlanCardState();
+}
+
+class _ActivePlanCardState extends State<_ActivePlanCard>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _scaleController;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _scaleController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _scaleController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 20 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: GestureDetector(
+        onTapDown: (_) => _scaleController.forward(),
+        onTapUp: (_) => _scaleController.reverse(),
+        onTapCancel: () => _scaleController.reverse(),
+        onTap: widget.onTap,
+        child: AnimatedBuilder(
+          animation: _scaleController,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _scaleAnimation.value,
+              child: child,
+            );
+          },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppTheme.primaryColor.withOpacity(0.12),
+                      AppTheme.surfaceDark.withOpacity(0.5),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppTheme.primaryColor.withOpacity(0.2),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withOpacity(0.08),
+                      blurRadius: 20,
+                      spreadRadius: 0,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header: Emoji + Label + Chevron
+                    Row(
+                      children: [
+                        // Plan emoji
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.goldGradient,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryColor.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              widget.planEmoji,
+                              style: const TextStyle(fontSize: 22),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        // Plan name only (label is in divider now)
+                        Expanded(
+                          child: Text(
+                            widget.planName,
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
+                                  color: AppTheme.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        // Chevron
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.chevron_right,
+                            color: AppTheme.primaryColor,
+                            size: 20,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Progress section
+                    Row(
+                      children: [
+                        Text(
+                          'Día ${widget.currentDay} de ${widget.totalDays}',
+                          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                color: AppTheme.textSecondary,
+                              ),
+                        ),
+                        const Spacer(),
+                        ShaderMask(
+                          shaderCallback: (bounds) =>
+                              AppTheme.goldGradient.createShader(bounds),
+                          child: Text(
+                            '${(widget.progressPercent * 100).round()}%',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    // Progress bar
+                    Container(
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceLight.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                      child: FractionallySizedBox(
+                        alignment: Alignment.centerLeft,
+                        widthFactor: widget.progressPercent.clamp(0.0, 1.0),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.goldGradient,
+                            borderRadius: BorderRadius.circular(3),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryColor.withOpacity(0.4),
+                                blurRadius: 6,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
       ),

@@ -176,42 +176,55 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
     int totalDays, {
     bool readOnly = false,
   }) async {
-    final studyDatasource = ref.read(studyDatasourceProvider);
-    final chatDatasource = ref.read(chatRemoteDatasourceProvider);
+    try {
+      final studyDatasource = ref.read(studyDatasourceProvider);
+      final chatDatasource = ref.read(chatRemoteDatasourceProvider);
 
-    // Check if chat already exists for this plan
-    String? chatId = await studyDatasource.getPlanChatId(userPlanId);
+      // Check if chat already exists for this plan
+      String? chatId = await studyDatasource.getPlanChatId(userPlanId);
 
-    if (chatId == null) {
-      // Get topic_key for AI context (e.g., 'plan_soberbia')
-      final topicKey = studyDatasource.getPlanTopicKey(planId);
-      // Create new chat with plan name as title and topic_key
-      chatId = await chatDatasource.createChatWithTitle(planName, topicKey: topicKey);
-      // Save chat_id to user_plans
-      await studyDatasource.setPlanChatId(userPlanId, chatId);
+      if (chatId == null) {
+        // Get topic_key for AI context (e.g., 'plan_soberbia')
+        final topicKey = studyDatasource.getPlanTopicKey(planId);
+        // Create new chat with plan name as title and topic_key
+        chatId = await chatDatasource.createChatWithTitle(planName, topicKey: topicKey);
+        // Save chat_id to user_plans
+        await studyDatasource.setPlanChatId(userPlanId, chatId);
+      }
+
+      // Only mark day as complete if NOT in readOnly mode
+      if (!readOnly) {
+        await ref.read(studyActionsProvider.notifier).completeDay(
+          userPlanId,
+          currentDay,
+          totalDays,
+        );
+      }
+
+      if (!context.mounted) return;
+
+      // Only send content to provider if NOT in readOnly mode
+      if (!readOnly) {
+        // Build the day content to send as system message (AI message)
+        final dayContent = _buildDayContentForChat(planDay, currentDay);
+        // Guardar el contenido en el provider (GoRouter extra no funciona con ShellRoute)
+        ref.read(pendingPlanContentProvider.notifier).state = dayContent;
+      }
+
+      // Navigate to chat
+      context.push('/chat/id/$chatId');
+    } catch (e, st) {
+      debugPrint('❌ Error opening plan chat: $e');
+      debugPrint('Stack trace: $st');
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
-
-    // Only mark day as complete if NOT in readOnly mode
-    if (!readOnly) {
-      await ref.read(studyActionsProvider.notifier).completeDay(
-        userPlanId,
-        currentDay,
-        totalDays,
-      );
-    }
-
-    if (!context.mounted) return;
-
-    // Only send content to provider if NOT in readOnly mode
-    if (!readOnly) {
-      // Build the day content to send as system message (AI message)
-      final dayContent = _buildDayContentForChat(planDay, currentDay);
-      // Guardar el contenido en el provider (GoRouter extra no funciona con ShellRoute)
-      ref.read(pendingPlanContentProvider.notifier).state = dayContent;
-    }
-
-    // Navigate to chat
-    context.push('/chat/id/$chatId');
   }
 
   /// Build the day content string to show in chat

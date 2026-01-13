@@ -63,7 +63,7 @@ BibliaChat/
 - `user_devices` (FCM tokens)
 - `user_entitlements` (premium status)
 
-## Migraciones SQL (19 total)
+## Migraciones SQL (21 total)
 - 00001-00009: Tablas core, ENUMs, RLS, índices
 - 00010: `rc_app_user_id` para restaurar compras
 - 00011: `gender` + enum `gender_type`
@@ -75,6 +75,8 @@ BibliaChat/
 - 00017: `practical_exercise` en `plan_days` para ejercicios prácticos
 - 00018: Seed data de los 7 planes de pecados capitales (49 días de contenido)
 - 00019: `chat_id` en `user_plans` para vincular plan con chat
+- 00020: DELETE policy en `user_plan_days` para permitir reiniciar planes
+- 00021: Topic keys de planes en `chat_topics` para foreign key de chats
 
 ## EPICs del Proyecto (12 total)
 - **EPIC 0-1:** Foundation + Base de datos + RLS
@@ -754,6 +756,39 @@ BibliaChat/
     - `lib/features/study/presentation/screens/plan_day_screen.dart` - Modo readOnly completo
     - `lib/features/study/presentation/providers/study_provider.dart` - `allUserPlansProvider`
     - `lib/core/router/app_router.dart` - Query params
+
+- [x] Feature: Tarjeta de plan activo en HomeScreen
+  - **Objetivo:** Acceso rápido al plan activo desde la pantalla principal
+  - **Implementación:**
+    - Nueva tarjeta `_ActivePlanCard` al final de las content cards
+    - Separada visualmente con divider "TU PLAN ACTIVO"
+    - Muestra: emoji, nombre del plan, "Día X de Y", barra de progreso
+    - Tap → navega a `/study/day/:userPlanId`
+    - Usa `activePlanDataProvider` existente
+  - **Archivos modificados:**
+    - `lib/features/home/presentation/screens/home_screen.dart` - Nueva tarjeta
+
+- [x] Feature: Reinicio correcto de planes de estudio
+  - **Problema:** Al reiniciar un plan, el progreso mostraba porcentaje incorrecto (días anteriores no se borraban)
+  - **Causa:** Faltaba DELETE de `user_plan_days` al reiniciar + faltaba política RLS DELETE
+  - **Solución:**
+    - `study_remote_datasource.dart`: Al reiniciar plan, primero borra `user_plan_days` antiguos
+    - Migración `00020`: Política RLS DELETE para `user_plan_days` (via JOIN a `user_plans`)
+  - **Archivos modificados:**
+    - `lib/features/study/data/datasources/study_remote_datasource.dart` - Delete antes de restart
+    - `supabase/migrations/00020_add_user_plan_days_delete_policy.sql` - Nueva política RLS
+
+- [x] Feature: Chat integrado en planes de estudio (fix foreign key)
+  - **Problema:** "Hablar con Biblia Chat" fallaba con error de foreign key
+  - **Causa:** Los `topic_key` de planes (`plan_soberbia`, etc.) no existían en `chat_topics`
+  - **Solución:**
+    - Migración `00021`: Inserta 7 topic keys de planes en `chat_topics`
+    - Columnas: `key`, `title`, `description`, `sort_order`
+  - **Topics añadidos:**
+    - `plan_soberbia`, `plan_avaricia`, `plan_lujuria`, `plan_ira`
+    - `plan_gula`, `plan_envidia`, `plan_pereza`
+  - **Archivos creados:**
+    - `supabase/migrations/00021_add_plan_topic_keys.sql`
 
 ### Tickets Descartados (bajo valor para MVP)
 - ~~T-0705~~: Devoción del día - Duplica Evangelio/Stories

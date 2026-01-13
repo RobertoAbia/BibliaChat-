@@ -100,6 +100,12 @@ class StudyRemoteDatasource {
         .maybeSingle();
 
     if (existing != null) {
+      // Delete old completed days to reset progress
+      await _supabase
+          .from('user_plan_days')
+          .delete()
+          .eq('user_plan_id', existing['id']);
+
       // Reactivate existing plan - reset to day 1
       final response = await _supabase
           .from('user_plans')
