@@ -86,4 +86,10 @@ abstract class AuthRepository {
 
   /// Actualiza la contraseña del usuario (usado después de password recovery)
   Future<AuthResult> updatePassword(String newPassword);
+
+  /// Elimina la cuenta del usuario y todos sus datos
+  /// Llama a la Edge Function delete-account que:
+  /// 1. Archiva datos pseudonimizados para defensa legal (3 años)
+  /// 2. Elimina el usuario de auth.users (CASCADE borra todo lo demás)
+  Future<AuthResult> deleteAccount();
 }

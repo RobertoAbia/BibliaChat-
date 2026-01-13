@@ -102,6 +102,18 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - Reset automático a medianoche
 - **Mock data en web** para preview (RevenueCat no funciona en web)
 
+### Borrar Cuenta (GDPR-compliant)
+- **Cumplimiento GDPR/Protección de Datos**:
+  - Archiva datos pseudonimizados antes de borrar (3 años retención para defensa legal)
+  - Usa SHA256 hash del user_id (permite búsqueda si usuario se identifica)
+  - PII eliminada: nombre, email, device tokens
+  - Datos archivados: mensajes, demografía, progreso de planes
+- **Edge Function `delete-account`**:
+  1. Verifica usuario con JWT
+  2. Archiva en `deleted_user_archives`
+  3. Borra de `auth.users` (CASCADE elimina todo)
+- **UX**: Botón en Settings → Diálogo de confirmación → Redirección a Splash
+
 ## Estructura del Proyecto
 
 ```
@@ -125,10 +137,11 @@ BibliaChat/
 │           ├── daily_gospel/       # Feature Evangelio + Stories
 │           └── subscription/       # PaywallScreen, subscription_provider
 ├── supabase/
-│   ├── migrations/                 # 19 migraciones SQL
+│   ├── migrations/                 # 22 migraciones SQL
 │   └── functions/
 │       ├── fetch-daily-gospel/     # Edge Function evangelio (desplegada como clever-worker)
-│       └── chat-send-message/      # Edge Function chat IA (combined.ts)
+│       ├── chat-send-message/      # Edge Function chat IA (combined.ts)
+│       └── delete-account/         # Edge Function borrar cuenta (GDPR-compliant)
 ├── .github/
 │   └── workflows/
 │       └── daily-gospel.yml        # Cron diario (6:00 AM UTC)

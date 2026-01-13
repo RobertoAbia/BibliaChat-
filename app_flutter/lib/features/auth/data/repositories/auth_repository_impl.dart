@@ -1,4 +1,5 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:functions_client/functions_client.dart' show FunctionException, HttpMethod;
 
 import '../../domain/repositories/auth_repository.dart';
 
@@ -197,6 +198,33 @@ class AuthRepositoryImpl implements AuthRepository {
       return _handleAuthException(e);
     } catch (e) {
       return AuthResult.error('Error al cambiar contraseña: $e');
+    }
+  }
+
+  @override
+  Future<AuthResult> deleteAccount() async {
+    try {
+      final response = await _supabase.functions.invoke(
+        'delete-account',
+        method: HttpMethod.post,
+      );
+
+      final data = response.data as Map<String, dynamic>?;
+      if (data?['success'] == true) {
+        return AuthResult.success();
+      } else {
+        return AuthResult.error(
+          data?['error'] ?? 'Error al borrar cuenta',
+          'delete_failed',
+        );
+      }
+    } on FunctionException catch (e) {
+      return AuthResult.error(
+        'Error del servidor: ${e.details}',
+        'function_error',
+      );
+    } catch (e) {
+      return AuthResult.error('Error de conexión: $e', 'connection_error');
     }
   }
 

@@ -216,7 +216,7 @@ class SettingsScreen extends ConsumerWidget {
                   title: 'Borrar mi cuenta',
                   isDestructive: true,
                   onTap: () {
-                    _showDeleteAccountDialog(context);
+                    _showDeleteAccountDialog(context, ref);
                   },
                 ),
               ],
@@ -377,7 +377,7 @@ class SettingsScreen extends ConsumerWidget {
     );
   }
 
-  void _showDeleteAccountDialog(BuildContext context) {
+  void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -400,9 +400,36 @@ class SettingsScreen extends ConsumerWidget {
           ),
           TextButton(
             style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
-            onPressed: () {
-              // TODO: Implement delete account
+            onPressed: () async {
               Navigator.pop(dialogContext);
+
+              // Mostrar loading
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Borrando cuenta...'),
+                    duration: Duration(seconds: 10),
+                  ),
+                );
+              }
+
+              final success = await ref.read(authNotifierProvider.notifier).deleteAccount();
+
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+              if (success) {
+                // La sesión se invalida automáticamente
+                context.go(RouteConstants.splash);
+              } else {
+                final error = ref.read(authNotifierProvider).errorMessage;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(error ?? 'Error al borrar cuenta'),
+                    backgroundColor: AppTheme.errorColor,
+                  ),
+                );
+              }
             },
             child: const Text('Borrar cuenta'),
           ),

@@ -62,8 +62,9 @@ BibliaChat/
 - `user_points` + `badges` + `user_badges`
 - `user_devices` (FCM tokens)
 - `user_entitlements` (premium status)
+- `deleted_user_archives` (archivado pseudonimizado para GDPR, 3 años retención)
 
-## Migraciones SQL (21 total)
+## Migraciones SQL (22 total)
 - 00001-00009: Tablas core, ENUMs, RLS, índices
 - 00010: `rc_app_user_id` para restaurar compras
 - 00011: `gender` + enum `gender_type`
@@ -77,6 +78,7 @@ BibliaChat/
 - 00019: `chat_id` en `user_plans` para vincular plan con chat
 - 00020: DELETE policy en `user_plan_days` para permitir reiniciar planes
 - 00021: Topic keys de planes en `chat_topics` para foreign key de chats
+- 00022: `deleted_user_archives` para archivado pseudonimizado (GDPR) al borrar cuenta
 
 ## EPICs del Proyecto (12 total)
 - **EPIC 0-1:** Foundation + Base de datos + RLS
@@ -790,6 +792,27 @@ BibliaChat/
   - **Archivos creados:**
     - `supabase/migrations/00021_add_plan_topic_keys.sql`
 
+- [x] T-0308: Borrar Cuenta y Datos (GDPR-compliant)
+  - **Edge Function `delete-account`:**
+    - Archiva datos pseudonimizados antes de borrar (GDPR-compliant)
+    - Usa SHA256 hash del user_id para pseudonimización
+    - Permite buscar conversaciones si usuario se identifica después
+  - **Flujo de borrado:**
+    1. Archiva en `deleted_user_archives`: demografía, mensajes, progreso planes
+    2. Borra usuario de `auth.users` (CASCADE elimina todos los datos)
+  - **Retención:** 3 años para defensa legal
+  - **PII eliminada:** nombre, email, device tokens, rc_app_user_id
+  - **Datos archivados:** mensajes (sin user_id), demografía, métricas agregadas
+  - **Migración:** `00022_create_deleted_user_archives.sql`
+  - **Archivos creados:**
+    - `supabase/migrations/00022_create_deleted_user_archives.sql`
+    - `supabase/functions/delete-account/index.ts`
+  - **Archivos modificados:**
+    - `lib/features/auth/domain/repositories/auth_repository.dart` - `deleteAccount()`
+    - `lib/features/auth/data/repositories/auth_repository_impl.dart` - Implementación
+    - `lib/features/auth/presentation/providers/auth_provider.dart` - Notifier
+    - `lib/features/settings/presentation/screens/settings_screen.dart` - Botón conectado
+
 ### Tickets Descartados (bajo valor para MVP)
 - ~~T-0705~~: Devoción del día - Duplica Evangelio/Stories
 - ~~T-0706~~: Oración guiada - Solo es un shortcut, usuario puede pedir en chat
@@ -797,7 +820,7 @@ BibliaChat/
 
 ### Próximos Pasos
 - [x] **EPIC 9**: Planes de estudio - COMPLETADO
-- [ ] T-0308: Borrar cuenta (obligatorio App Store)
+- [x] T-0308: Borrar cuenta (obligatorio App Store) - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 
@@ -890,6 +913,28 @@ supabase functions serve
 - **Secrets requeridos:**
   - `OPENAI_API_KEY`
   - `API_BIBLE_KEY`
+
+### `delete-account` (DESPLEGADA)
+- **Ubicación:** `supabase/functions/delete-account/index.ts`
+- **Propósito:** Borrar cuenta de usuario cumpliendo GDPR
+- **Flujo:**
+  1. Verifica usuario con token JWT
+  2. Archiva datos pseudonimizados en `deleted_user_archives`
+  3. Borra usuario de `auth.users` (CASCADE elimina todo lo demás)
+- **Pseudonimización:**
+  - Usa SHA256 hash del user_id (no reversible, pero buscable)
+  - Si usuario se identifica después, puedes calcular su hash y buscar sus conversaciones
+- **Datos archivados:**
+  - `user_id_hash`: SHA256 del user_id original
+  - `chat_messages`: JSON con todos los mensajes (role, content, created_at)
+  - `plans_data`: Progreso de planes (nombre, status, días completados)
+  - Demografía: denomination, origin_group, age_group
+  - Métricas: total_messages, streak_max, plans_started/completed
+- **Retención:** 3 años (expires_at = archived_at + 3 years)
+- **PII eliminada:** nombre, email, device tokens, rc_app_user_id
+- **Request:** POST con Authorization header (JWT del usuario)
+- **Response:** `{ success: true/false, message/error }`
+- **Secrets requeridos:** Ninguno adicional (usa SUPABASE_SERVICE_ROLE_KEY del entorno)
 
 ## GitHub Actions
 

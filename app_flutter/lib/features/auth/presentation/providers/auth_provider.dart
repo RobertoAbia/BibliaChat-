@@ -248,6 +248,26 @@ class AuthNotifier extends StateNotifier<AuthNotifierState> {
       return false;
     }
   }
+
+  /// Elimina la cuenta del usuario y todos sus datos
+  Future<bool> deleteAccount() async {
+    state = AuthNotifierState.loading();
+
+    final result = await _repository.deleteAccount();
+
+    if (result.success) {
+      // El listener de auth detectará que el usuario ya no existe
+      // y redirigirá automáticamente a Splash
+      state = AuthNotifierState.success();
+      return true;
+    } else {
+      state = AuthNotifierState.error(
+        result.errorMessage ?? 'Error al borrar cuenta',
+        result.errorCode,
+      );
+      return false;
+    }
+  }
 }
 
 /// Provider del notifier de auth
