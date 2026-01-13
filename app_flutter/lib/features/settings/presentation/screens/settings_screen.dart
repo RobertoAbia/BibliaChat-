@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../profile/presentation/providers/user_profile_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -14,6 +15,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isAnonymous = ref.watch(isAnonymousProvider);
     final email = ref.watch(currentEmailProvider);
+    final profileAsync = ref.watch(currentUserProfileProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -101,7 +103,7 @@ class SettingsScreen extends ConsumerWidget {
                 SettingsItem(
                   icon: Icons.person_outline,
                   title: 'Editar Perfil',
-                  onTap: () {},
+                  onTap: () => context.push(RouteConstants.profileEdit),
                 ),
                 // Solo mostrar "Guardar mi cuenta" si es anónimo
                 if (isAnonymous)
@@ -131,20 +133,25 @@ class SettingsScreen extends ConsumerWidget {
               items: [
                 SettingsItem(
                   icon: Icons.notifications_outlined,
-                  title: 'Notificaciones',
-                  onTap: () {},
+                  title: 'Recordatorio',
+                  subtitle: profileAsync.when(
+                    data: (profile) => profile?.reminderEnabled == true
+                        ? 'Activo - ${_formatTime(profile?.reminderTime)}'
+                        : 'Desactivado',
+                    loading: () => 'Cargando...',
+                    error: (_, __) => 'Error',
+                  ),
+                  onTap: () => context.push(RouteConstants.profileEdit),
                 ),
                 SettingsItem(
                   icon: Icons.book_outlined,
                   title: 'Versión de la Biblia',
-                  subtitle: 'RVR1960',
-                  onTap: () {},
-                ),
-                SettingsItem(
-                  icon: Icons.dark_mode_outlined,
-                  title: 'Tema',
-                  subtitle: 'Automático',
-                  onTap: () {},
+                  subtitle: profileAsync.when(
+                    data: (profile) => profile?.bibleVersionCode ?? 'RVR1960',
+                    loading: () => 'Cargando...',
+                    error: (_, __) => 'Error',
+                  ),
+                  onTap: () => context.push(RouteConstants.profileEdit),
                 ),
               ],
             ),
@@ -237,6 +244,13 @@ class SettingsScreen extends ConsumerWidget {
   String _getInitial(String? email) {
     if (email == null || email.isEmpty) return 'U';
     return email[0].toUpperCase();
+  }
+
+  String _formatTime(DateTime? time) {
+    if (time == null) return '08:00';
+    final hour = time.hour.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
+    return '$hour:$minute';
   }
 
   Widget _buildStat(BuildContext context, String value, String label) {

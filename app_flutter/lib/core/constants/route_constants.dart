@@ -18,6 +18,7 @@ class RouteConstants {
   static const String chatByTopic = '/chat/topic/:topicKey';
   static const String study = '/study';
   static const String settings = '/settings';
+  static const String profileEdit = '/settings/edit';
 
   // Study Plans
   static const String planDetail = '/study/plan/:planId';

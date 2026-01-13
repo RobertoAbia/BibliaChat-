@@ -813,6 +813,34 @@ BibliaChat/
     - `lib/features/auth/presentation/providers/auth_provider.dart` - Notifier
     - `lib/features/settings/presentation/screens/settings_screen.dart` - Botón conectado
 
+- [x] T-0307: Editar Perfil desde Settings
+  - **ProfileEditScreen:**
+    - Pantalla completa de edición con todas las preferencias del usuario
+    - Secciones: Datos Personales, Fe y Creencias, Origen, Biblia, Recordatorio
+  - **Campos editables:**
+    - Nombre (TextField)
+    - Género (Hombre/Mujer con iconos)
+    - Denominación (10 opciones con ChoiceChips)
+    - País (Dropdown con banderas, idéntico al onboarding) → guarda `origin_group`
+    - Grupo de edad (ChoiceChips)
+    - Versión de la Biblia (Radio buttons: RVR1960, NVI, LBLA, NTV)
+    - Recordatorio (Toggle + Time picker)
+  - **ProfileEditNotifier:**
+    - StateNotifier con `hasChanges` para detectar cambios sin guardar
+    - Diálogo de confirmación al salir con cambios pendientes
+    - Guarda con `UserProfileRepository.updateProfile()`
+  - **SettingsScreen actualizada:**
+    - Muestra valores reales del perfil (versión Biblia, recordatorio)
+    - Todos los items de Preferencias navegan a ProfileEditScreen
+    - Eliminada opción "Tema" (no implementado aún)
+  - **Archivos creados:**
+    - `lib/features/profile/presentation/providers/profile_edit_provider.dart`
+    - `lib/features/profile/presentation/screens/profile_edit_screen.dart`
+  - **Archivos modificados:**
+    - `lib/core/router/app_router.dart` - Ruta `/settings/edit`
+    - `lib/core/constants/route_constants.dart` - Constante `profileEdit`
+    - `lib/features/settings/presentation/screens/settings_screen.dart` - Valores reales + navegación
+
 ### Tickets Descartados (bajo valor para MVP)
 - ~~T-0705~~: Devoción del día - Duplica Evangelio/Stories
 - ~~T-0706~~: Oración guiada - Solo es un shortcut, usuario puede pedir en chat
@@ -821,6 +849,7 @@ BibliaChat/
 ### Próximos Pasos
 - [x] **EPIC 9**: Planes de estudio - COMPLETADO
 - [x] T-0308: Borrar cuenta (obligatorio App Store) - COMPLETADO
+- [x] T-0307: Editar perfil desde Settings - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 

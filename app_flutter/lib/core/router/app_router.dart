@@ -16,6 +16,7 @@ import '../../features/study/presentation/screens/plan_detail_screen.dart';
 import '../../features/study/presentation/screens/plan_day_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/subscription/presentation/screens/paywall_screen.dart';
+import '../../features/profile/presentation/screens/profile_edit_screen.dart';
 import '../constants/route_constants.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -148,6 +149,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: RouteConstants.settings,
             name: 'settings',
             builder: (context, state) => const SettingsScreen(),
+            routes: [
+              GoRoute(
+                path: 'edit',
+                name: 'profileEdit',
+                builder: (context, state) => const ProfileEditScreen(),
+              ),
+            ],
           ),
         ],
       ),
