@@ -17,6 +17,7 @@ import '../../features/study/presentation/screens/plan_day_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/subscription/presentation/screens/paywall_screen.dart';
 import '../../features/profile/presentation/screens/profile_edit_screen.dart';
+import '../../features/saved_messages/presentation/screens/saved_messages_screen.dart';
 import '../constants/route_constants.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -68,6 +69,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RouteConstants.paywall,
         name: 'paywall',
         builder: (context, state) => const PaywallScreen(),
+      ),
+
+      // Saved Messages / Mis Reflexiones (sin bottom navigation)
+      GoRoute(
+        path: RouteConstants.savedMessages,
+        name: 'savedMessages',
+        builder: (context, state) => const SavedMessagesScreen(),
       ),
 
       // Main App with Bottom Navigation

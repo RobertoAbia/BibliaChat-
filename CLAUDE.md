@@ -857,6 +857,39 @@ BibliaChat/
     - `lib/features/chat/presentation/providers/chat_provider.dart` - `ChatNotifier.deleteMessage()`
     - `lib/features/chat/presentation/screens/chat_screen.dart` - `_MessageBubble` con long press + `_deleteMessage()`
 
+- [x] T-0511: Guardar Mensaje ❤️ + "Mis Reflexiones"
+  - **Funcionalidad:** Guardar mensajes de la IA con botón ❤️ y ver en pantalla dedicada
+  - **Tabla BD usada:** `saved_messages` (ya existía con RLS correcta)
+  - **Clean Architecture implementada:**
+    - Domain: `SavedMessage` entity + `SavedMessageRepository` interface
+    - Data: Model, RemoteDatasource (Supabase con JOIN), RepositoryImpl
+    - Presentation: Providers (savedMessageIdsProvider, savedMessagesProvider, SavedMessageNotifier)
+  - **UI del botón ❤️:**
+    - Nuevo widget `_SaveButton` en chat_screen.dart (reemplaza `_ActionButton` para el corazón)
+    - Icono cambia de `favorite_border` a `favorite` cuando está guardado
+    - Color dorado + borde cuando está activo
+    - SnackBar de confirmación al guardar/desguardar
+  - **Pantalla "Mis Reflexiones":**
+    - Acceso desde Settings → Preferencias → "Mis Reflexiones"
+    - Lista con glassmorphism y animaciones staggered
+    - Cada item muestra: contenido, título del chat, fecha guardada
+    - Botón trash para eliminar con bottom sheet de confirmación
+    - Empty state con instrucciones
+    - Pull-to-refresh
+  - **Archivos creados:**
+    - `lib/features/saved_messages/domain/entities/saved_message.dart`
+    - `lib/features/saved_messages/domain/repositories/saved_message_repository.dart`
+    - `lib/features/saved_messages/data/models/saved_message_model.dart`
+    - `lib/features/saved_messages/data/datasources/saved_message_remote_datasource.dart`
+    - `lib/features/saved_messages/data/repositories/saved_message_repository_impl.dart`
+    - `lib/features/saved_messages/presentation/providers/saved_message_provider.dart`
+    - `lib/features/saved_messages/presentation/screens/saved_messages_screen.dart`
+  - **Archivos modificados:**
+    - `lib/features/chat/presentation/screens/chat_screen.dart` - `_SaveButton` + import
+    - `lib/features/settings/presentation/screens/settings_screen.dart` - Item "Mis Reflexiones"
+    - `lib/core/router/app_router.dart` - Ruta `/saved-messages`
+    - `lib/core/constants/route_constants.dart` - Constante `savedMessages`
+
 ### Tickets Descartados (bajo valor para MVP)
 - ~~T-0509~~: Limpiar chat - Revertido, no tiene sentido práctico
 - ~~T-0705~~: Devoción del día - Duplica Evangelio/Stories
@@ -868,6 +901,7 @@ BibliaChat/
 - [x] T-0308: Borrar cuenta (obligatorio App Store) - COMPLETADO
 - [x] T-0307: Editar perfil desde Settings - COMPLETADO
 - [x] Feature: Eliminar mensaje individual - COMPLETADO
+- [x] T-0511: Guardar Mensaje ❤️ + "Mis Reflexiones" - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 

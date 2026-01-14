@@ -119,6 +119,18 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 - Elimina el mensaje específico de la BD
 - **SnackBar** de confirmación
 
+### Guardar Mensajes ❤️ + Mis Reflexiones
+- **Botón ❤️** en cada mensaje de la IA:
+  - Tap para guardar/desguardar
+  - Icono cambia de vacío a relleno cuando está guardado
+  - Color dorado cuando está activo
+- **Pantalla "Mis Reflexiones"** (Settings → Preferencias):
+  - Lista de mensajes guardados con glassmorphism
+  - Muestra contenido, chat de origen y fecha
+  - Botón trash para eliminar de favoritos
+  - Empty state con instrucciones
+  - Pull-to-refresh
+
 ### Borrar Cuenta (GDPR-compliant)
 - **Cumplimiento GDPR/Protección de Datos**:
   - Archiva datos pseudonimizados antes de borrar (3 años retención para defensa legal)
@@ -152,7 +164,8 @@ BibliaChat/
 │           ├── study/              # StudyScreen
 │           ├── profile/            # Perfil de usuario
 │           ├── daily_gospel/       # Feature Evangelio + Stories
-│           └── subscription/       # PaywallScreen, subscription_provider
+│           ├── subscription/       # PaywallScreen, subscription_provider
+│           └── saved_messages/     # Mis Reflexiones (mensajes guardados)
 ├── supabase/
 │   ├── migrations/                 # 22 migraciones SQL
 │   └── functions/

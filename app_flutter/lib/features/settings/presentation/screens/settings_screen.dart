@@ -132,6 +132,12 @@ class SettingsScreen extends ConsumerWidget {
               title: 'Preferencias',
               items: [
                 SettingsItem(
+                  icon: Icons.favorite_outline,
+                  title: 'Mis Reflexiones',
+                  subtitle: 'Mensajes guardados',
+                  onTap: () => context.push(RouteConstants.savedMessages),
+                ),
+                SettingsItem(
                   icon: Icons.notifications_outlined,
                   title: 'Recordatorio',
                   subtitle: profileAsync.when(

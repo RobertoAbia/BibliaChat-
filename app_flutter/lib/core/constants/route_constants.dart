@@ -19,6 +19,7 @@ class RouteConstants {
   static const String study = '/study';
   static const String settings = '/settings';
   static const String profileEdit = '/settings/edit';
+  static const String savedMessages = '/saved-messages';
 
   // Study Plans
   static const String planDetail = '/study/plan/:planId';

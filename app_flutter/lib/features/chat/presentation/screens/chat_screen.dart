@@ -13,6 +13,7 @@ import '../../domain/entities/chat_message.dart';
 import '../providers/chat_provider.dart';
 import '../providers/message_limit_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
+import '../../../saved_messages/presentation/providers/saved_message_provider.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   /// ID del chat existente (para abrir conversación existente)
@@ -1097,7 +1098,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 }
 
-class _MessageBubble extends StatelessWidget {
+class _MessageBubble extends ConsumerWidget {
   final ChatMessage message;
   final int index;
   final VoidCallback? onDelete;
@@ -1109,7 +1110,7 @@ class _MessageBubble extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0.0, end: 1.0),
       duration: const Duration(milliseconds: 400),
@@ -1210,9 +1211,8 @@ class _MessageBubble extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    _ActionButton(
-                      icon: Icons.favorite_border,
-                      onTap: () {},
+                    _SaveButton(
+                      messageId: message.id,
                     ),
                     const SizedBox(width: 8),
                     _ActionButton(
@@ -1312,6 +1312,73 @@ class _ActionButton extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// Save/unsave button for AI messages (heart icon)
+class _SaveButton extends ConsumerWidget {
+  final String messageId;
+
+  const _SaveButton({required this.messageId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final savedIdsAsync = ref.watch(savedMessageIdsProvider);
+    final isSaved = savedIdsAsync.whenOrNull(
+      data: (ids) => ids.contains(messageId),
+    ) ?? false;
+
+    return GestureDetector(
+      onTap: () => _toggleSave(context, ref),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        width: 32,
+        height: 32,
+        decoration: BoxDecoration(
+          color: isSaved
+              ? AppTheme.primaryColor.withOpacity(0.2)
+              : AppTheme.surfaceLight.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(10),
+          border: isSaved
+              ? Border.all(color: AppTheme.primaryColor.withOpacity(0.5))
+              : null,
+        ),
+        child: Icon(
+          isSaved ? Icons.favorite : Icons.favorite_border,
+          color: isSaved ? AppTheme.primaryColor : AppTheme.textTertiary,
+          size: 16,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _toggleSave(BuildContext context, WidgetRef ref) async {
+    final success = await ref
+        .read(savedMessageNotifierProvider.notifier)
+        .toggleSave(messageId);
+
+    if (success && context.mounted) {
+      final savedIdsAsync = ref.read(savedMessageIdsProvider);
+      final wasSaved = savedIdsAsync.whenOrNull(
+        data: (ids) => ids.contains(messageId),
+      ) ?? false;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            wasSaved ? 'Guardado en Mis Reflexiones' : 'Eliminado de Mis Reflexiones',
+            style: const TextStyle(color: Colors.white),
+          ),
+          backgroundColor: AppTheme.surfaceDark.withOpacity(0.95),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: const EdgeInsets.all(16),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 }
 
