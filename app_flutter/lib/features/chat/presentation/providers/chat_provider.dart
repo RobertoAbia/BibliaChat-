@@ -370,20 +370,19 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }
   }
 
-  /// Limpia todos los mensajes del chat (mantiene el chat)
-  Future<bool> clearMessages() async {
+  /// Elimina un mensaje específico del chat
+  Future<bool> deleteMessage(String messageId) async {
     if (state.chatId == null) return false;
 
     try {
-      await _repository.clearMessages(state.chatId!);
-      // Limpiar los mensajes del estado local
+      await _repository.deleteMessage(messageId);
+      // Quitar el mensaje del estado local
       state = state.copyWith(
-        messages: [],
-        showStarterSuggestions: true,
+        messages: state.messages.where((m) => m.id != messageId).toList(),
       );
       return true;
     } catch (e) {
-      state = state.copyWith(error: 'Error al limpiar: $e');
+      state = state.copyWith(error: 'Error al eliminar mensaje: $e');
       return false;
     }
   }

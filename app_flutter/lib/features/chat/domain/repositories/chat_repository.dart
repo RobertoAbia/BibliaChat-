@@ -39,6 +39,6 @@ abstract class ChatRepository {
   /// Elimina un chat y todos sus mensajes
   Future<void> deleteChat(String chatId);
 
-  /// Limpia todos los mensajes de un chat (mantiene el chat)
-  Future<void> clearMessages(String chatId);
+  /// Elimina un mensaje específico
+  Future<void> deleteMessage(String messageId);
 }
