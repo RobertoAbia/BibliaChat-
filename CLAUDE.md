@@ -890,6 +890,40 @@ BibliaChat/
     - `lib/core/router/app_router.dart` - Ruta `/saved-messages`
     - `lib/core/constants/route_constants.dart` - Constante `savedMessages`
 
+- [ ] T-0512: Compartir Reflexión como Imagen - EN PROGRESO
+  - **Funcionalidad:** Compartir contenido de Stories como imagen personalizable
+  - **ShareImageScreen:**
+    - Preview en tiempo real con ratio 9:16 (1080x1920 para Instagram/WhatsApp Stories)
+    - 5 fondos predefinidos (gradientes: Noche, Dorado, Púrpura, Esperanza, Atardecer)
+    - Selector de foto de galería con `image_picker`
+    - 4 fuentes Google Fonts: Lora, Playfair Display, Nunito, Merriweather
+    - Tamaño de fuente dinámico según longitud del contenido (28px→14px)
+    - Captura con `screenshot` package a 3x resolución
+  - **Dependencias añadidas:**
+    - `screenshot: ^3.0.0` - Capturar widget como imagen
+    - `image_picker: ^1.0.7` - Seleccionar foto de galería
+    - `google_fonts: ^6.1.0` - Fuentes personalizadas
+  - **Permisos configurados:**
+    - iOS: `NSPhotoLibraryUsageDescription` en Info.plist
+    - Android: `READ_EXTERNAL_STORAGE` + `READ_MEDIA_IMAGES` en AndroidManifest.xml
+  - **Archivos creados:**
+    - `lib/features/daily_gospel/presentation/screens/share_image_screen.dart`
+  - **Archivos modificados:**
+    - `lib/features/daily_gospel/presentation/screens/gospel_stories_screen.dart` - Abre ShareImageScreen
+    - `pubspec.yaml` - Nuevas dependencias + dependency_override para app_links
+  - **Pendiente:** Verificar que el fix de overflow funciona correctamente
+
+### Configuración Android Build (actualizado)
+- **AGP:** 8.7.0 (Android Gradle Plugin)
+- **Kotlin:** 2.0.21 (estable, no 2.1.0 que es muy nueva)
+- **Gradle:** 8.9
+- **Fix para plugins sin namespace:** `plugins.withId("com.android.library")` en build.gradle
+- **Dependency override:** `app_links: ^7.0.0` para compatibilidad con AGP 8.x
+- **Archivos modificados:**
+  - `android/settings.gradle` - Versiones AGP y Kotlin
+  - `android/gradle/wrapper/gradle-wrapper.properties` - Versión Gradle
+  - `android/build.gradle` - Fix para namespace en plugins
+
 ### Tickets Descartados (bajo valor para MVP)
 - ~~T-0509~~: Limpiar chat - Revertido, no tiene sentido práctico
 - ~~T-0705~~: Devoción del día - Duplica Evangelio/Stories
@@ -904,6 +938,7 @@ BibliaChat/
 - [x] T-0307: Editar perfil desde Settings - COMPLETADO
 - [x] Feature: Eliminar mensaje individual - COMPLETADO
 - [x] T-0511: Guardar Mensaje ❤️ + "Mis Reflexiones" - COMPLETADO
+- [ ] T-0512: Compartir reflexión como imagen - EN PROGRESO (pendiente verificar fix overflow)
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 

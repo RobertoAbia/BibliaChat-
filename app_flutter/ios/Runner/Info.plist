@@ -45,6 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<!-- Photo Library Access for sharing images -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Necesitamos acceso a tu galería para usar una foto como fondo de tu reflexión</string>
 	<!-- Deep Links for Supabase Auth -->
 	<key>CFBundleURLTypes</key>
 	<array>

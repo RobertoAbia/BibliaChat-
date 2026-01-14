@@ -8,6 +8,15 @@ allprojects {
 rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
+
+    // Fix for plugins that don't define namespace (required for AGP 8.x)
+    project.plugins.withId("com.android.library") {
+        project.android {
+            if (namespace == null || namespace.isEmpty()) {
+                namespace = project.group.toString()
+            }
+        }
+    }
 }
 subprojects {
     project.evaluationDependsOn(":app")

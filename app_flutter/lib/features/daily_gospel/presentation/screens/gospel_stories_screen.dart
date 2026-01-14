@@ -2,12 +2,12 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
 import '../../../chat/presentation/screens/chat_screen.dart';
 import '../../domain/entities/daily_gospel.dart';
+import 'share_image_screen.dart';
 
 /// Pantalla de Stories para el Evangelio del día
 /// Muestra 3 slides: Resumen, Concepto clave, Ejercicio práctico
@@ -399,18 +399,18 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
     _progressController.stop();
 
     final currentSlide = _slides[_currentPage];
-    final shareText = '''
-${currentSlide.title}
 
-"${currentSlide.content}"
-
-📖 ${widget.gospel.reference}
-
-— Biblia Chat
-''';
-
-    Share.share(shareText).then((_) {
-      // Reanudar después de compartir
+    // Abrir pantalla de edición de imagen
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ShareImageScreen(
+          title: currentSlide.title,
+          content: currentSlide.content,
+          reference: widget.gospel.reference,
+        ),
+      ),
+    ).then((_) {
+      // Reanudar después de volver
       if (mounted) {
         _progressController.forward();
       }
