@@ -895,6 +895,8 @@ BibliaChat/
 - ~~T-0705~~: Devoción del día - Duplica Evangelio/Stories
 - ~~T-0706~~: Oración guiada - Solo es un shortcut, usuario puede pedir en chat
 - ~~T-0707~~: Recomendaciones de planes - Depende de EPIC 9
+- ~~T-0906~~: Puntos/badges - Gamificación descartada para MVP
+- ~~T-0801..T-0803~~: Seed devotions - POSPUESTO (Evangelio del Día ya cubre, posible futuro)
 
 ### Próximos Pasos
 - [x] **EPIC 9**: Planes de estudio - COMPLETADO
