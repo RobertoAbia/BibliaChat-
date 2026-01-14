@@ -22,6 +22,9 @@ abstract class ChatRemoteDatasource {
 
   Future<void> deleteChat(String chatId);
 
+  /// Clear all messages from a chat (keeps the chat itself)
+  Future<void> clearMessages(String chatId);
+
   /// Create a new chat with a fixed title (for plan chats)
   /// Optionally set a topic_key for AI context
   Future<String> createChatWithTitle(String title, {String? topicKey});
@@ -142,6 +145,17 @@ class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
     await _supabase.from('chat_messages').delete().eq('chat_id', chatId);
     // Luego eliminar el chat
     await _supabase.from('chats').delete().eq('id', chatId);
+  }
+
+  @override
+  Future<void> clearMessages(String chatId) async {
+    // Solo eliminar los mensajes, mantener el chat
+    await _supabase.from('chat_messages').delete().eq('chat_id', chatId);
+    // También limpiar el context_summary del chat
+    await _supabase.from('chats').update({
+      'context_summary': null,
+      'last_summary_message_count': 0,
+    }).eq('id', chatId);
   }
 
   @override

@@ -587,6 +587,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             case 'rename':
               _showRenameDialog(chatState);
               break;
+            case 'clear':
+              _showClearDialog(chatState);
+              break;
             case 'delete':
               _showDeleteDialog(chatState);
               break;
@@ -605,6 +608,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 const SizedBox(width: 12),
                 Text(
                   'Renombrar',
+                  style: TextStyle(color: AppTheme.textPrimary),
+                ),
+              ],
+            ),
+          ),
+          PopupMenuItem(
+            value: 'clear',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.cleaning_services_outlined,
+                  size: 18,
+                  color: AppTheme.textPrimary,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Limpiar chat',
                   style: TextStyle(color: AppTheme.textPrimary),
                 ),
               ],
@@ -689,6 +709,116 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             },
             child: Text(
               'Guardar',
+              style: TextStyle(color: AppTheme.primaryColor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showClearDialog(ChatState chatState) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: BorderSide(
+            color: AppTheme.surfaceLight.withOpacity(0.3),
+          ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.surfaceLight.withOpacity(0.3),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.cleaning_services_outlined,
+                color: AppTheme.textPrimary,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Limpiar chat',
+                style: TextStyle(color: AppTheme.textPrimary),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          '¿Quieres borrar todos los mensajes de esta conversación? El chat se mantendrá pero quedará vacío.',
+          style: TextStyle(color: AppTheme.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Cancelar',
+              style: TextStyle(color: AppTheme.textSecondary),
+            ),
+          ),
+          TextButton(
+            onPressed: () async {
+              // Guardar referencias ANTES de cerrar el diálogo
+              final scaffoldMessenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+
+              navigator.pop(); // Cerrar diálogo
+
+              final success = await ref
+                  .read(chatNotifierProvider(_chatIdentifier).notifier)
+                  .clearMessages();
+
+              if (success) {
+                // Mostrar confirmación
+                scaffoldMessenger.showSnackBar(
+                  SnackBar(
+                    content: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Chat limpiado',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: AppTheme.surfaceDark.withOpacity(0.95),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: AppTheme.primaryColor.withOpacity(0.3),
+                      ),
+                    ),
+                    margin: const EdgeInsets.all(16),
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+            },
+            child: Text(
+              'Limpiar',
               style: TextStyle(color: AppTheme.primaryColor),
             ),
           ),

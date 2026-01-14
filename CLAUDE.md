@@ -841,6 +841,25 @@ BibliaChat/
     - `lib/core/constants/route_constants.dart` - Constante `profileEdit`
     - `lib/features/settings/presentation/screens/settings_screen.dart` - Valores reales + navegación
 
+- [x] T-0509: Limpiar chat (solo mensajes)
+  - **Funcionalidad:** Borrar todos los mensajes de una conversación sin eliminar el chat
+  - **Diferencia con T-0510 (Eliminar):** T-0510 elimina el chat completo, T-0509 solo limpia mensajes
+  - **Implementación:**
+    - `clearMessages()` en datasource, repository y provider
+    - Elimina mensajes de `chat_messages` para ese `chat_id`
+    - Resetea `context_summary` y `last_summary_message_count` en `chats`
+    - Muestra `showStarterSuggestions: true` después de limpiar
+  - **UI:**
+    - Opción "Limpiar chat" con icono escoba en PopupMenuButton
+    - Diálogo de confirmación glassmorphism
+    - SnackBar de confirmación "Chat limpiado"
+  - **Archivos modificados:**
+    - `lib/features/chat/data/datasources/chat_remote_datasource.dart` - Método `clearMessages()`
+    - `lib/features/chat/domain/repositories/chat_repository.dart` - Interfaz
+    - `lib/features/chat/data/repositories/chat_repository_impl.dart` - Implementación
+    - `lib/features/chat/presentation/providers/chat_provider.dart` - `ChatNotifier.clearMessages()`
+    - `lib/features/chat/presentation/screens/chat_screen.dart` - Menú + `_showClearDialog()`
+
 ### Tickets Descartados (bajo valor para MVP)
 - ~~T-0705~~: Devoción del día - Duplica Evangelio/Stories
 - ~~T-0706~~: Oración guiada - Solo es un shortcut, usuario puede pedir en chat
@@ -850,6 +869,7 @@ BibliaChat/
 - [x] **EPIC 9**: Planes de estudio - COMPLETADO
 - [x] T-0308: Borrar cuenta (obligatorio App Store) - COMPLETADO
 - [x] T-0307: Editar perfil desde Settings - COMPLETADO
+- [x] T-0509: Limpiar chat (solo mensajes) - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 

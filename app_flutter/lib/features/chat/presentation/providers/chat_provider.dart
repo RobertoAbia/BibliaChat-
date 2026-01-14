@@ -369,6 +369,24 @@ class ChatNotifier extends StateNotifier<ChatState> {
       return false;
     }
   }
+
+  /// Limpia todos los mensajes del chat (mantiene el chat)
+  Future<bool> clearMessages() async {
+    if (state.chatId == null) return false;
+
+    try {
+      await _repository.clearMessages(state.chatId!);
+      // Limpiar los mensajes del estado local
+      state = state.copyWith(
+        messages: [],
+        showStarterSuggestions: true,
+      );
+      return true;
+    } catch (e) {
+      state = state.copyWith(error: 'Error al limpiar: $e');
+      return false;
+    }
+  }
 }
 
 // Provider family usando ChatIdentifier como key
