@@ -102,6 +102,23 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - Reset automático a medianoche
 - **Mock data en web** para preview (RevenueCat no funciona en web)
 
+### Editar Perfil
+- **Pantalla completa de edición** desde Settings
+- **Secciones editables:**
+  - Datos Personales (nombre, género)
+  - Fe y Creencias (denominación)
+  - Origen (país con banderas, grupo de edad)
+  - Biblia (versión preferida)
+  - Recordatorio (toggle + hora)
+- **Dropdown de países** idéntico al onboarding (21 países hispanohablantes con banderas)
+- **Detección de cambios** con diálogo de confirmación al salir sin guardar
+
+### Eliminar Mensaje Individual
+- **Long press** en cualquier mensaje del chat
+- **Bottom sheet** con opción "Eliminar mensaje"
+- Elimina el mensaje específico de la BD
+- **SnackBar** de confirmación
+
 ### Borrar Cuenta (GDPR-compliant)
 - **Cumplimiento GDPR/Protección de Datos**:
   - Archiva datos pseudonimizados antes de borrar (3 años retención para defensa legal)
