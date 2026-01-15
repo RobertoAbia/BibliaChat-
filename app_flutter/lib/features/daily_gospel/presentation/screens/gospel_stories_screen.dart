@@ -61,7 +61,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
     if (widget.gospel.hasSummary) {
       slides.add(_StorySlide(
         type: _SlideType.summary,
-        title: 'En resumen...',
+        title: 'Reflexión del día',
         content: widget.gospel.summary!,
         icon: Icons.format_quote_rounded,
       ));

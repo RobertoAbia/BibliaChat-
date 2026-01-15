@@ -890,19 +890,31 @@ BibliaChat/
     - `lib/core/router/app_router.dart` - Ruta `/saved-messages`
     - `lib/core/constants/route_constants.dart` - Constante `savedMessages`
 
-- [ ] T-0512: Compartir Reflexión como Imagen - EN PROGRESO
+- [x] T-0512: Compartir Reflexión como Imagen - COMPLETADO
   - **Funcionalidad:** Compartir contenido de Stories como imagen personalizable
-  - **ShareImageScreen:**
-    - Preview en tiempo real con ratio 9:16 (1080x1920 para Instagram/WhatsApp Stories)
+  - **ShareImageScreen (editor fullscreen estilo Instagram):**
+    - Preview fullscreen (lo que ves = lo que compartes)
+    - Controles compactos arriba con iconos: paleta (fondos), "Aa" (fuentes), "aA" (tamaño)
+    - Opciones se expanden al tocar cada icono (AnimatedSize)
     - 5 fondos predefinidos (gradientes: Noche, Dorado, Púrpura, Esperanza, Atardecer)
     - Selector de foto de galería con `image_picker`
     - 4 fuentes Google Fonts: Lora, Playfair Display, Nunito, Merriweather
-    - Tamaño de fuente dinámico según longitud del contenido (28px→14px)
+    - Slider de tamaño de fuente (14-32px)
+    - Pellizcar para zoom + arrastrar para mover texto
+    - Botón Reset cuando hay transformaciones
+    - OverflowBox permite que el texto se salga sin error
     - Captura con `screenshot` package a 3x resolución
+  - **Bottom sheet con 2 opciones:**
+    - Compartir (abre selector de apps del sistema)
+    - Guardar en galería (usa paquete `gal`)
+  - **Otros cambios:**
+    - Título de slide cambiado de "En resumen..." a "Reflexión del día"
+    - Al compartir solo se envía la imagen (sin texto adicional)
   - **Dependencias añadidas:**
     - `screenshot: ^3.0.0` - Capturar widget como imagen
     - `image_picker: ^1.0.7` - Seleccionar foto de galería
     - `google_fonts: ^6.1.0` - Fuentes personalizadas
+    - `gal: ^2.3.0` - Guardar imagen en galería
   - **Permisos configurados:**
     - iOS: `NSPhotoLibraryUsageDescription` en Info.plist
     - Android: `READ_EXTERNAL_STORAGE` + `READ_MEDIA_IMAGES` en AndroidManifest.xml
@@ -938,7 +950,7 @@ BibliaChat/
 - [x] T-0307: Editar perfil desde Settings - COMPLETADO
 - [x] Feature: Eliminar mensaje individual - COMPLETADO
 - [x] T-0511: Guardar Mensaje ❤️ + "Mis Reflexiones" - COMPLETADO
-- [ ] T-0512: Compartir reflexión como imagen - EN PROGRESO (pendiente verificar fix overflow)
+- [x] T-0512: Compartir reflexión como imagen - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 
