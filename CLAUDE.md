@@ -27,6 +27,11 @@ BibliaChat/
 │   ├── migrations/       # Migraciones SQL
 │   └── functions/        # Edge Functions (Deno/TypeScript)
 │       └── fetch-daily-gospel/  # Evangelio del día (desplegada como clever-worker)
+├── scripts/
+│   ├── import_bible_verses.js       # Script para generar SQL de importación de Biblia
+│   ├── import_liturgical_readings.js # Script para importar calendario litúrgico
+│   ├── import_missing_books.js      # Script para importar libros faltantes de la Biblia
+│   └── split_bible_sql.js           # Script para dividir SQL de Biblia en chunks
 ├── .github/
 │   └── workflows/
 │       └── daily-gospel.yml  # Cron diario para fetch-daily-gospel
@@ -57,14 +62,16 @@ BibliaChat/
 - `saved_messages`
 - `plans` + `plan_days` + `user_plans` + `user_plan_days`
 - `daily_verses` + `daily_verse_texts` (incluye `verse_summary`, `key_concept`, `practical_exercise`)
+- `bible_verses` (Reina Valera 1909 completa - 20,353 versículos)
 - `devotions` + `devotion_variants` + `user_devotions`
 - `daily_activity` (rachas + `messages_sent` para límite diario)
 - `user_points` + `badges` + `user_badges`
 - `user_devices` (FCM tokens)
 - `user_entitlements` (premium status)
 - `deleted_user_archives` (archivado pseudonimizado para GDPR, 3 años retención)
+- `liturgical_readings` (calendario litúrgico católico - 365 días/año)
 
-## Migraciones SQL (22 total)
+## Migraciones SQL (24 total)
 - 00001-00009: Tablas core, ENUMs, RLS, índices
 - 00010: `rc_app_user_id` para restaurar compras
 - 00011: `gender` + enum `gender_type`
@@ -79,6 +86,8 @@ BibliaChat/
 - 00020: DELETE policy en `user_plan_days` para permitir reiniciar planes
 - 00021: Topic keys de planes en `chat_topics` para foreign key de chats
 - 00022: `deleted_user_archives` para archivado pseudonimizado (GDPR) al borrar cuenta
+- 00023: `bible_verses` tabla para almacenar Biblia localmente (reemplaza API.Bible)
+- 00024: `liturgical_readings` tabla para calendario litúrgico (reemplaza dependencia de API externa)
 
 ## EPICs del Proyecto (12 total)
 - **EPIC 0-1:** Foundation + Base de datos + RLS
@@ -223,7 +232,7 @@ BibliaChat/
 - [x] Feature: Evangelio del Día (Daily Gospel) + Stories
   - **Edge Function `fetch-daily-gospel`:**
     - Obtiene referencia del calendario litúrgico católico (Catholic Readings API)
-    - Obtiene texto en español de API.Bible (Reina Valera 1960)
+    - Obtiene texto en español de tabla local `bible_verses` (Reina Valera 1909)
     - Genera contenido con **OpenAI GPT-5.2**:
       - Resumen coloquial (300-500 caracteres)
       - Concepto clave (frase impactante 60-100 chars)
@@ -231,12 +240,11 @@ BibliaChat/
     - Guarda en `daily_verses` + `daily_verse_texts`
     - **00012:** Nueva columna `verse_summary` para resumen IA
     - **00013:** Nuevas columnas `key_concept` y `practical_exercise`
-  - **APIs utilizadas:**
+  - **Fuentes de datos:**
     - Catholic Readings API (pública, sin key) - calendario litúrgico
-    - API.Bible (key requerida) - texto bíblico en español
+    - Tabla `bible_verses` en Supabase (local) - 20,353 versículos Reina Valera 1909
     - OpenAI GPT-5.2 API (key requerida) - generación de contenido Stories
   - **Secrets en Supabase:**
-    - `API_BIBLE_KEY` - Clave de API.Bible
     - `OPENAI_API_KEY` - Clave de OpenAI
   - **Feature Flutter `daily_gospel`:**
     - Clean Architecture (entity, model, repository, datasource, provider)
@@ -925,6 +933,83 @@ BibliaChat/
     - `pubspec.yaml` - Nuevas dependencias + dependency_override para app_links
   - **Pendiente:** Verificar que el fix de overflow funciona correctamente
 
+- [x] Feature: Almacenar Biblia en Supabase (reemplaza API.Bible)
+  - **Problema:** API.Bible cambió su modelo de precios y ya no permite acceso gratuito a Biblias en español
+  - **Solución:** Almacenar la Reina Valera 1909 (dominio público) directamente en Supabase
+  - **Migración 00023:** Crea tabla `bible_verses`
+    - Columnas: `book_id` (GEN, EXO, MRK...), `book_name`, `chapter`, `verse`, `text`
+    - Índices: `idx_bible_verses_lookup` (book_id, chapter, verse), `idx_bible_verses_range` (book_id, chapter)
+    - Constraint UNIQUE(book_id, chapter, verse)
+  - **Scripts de importación:**
+    - `scripts/import_bible_verses.js` - Descarga JSON de GitHub y genera SQL
+    - `scripts/split_bible_sql.js` - Divide el SQL en chunks manejables
+    - `scripts/import_missing_books.js` - Importa libros que faltaban
+  - **Datos importados:**
+    - 20,353 versículos de la Reina Valera 1909
+    - 66 libros completos (Antiguo y Nuevo Testamento)
+    - Archivos SQL en `supabase/migrations/bible_chunks/` (15 archivos)
+  - **Edge Function `fetch-daily-gospel` actualizada:**
+    - Ya NO usa API.Bible (eliminada dependencia externa)
+    - Consulta directamente la tabla `bible_verses` en Supabase
+    - Función `fetchBiblePassage()` hace query local por book_id/chapter/verse
+    - Maneja versículos no contiguos (ej: "13-15, 19-23") con múltiples queries
+  - **Ventajas:**
+    - Sin dependencia de APIs externas
+    - Más rápido (consulta local vs HTTP)
+    - Gratis para siempre
+    - 100% fiable y sin límites de requests
+  - **Secret eliminado:** `API_BIBLE_KEY` ya no es necesario
+  - **Archivos creados:**
+    - `supabase/migrations/00023_create_bible_verses_table.sql`
+    - `scripts/import_bible_verses.js`
+    - `scripts/split_bible_sql.js`
+    - `scripts/import_missing_books.js`
+    - `supabase/migrations/bible_chunks/*.sql` (15 archivos con datos)
+  - **Archivos modificados:**
+    - `supabase/functions/fetch-daily-gospel/index.ts` - Usa tabla local en vez de API.Bible
+
+- [x] Feature: Almacenar Calendario Litúrgico en Supabase (reemplaza dependencia de API externa)
+  - **Problema:** Dependíamos de una API externa (cpbjr.github.io) para saber qué versículos corresponden a cada día
+  - **Riesgo:** GitHub Pages mantenido por una persona aleatoria (cpbjr), podría desaparecer (como pasó con API.Bible)
+  - **Solución:** Almacenar el calendario litúrgico católico directamente en Supabase con fallback a API
+  - **Migración 00024:** Crea tabla `liturgical_readings`
+    - Columnas: `reading_date`, `season`, `first_reading`, `psalm`, `second_reading`, `gospel`
+    - Índice: `idx_liturgical_readings_date` (reading_date)
+  - **Scripts de importación:**
+    - `scripts/import_liturgical_readings.js` - Descarga datos del repo cpbjr y genera SQL
+    - Uso: `node scripts/import_liturgical_readings.js 2027`
+    - Genera: `supabase/migrations/liturgical_data/liturgical_readings_YYYY.sql`
+  - **Datos importados actualmente:**
+    - **2026: Año completo (365 lecturas)** - Del 1 de enero al 31 de diciembre
+    - Incluye: temporada litúrgica, primera lectura, salmo, segunda lectura, evangelio
+  - **⚠️ MANTENIMIENTO ANUAL REQUERIDO:**
+    - **A finales de 2026** hay que importar los datos de 2027
+    - Ejecutar: `node scripts/import_liturgical_readings.js 2027`
+    - Aplicar SQL generado en Supabase SQL Editor
+    - El repo cpbjr suele tener el año siguiente disponible hacia octubre/noviembre
+  - **Edge Function `fetch-daily-gospel` actualizada:**
+    - Primero consulta tabla local `liturgical_readings`
+    - Si no encuentra, hace fallback a la API externa (cpbjr.github.io)
+    - Respuesta incluye `source: "local" | "api"` para debugging
+  - **Flujo actual (100% sin APIs externas para datos):**
+    ```
+    1. Edge Function fetch-daily-gospel
+    2. Consulta liturgical_readings (local) → si no existe → fallback a API externa
+    3. Consulta bible_verses (local) → texto bíblico Reina Valera 1909
+    4. Genera contenido con OpenAI
+    5. Guarda en daily_verses + daily_verse_texts
+    ```
+  - **Ventajas:**
+    - Sin dependencia crítica de API externa (solo fallback)
+    - Más rápido (consulta local vs HTTP)
+    - Fallback seguro si no tenemos la fecha
+  - **Archivos creados:**
+    - `supabase/migrations/00024_create_liturgical_readings_table.sql`
+    - `scripts/import_liturgical_readings.js`
+    - `supabase/migrations/liturgical_data/liturgical_readings_2026.sql`
+  - **Archivos modificados:**
+    - `supabase/functions/fetch-daily-gospel/index.ts` - Usa tabla local con fallback
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.0.21 (estable, no 2.1.0 que es muy nueva)
@@ -951,6 +1036,8 @@ BibliaChat/
 - [x] Feature: Eliminar mensaje individual - COMPLETADO
 - [x] T-0511: Guardar Mensaje ❤️ + "Mis Reflexiones" - COMPLETADO
 - [x] T-0512: Compartir reflexión como imagen - COMPLETADO
+- [x] Feature: Almacenar Biblia en Supabase (reemplaza API.Bible) - COMPLETADO
+- [x] Feature: Almacenar Calendario Litúrgico en Supabase - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 
@@ -977,6 +1064,30 @@ supabase functions serve
 - `openai_conversation_id` existe pero NO se usa en runtime MVP
 - Prompt ordenado: base → dinámico → ai_memory → context_summary → últimos 12 mensajes
 - La IA no debe inventar datos que no estén en ai_memory o historial
+
+## ⚠️ Mantenimiento Periódico
+
+### Calendario Litúrgico (ANUAL - Finales de cada año)
+**Última actualización:** Enero 2026 (datos de 2026 completos)
+**Próxima actualización:** Octubre/Noviembre 2026 (para cargar 2027)
+
+El calendario litúrgico católico se almacena localmente en la tabla `liturgical_readings`. Los datos deben actualizarse cada año porque el calendario litúrgico tiene fechas móviles (Pascua, Cuaresma, etc.) que cambian anualmente.
+
+**Pasos para actualizar:**
+```bash
+# 1. Ejecutar el script de importación
+node scripts/import_liturgical_readings.js 2027
+
+# 2. Revisar el SQL generado
+cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
+
+# 3. Ejecutar el SQL en Supabase Dashboard → SQL Editor
+# (El script usa ON CONFLICT DO UPDATE, es seguro re-ejecutar)
+```
+
+**Fuente de datos:** `https://github.com/cpbjr/catholic-readings-api`
+- El repo suele tener el año siguiente disponible hacia octubre/noviembre
+- Si no están disponibles los datos, la Edge Function usará el fallback a la API externa
 
 ## Edge Functions (Supabase)
 
@@ -1029,20 +1140,25 @@ supabase functions serve
 - **Nombre en Supabase:** `clever-worker`
 - **Propósito:** Obtener y procesar el evangelio del día
 - **Ejecución automática:** GitHub Actions cron diario a las 6:00 AM UTC
-- **APIs externas:**
-  - Catholic Readings API (calendario litúrgico)
-  - API.Bible (texto bíblico RVR1960)
-  - OpenAI GPT-5.2 (generación de contenido)
+- **Fuentes de datos (prioridad):**
+  1. `liturgical_readings` tabla en Supabase (calendario litúrgico 2026 - **local, prioridad**)
+  2. Catholic Readings API (fallback si no hay datos locales - externa)
+  3. `bible_verses` tabla en Supabase (texto bíblico Reina Valera 1909 - local)
+  4. OpenAI GPT-5.2 (generación de contenido - externa)
 - **Contenido generado:**
   - `verse_summary`: Resumen coloquial (300-500 chars)
   - `key_concept`: Frase impactante (60-100 chars)
   - `practical_exercise`: Acción física/material (100-180 chars)
 - **Características técnicas:**
-  - Maneja versículos no contiguos (ej: "13-15, 19-23") con múltiples llamadas a API.Bible
+  - Maneja versículos no contiguos (ej: "13-15, 19-23") con múltiples queries a `bible_verses`
   - Prompt optimizado para español de España, segunda persona singular (tú)
+  - **Ya NO usa API.Bible** - la Biblia está almacenada localmente en Supabase
 - **Secrets requeridos:**
   - `OPENAI_API_KEY`
-  - `API_BIBLE_KEY`
+- **Tabla `bible_verses`:**
+  - 20,353 versículos de la Reina Valera 1909 (dominio público)
+  - Columnas: `book_id` (GEN, EXO, MRK...), `book_name`, `chapter`, `verse`, `text`
+  - Índices optimizados para búsquedas por libro/capítulo/versículo
 
 ### `delete-account` (DESPLEGADA)
 - **Ubicación:** `supabase/functions/delete-account/index.ts`

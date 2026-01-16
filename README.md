@@ -37,7 +37,9 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - **Concepto clave** (frase impactante)
   - **Ejercicio práctico** (acción física/material)
 - Contenido generado con GPT-5.2 (español de España, tú)
-- Integración con calendario litúrgico católico
+- **Datos 100% locales** (sin dependencias de APIs externas para datos):
+  - `liturgical_readings`: Calendario litúrgico católico (2026 completo)
+  - `bible_verses`: Biblia Reina Valera 1909 (20,353 versículos)
 - **Ejecución automática:** GitHub Actions cron diario (6:00 AM UTC)
 - **Bottom bar estilo Instagram:**
   - Campo de texto para enviar mensaje
@@ -177,11 +179,16 @@ BibliaChat/
 │           ├── subscription/       # PaywallScreen, subscription_provider
 │           └── saved_messages/     # Mis Reflexiones (mensajes guardados)
 ├── supabase/
-│   ├── migrations/                 # 22 migraciones SQL
+│   ├── migrations/                 # 24 migraciones SQL
 │   └── functions/
 │       ├── fetch-daily-gospel/     # Edge Function evangelio (desplegada como clever-worker)
 │       ├── chat-send-message/      # Edge Function chat IA (combined.ts)
 │       └── delete-account/         # Edge Function borrar cuenta (GDPR-compliant)
+├── scripts/
+│   ├── import_bible_verses.js      # Genera SQL de importación de Biblia
+│   ├── import_liturgical_readings.js # Importa calendario litúrgico por año
+│   ├── import_missing_books.js     # Importa libros faltantes de la Biblia
+│   └── split_bible_sql.js          # Divide SQL de Biblia en chunks
 ├── .github/
 │   └── workflows/
 │       └── daily-gospel.yml        # Cron diario (6:00 AM UTC)
@@ -208,7 +215,6 @@ BibliaChat/
   - Products: mensual ($14.99) y anual ($39.99)
 - Cuenta de App Store Connect (para iOS IAP)
 - Cuenta de Firebase
-- API.Bible key
 
 ## Configuración Local
 
@@ -227,7 +233,6 @@ cp .env.example .env
 # - SUPABASE_URL
 # - SUPABASE_ANON_KEY
 # - OPENAI_API_KEY
-# - API_BIBLE_KEY
 ```
 
 ### 3. Configurar Supabase
@@ -239,7 +244,10 @@ supabase db push
 
 # Configurar secrets para Edge Functions
 supabase secrets set OPENAI_API_KEY=tu_key
-supabase secrets set API_BIBLE_KEY=tu_key
+
+# Importar datos de Biblia (ya incluidos en migrations/bible_chunks/)
+# Importar calendario litúrgico (ejecutar si necesitas otro año)
+# node scripts/import_liturgical_readings.js 2027
 
 # Desplegar Edge Functions (nombre en Supabase: clever-worker)
 supabase functions deploy clever-worker --project-ref popqvhrgsokuviwtscid
@@ -313,6 +321,25 @@ flutter run -d android
 ## Documentación
 
 Ver carpeta `/docs` para documentación detallada del proyecto.
+
+## ⚠️ Mantenimiento Periódico
+
+### Calendario Litúrgico (ANUAL)
+
+El calendario litúrgico católico tiene fechas móviles (Pascua, Cuaresma, etc.) que cambian cada año. Los datos deben actualizarse anualmente.
+
+**Estado actual:** 2026 completo (365 lecturas)
+**Próxima actualización:** Octubre/Noviembre 2026 (para cargar 2027)
+
+```bash
+# 1. Ejecutar el script de importación
+node scripts/import_liturgical_readings.js 2027
+
+# 2. Aplicar el SQL generado en Supabase Dashboard → SQL Editor
+# Archivo: supabase/migrations/liturgical_data/liturgical_readings_2027.sql
+```
+
+**Fuente:** https://github.com/cpbjr/catholic-readings-api (el repo suele tener el año siguiente disponible hacia Oct/Nov)
 
 ## Desarrollador
 

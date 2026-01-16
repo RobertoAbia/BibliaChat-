@@ -1,19 +1,19 @@
 // Edge Function: fetch-daily-gospel
 // Se ejecuta diariamente via cron para obtener el Evangelio del día
-// 1. Consulta Catholic Readings API → referencia del día
-// 2. Consulta API.Bible → texto en español
+// 1. Consulta tabla local liturgical_readings → referencia del día (fallback: Catholic Readings API)
+// 2. Consulta Supabase bible_verses → texto en español (Reina Valera 1909)
 // 3. Genera resumen coloquial con OpenAI
 // 4. Guarda en daily_verses + daily_verse_texts
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Mapeo de libros en inglés a español y formato API.Bible
+// Mapeo de libros en inglés a español y book_id para nuestra BD
 const bookMapping: Record<string, { spanish: string; apiId: string }> = {
   "Genesis": { spanish: "Génesis", apiId: "GEN" },
   "Exodus": { spanish: "Éxodo", apiId: "EXO" },
@@ -84,15 +84,6 @@ const bookMapping: Record<string, { spanish: string; apiId: string }> = {
   "Revelation": { spanish: "Apocalipsis", apiId: "REV" },
 };
 
-// IDs de Biblias en español de API.Bible (plan gratuito)
-// Endpoint: https://rest.api.bible
-const BIBLE_VERSIONS: Record<string, string> = {
-  "RVR1909": "592420522e16049f-01",  // Reina Valera 1909 (única versión completa gratuita)
-  "RVR1960": "592420522e16049f-01",  // Fallback a RVR1909 (no hay RVR1960 gratis)
-  "BES": "b32b9d1b64b4ef29-01",      // La Biblia en Español Sencillo
-  "VBL": "482ddd53705278cc-02",      // Versión Biblia Libre
-};
-
 interface CatholicReadingsResponse {
   date: string;
   season?: string;
@@ -104,10 +95,12 @@ interface CatholicReadingsResponse {
   };
 }
 
-interface ApiBiblePassage {
-  id: string;
-  reference: string;
-  content: string;
+// Estructura para parsear rangos de versículos
+interface VerseRange {
+  bookId: string;
+  chapter: number;
+  startVerse: number;
+  endVerse: number;
 }
 
 // Parsea referencia como "Luke 1:57-66" a formato estructurado
@@ -123,9 +116,9 @@ function parseReference(reference: string): { book: string; chapter: number; ver
   };
 }
 
-// Convierte referencia a formato API.Bible (ej: "LUK.1.57-LUK.1.66")
+// Convierte referencia a rangos de versículos para consultar nuestra BD
 // Retorna un array para manejar referencias no contiguas como "13-15, 19-23"
-function toApiBibleFormats(reference: string): string[] | null {
+function parseVerseRanges(reference: string): VerseRange[] | null {
   const parsed = parseReference(reference);
   if (!parsed) return null;
 
@@ -138,10 +131,21 @@ function toApiBibleFormats(reference: string): string[] | null {
   return ranges.map(range => {
     if (range.includes("-")) {
       const [startVerse, endVerse] = range.split("-");
-      return `${bookInfo.apiId}.${parsed.chapter}.${startVerse}-${bookInfo.apiId}.${parsed.chapter}.${endVerse}`;
+      return {
+        bookId: bookInfo.apiId,
+        chapter: parsed.chapter,
+        startVerse: parseInt(startVerse),
+        endVerse: parseInt(endVerse),
+      };
     }
     // Versículo único
-    return `${bookInfo.apiId}.${parsed.chapter}.${range}`;
+    const verse = parseInt(range);
+    return {
+      bookId: bookInfo.apiId,
+      chapter: parsed.chapter,
+      startVerse: verse,
+      endVerse: verse,
+    };
   });
 }
 
@@ -163,13 +167,61 @@ function getDateString(date: Date): string {
   return `${month}-${day}`;
 }
 
-// Obtiene las lecturas del Catholic Readings API
-async function fetchCatholicReadings(date: Date): Promise<CatholicReadingsResponse | null> {
+// Interfaz para lecturas litúrgicas locales
+interface LiturgicalReading {
+  reading_date: string;
+  season: string | null;
+  first_reading: string | null;
+  psalm: string | null;
+  second_reading: string | null;
+  gospel: string;
+}
+
+// Obtiene las lecturas desde nuestra tabla local liturgical_readings
+async function fetchLocalLiturgicalReadings(
+  supabase: SupabaseClient,
+  dateStr: string
+): Promise<CatholicReadingsResponse | null> {
+  try {
+    const { data, error } = await supabase
+      .from("liturgical_readings")
+      .select("*")
+      .eq("reading_date", dateStr)
+      .single();
+
+    if (error || !data) {
+      console.log(`No local liturgical data for ${dateStr}, will try external API`);
+      return null;
+    }
+
+    const reading = data as LiturgicalReading;
+    console.log(`Found local liturgical reading for ${dateStr}`);
+
+    // Convertir al formato CatholicReadingsResponse
+    return {
+      date: reading.reading_date,
+      season: reading.season || undefined,
+      readings: {
+        firstReading: reading.first_reading || undefined,
+        psalm: reading.psalm || undefined,
+        secondReading: reading.second_reading || undefined,
+        gospel: reading.gospel,
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching local liturgical readings:", error);
+    return null;
+  }
+}
+
+// Obtiene las lecturas del Catholic Readings API (fallback externo)
+async function fetchCatholicReadingsAPI(date: Date): Promise<CatholicReadingsResponse | null> {
   const year = date.getFullYear();
   const dateStr = getDateString(date);
   const url = `https://cpbjr.github.io/catholic-readings-api/readings/${year}/${dateStr}.json`;
 
   try {
+    console.log(`Fetching from external API: ${url}`);
     const response = await fetch(url);
     if (!response.ok) {
       console.error(`Catholic Readings API error: ${response.status}`);
@@ -177,47 +229,64 @@ async function fetchCatholicReadings(date: Date): Promise<CatholicReadingsRespon
     }
     return await response.json();
   } catch (error) {
-    console.error("Error fetching Catholic readings:", error);
+    console.error("Error fetching Catholic readings from external API:", error);
     return null;
   }
 }
 
-// Obtiene el texto de un pasaje de API.Bible usando el endpoint de verses
+// Obtiene las lecturas: primero local, luego fallback a API externa
+async function fetchLiturgicalReadings(
+  supabase: SupabaseClient,
+  date: Date
+): Promise<{ readings: CatholicReadingsResponse | null; source: "local" | "api" | null }> {
+  const dateStr = date.toISOString().split("T")[0]; // YYYY-MM-DD
+
+  // 1. Intentar obtener de la tabla local
+  const localReadings = await fetchLocalLiturgicalReadings(supabase, dateStr);
+  if (localReadings) {
+    return { readings: localReadings, source: "local" };
+  }
+
+  // 2. Fallback a la API externa
+  const apiReadings = await fetchCatholicReadingsAPI(date);
+  if (apiReadings) {
+    return { readings: apiReadings, source: "api" };
+  }
+
+  return { readings: null, source: null };
+}
+
+// Obtiene el texto de un rango de versículos desde nuestra tabla bible_verses
 async function fetchBiblePassage(
-  passageId: string,
-  bibleId: string,
-  apiKey: string
-): Promise<ApiBiblePassage | null> {
-  // Usar endpoint de verses con content-type=text para obtener texto limpio
-  const url = `https://rest.api.bible/v1/bibles/${bibleId}/verses/${passageId}?content-type=text`;
-
+  supabase: SupabaseClient,
+  range: VerseRange
+): Promise<string | null> {
   try {
-    const response = await fetch(url, {
-      headers: {
-        "api-key": apiKey,
-      },
-    });
+    const { data, error } = await supabase
+      .from("bible_verses")
+      .select("verse, text")
+      .eq("book_id", range.bookId)
+      .eq("chapter", range.chapter)
+      .gte("verse", range.startVerse)
+      .lte("verse", range.endVerse)
+      .order("verse");
 
-    if (!response.ok) {
-      console.error(`API.Bible error: ${response.status}`);
+    if (error) {
+      console.error(`Supabase query error:`, error.message);
       return null;
     }
 
-    const data = await response.json();
-    return data.data;
+    if (!data || data.length === 0) {
+      console.error(`No verses found for ${range.bookId} ${range.chapter}:${range.startVerse}-${range.endVerse}`);
+      return null;
+    }
+
+    // Concatenar todos los versículos
+    return data.map(v => v.text).join(" ");
   } catch (error) {
     console.error("Error fetching Bible passage:", error);
     return null;
   }
-}
-
-// Limpia el contenido de API.Bible (remueve números de versículos y normaliza espacios)
-function cleanContent(content: string): string {
-  return content
-    .replace(/<[^>]*>/g, "")        // Remove HTML tags (por si acaso)
-    .replace(/\[\d+\]\s*/g, "")     // Remove verse numbers like [57]
-    .replace(/\s+/g, " ")           // Normalize whitespace
-    .trim();
 }
 
 // Interfaz para el contenido generado por IA
@@ -343,12 +412,7 @@ serve(async (req) => {
     // Get environment variables
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const apiBibleKey = Deno.env.get("API_BIBLE_KEY");
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
-
-    if (!apiBibleKey) {
-      throw new Error("API_BIBLE_KEY not configured");
-    }
 
     if (!openaiKey) {
       console.warn("OPENAI_API_KEY not configured - summaries will not be generated");
@@ -389,18 +453,20 @@ serve(async (req) => {
       );
     }
 
-    // Fetch Catholic readings
-    const readings = await fetchCatholicReadings(targetDate);
+    // Fetch liturgical readings (local first, then external API fallback)
+    const { readings, source } = await fetchLiturgicalReadings(supabase, targetDate);
     if (!readings || !readings.readings.gospel) {
       throw new Error(`No gospel reading found for ${dateStr}`);
     }
 
+    console.log(`Liturgical readings source: ${source}`);
+
     const gospelReference = readings.readings.gospel;
     const spanishReference = toSpanishReference(gospelReference);
-    const apiBiblePassageIds = toApiBibleFormats(gospelReference);
+    const verseRanges = parseVerseRanges(gospelReference);
 
     console.log(`Gospel reference: ${gospelReference} -> ${spanishReference}`);
-    console.log(`API.Bible passage IDs: ${JSON.stringify(apiBiblePassageIds)}`);
+    console.log(`Verse ranges: ${JSON.stringify(verseRanges)}`);
 
     // Insert into daily_verses
     const { error: verseError } = await supabase
@@ -415,42 +481,40 @@ serve(async (req) => {
       throw new Error(`Error inserting daily_verse: ${verseError.message}`);
     }
 
-    // Fetch text for RVR1960 (usando RVR1909 de API.Bible que es la única versión completa gratuita)
-    const bibleId = BIBLE_VERSIONS["RVR1909"]; // RVR1909 de API.Bible
-    const results: Record<string, string> = {};
+    // Fetch text from our local bible_verses table (Reina Valera 1909)
+    let gospelText: string | null = null;
     let gospelContent: GospelContent | null = null;
 
-    if (bibleId && apiBiblePassageIds && apiBiblePassageIds.length > 0) {
+    if (verseRanges && verseRanges.length > 0) {
       // Fetch all passage parts and concatenate (handles non-contiguous verses like "13-15, 19-23")
       const textParts: string[] = [];
-      for (const passageId of apiBiblePassageIds) {
-        console.log(`Fetching passage: ${passageId}`);
-        const passage = await fetchBiblePassage(passageId, bibleId, apiBibleKey);
+      for (const range of verseRanges) {
+        console.log(`Fetching passage: ${range.bookId} ${range.chapter}:${range.startVerse}-${range.endVerse}`);
+        const passage = await fetchBiblePassage(supabase, range);
         if (passage) {
-          textParts.push(cleanContent(passage.content));
+          textParts.push(passage);
         }
       }
 
       if (textParts.length > 0) {
-        const cleanText = textParts.join(" ");
-        results["RVR1960"] = cleanText;
+        gospelText = textParts.join(" ");
 
         // Generate gospel content with OpenAI
         if (openaiKey) {
           console.log("Generating gospel content with OpenAI...");
-          gospelContent = await generateGospelContent(cleanText, spanishReference, openaiKey);
+          gospelContent = await generateGospelContent(gospelText, spanishReference, openaiKey);
           if (gospelContent) {
             console.log(`Content generated - Summary: ${gospelContent.summary.substring(0, 50)}...`);
           }
         }
 
-        // Insert into daily_verse_texts (solo RVR1960 que existe en bible_versions)
+        // Insert into daily_verse_texts (usamos RVR1960 como código aunque el texto es RVR1909)
         const { error: textError } = await supabase
           .from("daily_verse_texts")
           .upsert({
             verse_date: dateStr,
             bible_version_code: "RVR1960",
-            verse_text: cleanText,
+            verse_text: gospelText,
             verse_summary: gospelContent?.summary || null,
             key_concept: gospelContent?.keyConcept || null,
             practical_exercise: gospelContent?.exercise || null,
@@ -468,7 +532,8 @@ serve(async (req) => {
         date: dateStr,
         reference: spanishReference,
         season: readings.season,
-        versions: Object.keys(results),
+        source: source, // "local" or "api"
+        hasText: !!gospelText,
         summary: gospelContent?.summary || null,
         keyConcept: gospelContent?.keyConcept || null,
         exercise: gospelContent?.exercise || null,
