@@ -40,8 +40,10 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     if (profile != null && mounted) {
       ref.read(profileEditProvider.notifier).loadProfile(profile);
       _nameController.text = profile.name ?? '';
-      // Encontrar el primer país del origin group actual
-      if (profile.origin != null) {
+      // Usar countryCode guardado si existe, sino buscar por origin group
+      if (profile.countryCode != null) {
+        _selectedCountryCode = profile.countryCode;
+      } else if (profile.origin != null) {
         final country = hispanicCountries.firstWhere(
           (c) => c.originGroup == profile.origin!.dbValue,
           orElse: () => hispanicCountries.first,
@@ -115,10 +117,6 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                       _buildSectionHeader('Origen'),
                       _buildOriginSection(editState, notifier),
                       _buildAgeGroupSection(editState, notifier),
-
-                      // Sección: Biblia
-                      _buildSectionHeader('Biblia'),
-                      _buildBibleVersionSection(editState, notifier),
 
                       // Sección: Recordatorio
                       _buildSectionHeader('Recordatorio'),
@@ -335,7 +333,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           onChanged: (code) {
             if (code != null) {
               setState(() => _selectedCountryCode = code);
-              // Encontrar el país y actualizar el originGroup
+              // Encontrar el país y actualizar el originGroup y countryCode
               final country = hispanicCountries.firstWhere(
                 (c) => c.code == code,
               );
@@ -343,6 +341,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
               if (originGroup != null) {
                 notifier.updateOrigin(originGroup);
               }
+              notifier.updateCountryCode(code);
             }
           },
         ),
@@ -375,52 +374,6 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                   ? AppTheme.primaryColor
                   : AppTheme.surfaceLight.withOpacity(0.3),
             ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildBibleVersionSection(
-      ProfileEditState state, ProfileEditNotifier notifier) {
-    final versions = [
-      ('RVR1960', 'Reina Valera 1960'),
-      ('NVI', 'Nueva Versión Internacional'),
-      ('LBLA', 'La Biblia de las Américas'),
-      ('NTV', 'Nueva Traducción Viviente'),
-    ];
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        children: versions.map((v) {
-          final isSelected = state.bibleVersionCode == v.$1;
-          return ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 8),
-            leading: Radio<String>(
-              value: v.$1,
-              groupValue: state.bibleVersionCode,
-              onChanged: (value) {
-                if (value != null) notifier.updateBibleVersion(value);
-              },
-              activeColor: AppTheme.primaryColor,
-            ),
-            title: Text(
-              v.$1,
-              style: TextStyle(
-                color:
-                    isSelected ? AppTheme.textPrimary : AppTheme.textSecondary,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-              ),
-            ),
-            subtitle: Text(
-              v.$2,
-              style: TextStyle(
-                color: AppTheme.textTertiary,
-                fontSize: 12,
-              ),
-            ),
-            onTap: () => notifier.updateBibleVersion(v.$1),
           );
         }).toList(),
       ),

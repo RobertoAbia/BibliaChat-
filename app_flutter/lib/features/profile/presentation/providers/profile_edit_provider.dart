@@ -10,6 +10,7 @@ class ProfileEditState {
   final GenderType? gender;
   final Denomination? denomination;
   final OriginGroup? origin;
+  final String? countryCode;
   final AgeGroup? ageGroup;
   final String bibleVersionCode;
   final bool reminderEnabled;
@@ -23,6 +24,7 @@ class ProfileEditState {
     this.gender,
     this.denomination,
     this.origin,
+    this.countryCode,
     this.ageGroup,
     this.bibleVersionCode = 'RVR1960',
     this.reminderEnabled = false,
@@ -37,6 +39,7 @@ class ProfileEditState {
     GenderType? gender,
     Denomination? denomination,
     OriginGroup? origin,
+    String? countryCode,
     AgeGroup? ageGroup,
     String? bibleVersionCode,
     bool? reminderEnabled,
@@ -50,6 +53,7 @@ class ProfileEditState {
       gender: gender ?? this.gender,
       denomination: denomination ?? this.denomination,
       origin: origin ?? this.origin,
+      countryCode: countryCode ?? this.countryCode,
       ageGroup: ageGroup ?? this.ageGroup,
       bibleVersionCode: bibleVersionCode ?? this.bibleVersionCode,
       reminderEnabled: reminderEnabled ?? this.reminderEnabled,
@@ -66,6 +70,7 @@ class ProfileEditState {
       gender: profile.gender,
       denomination: profile.denomination,
       origin: profile.origin,
+      countryCode: profile.countryCode,
       ageGroup: profile.ageGroup,
       bibleVersionCode: profile.bibleVersionCode,
       reminderEnabled: profile.reminderEnabled,
@@ -107,6 +112,11 @@ class ProfileEditNotifier extends StateNotifier<ProfileEditState> {
     state = state.copyWith(origin: value);
   }
 
+  /// Actualiza el código de país
+  void updateCountryCode(String value) {
+    state = state.copyWith(countryCode: value);
+  }
+
   /// Actualiza el grupo de edad
   void updateAgeGroup(AgeGroup value) {
     state = state.copyWith(ageGroup: value);
@@ -134,6 +144,7 @@ class ProfileEditNotifier extends StateNotifier<ProfileEditState> {
         state.gender != _originalProfile!.gender ||
         state.denomination != _originalProfile!.denomination ||
         state.origin != _originalProfile!.origin ||
+        state.countryCode != _originalProfile!.countryCode ||
         state.ageGroup != _originalProfile!.ageGroup ||
         state.bibleVersionCode != _originalProfile!.bibleVersionCode ||
         state.reminderEnabled != _originalProfile!.reminderEnabled ||
@@ -152,6 +163,7 @@ class ProfileEditNotifier extends StateNotifier<ProfileEditState> {
         gender: state.gender,
         denomination: state.denomination,
         origin: state.origin,
+        countryCode: state.countryCode,
         ageGroup: state.ageGroup,
         bibleVersionCode: state.bibleVersionCode,
         reminderEnabled: state.reminderEnabled,

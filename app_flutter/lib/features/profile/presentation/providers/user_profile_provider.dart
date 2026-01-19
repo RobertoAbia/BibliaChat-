@@ -3,10 +3,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/datasources/user_profile_remote_datasource.dart';
 import '../../data/repositories/user_profile_repository_impl.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/repositories/user_profile_repository.dart';
+
+/// Provider que extrae solo el user ID del estado de auth
+/// Solo emite cuando el user ID REALMENTE cambia (no en cada evento de auth)
+final currentUserIdProvider = Provider<String?>((ref) {
+  final authState = ref.watch(authStateChangesProvider);
+  return authState.value?.session?.user.id;
+});
 
 /// Provider para el datasource remoto
 final userProfileDatasourceProvider = Provider<UserProfileRemoteDatasource>(
@@ -22,18 +30,27 @@ final userProfileRepositoryProvider = Provider<UserProfileRepository>(
 
 /// Provider para el perfil del usuario actual
 final currentUserProfileProvider = FutureProvider<UserProfile?>((ref) async {
+  // Solo invalidar cuando el user ID cambie, no en cada evento de auth
+  ref.watch(currentUserIdProvider);
+
   final repository = ref.watch(userProfileRepositoryProvider);
   return await repository.getCurrentUserProfile();
 });
 
 /// Provider que escucha cambios en el perfil en tiempo real
 final userProfileStreamProvider = StreamProvider<UserProfile?>((ref) {
+  // Solo invalidar cuando el user ID cambie
+  ref.watch(currentUserIdProvider);
+
   final repository = ref.watch(userProfileRepositoryProvider);
   return repository.watchCurrentUserProfile();
 });
 
 /// Provider para verificar si el onboarding está completado
 final hasCompletedOnboardingProvider = FutureProvider<bool>((ref) async {
+  // Solo invalidar cuando el user ID cambie
+  ref.watch(currentUserIdProvider);
+
   final repository = ref.watch(userProfileRepositoryProvider);
   return await repository.hasCompletedOnboarding();
 });
@@ -44,6 +61,7 @@ class OnboardingState {
   final String? ageGroup;
   final String? gender;
   final String? origin; // origin_group de la BD
+  final String? countryCode; // ISO 3166-1 alpha-2 (e.g., MX, ES, CO)
   final String? denomination;
   final String? bibleVersionCode;
   final String? supportType;
@@ -59,6 +77,7 @@ class OnboardingState {
     this.ageGroup,
     this.gender,
     this.origin,
+    this.countryCode,
     this.denomination,
     this.bibleVersionCode,
     this.supportType,
@@ -75,6 +94,7 @@ class OnboardingState {
     String? ageGroup,
     String? gender,
     String? origin,
+    String? countryCode,
     String? denomination,
     String? bibleVersionCode,
     String? supportType,
@@ -90,6 +110,7 @@ class OnboardingState {
       ageGroup: ageGroup ?? this.ageGroup,
       gender: gender ?? this.gender,
       origin: origin ?? this.origin,
+      countryCode: countryCode ?? this.countryCode,
       denomination: denomination ?? this.denomination,
       bibleVersionCode: bibleVersionCode ?? this.bibleVersionCode,
       supportType: supportType ?? this.supportType,
@@ -143,6 +164,10 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
   void setOrigin(String value) {
     state = state.copyWith(origin: value);
+  }
+
+  void setCountryCode(String value) {
+    state = state.copyWith(countryCode: value);
   }
 
   void setDenomination(String value) {
@@ -206,6 +231,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
         userId: userId,
         gender: state.genderEnum,
         origin: state.originEnum,
+        countryCode: state.countryCode,
         ageGroup: state.ageGroupEnum,
         denomination: state.denominationEnum,
         bibleVersionCode: state.bibleVersionCode,
@@ -237,8 +263,17 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 }
 
 /// Provider para el notifier del onboarding
+/// Se resetea automáticamente cuando cambia el usuario (logout → nuevo anónimo)
 final onboardingProvider =
     StateNotifierProvider<OnboardingNotifier, OnboardingState>((ref) {
+  // Escuchar cambios de user ID para resetear cuando cambia el usuario
+  ref.listen(currentUserIdProvider, (previous, next) {
+    if (previous != null && previous != next) {
+      // El usuario cambió, resetear estado
+      ref.invalidateSelf();
+    }
+  });
+
   final repository = ref.watch(userProfileRepositoryProvider);
   return OnboardingNotifier(repository);
 });

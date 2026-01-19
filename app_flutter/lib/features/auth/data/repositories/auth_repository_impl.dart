@@ -211,6 +211,8 @@ class AuthRepositoryImpl implements AuthRepository {
 
       final data = response.data as Map<String, dynamic>?;
       if (data?['success'] == true) {
+        // Limpiar sesión local después de borrar cuenta en servidor
+        await _supabase.auth.signOut();
         return AuthResult.success();
       } else {
         return AuthResult.error(

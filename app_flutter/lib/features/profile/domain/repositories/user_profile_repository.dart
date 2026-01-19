@@ -14,6 +14,7 @@ abstract class UserProfileRepository {
     String? name,
     GenderType? gender,
     OriginGroup? origin,
+    String? countryCode,
     AgeGroup? ageGroup,
     Denomination? denomination,
     String? bibleVersionCode,

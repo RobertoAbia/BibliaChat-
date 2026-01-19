@@ -5,6 +5,7 @@ class UserProfile {
   final GenderType? gender;
   final Denomination? denomination;
   final OriginGroup? origin;
+  final String? countryCode; // ISO 3166-1 alpha-2 (e.g., MX, ES, CO)
   final AgeGroup? ageGroup;
   final MotiveType? motive;
   final bool reminderEnabled;
@@ -26,6 +27,7 @@ class UserProfile {
     this.gender,
     this.denomination,
     this.origin,
+    this.countryCode,
     this.ageGroup,
     this.motive,
     this.reminderEnabled = false,
@@ -48,6 +50,7 @@ class UserProfile {
     GenderType? gender,
     Denomination? denomination,
     OriginGroup? origin,
+    String? countryCode,
     AgeGroup? ageGroup,
     MotiveType? motive,
     bool? reminderEnabled,
@@ -69,6 +72,7 @@ class UserProfile {
       gender: gender ?? this.gender,
       denomination: denomination ?? this.denomination,
       origin: origin ?? this.origin,
+      countryCode: countryCode ?? this.countryCode,
       ageGroup: ageGroup ?? this.ageGroup,
       motive: motive ?? this.motive,
       reminderEnabled: reminderEnabled ?? this.reminderEnabled,

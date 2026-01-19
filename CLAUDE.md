@@ -57,7 +57,7 @@ BibliaChat/
 - Anual: $39.99/año
 
 ## Tablas Principales de la BD
-- `user_profiles` (incluye `ai_memory`, `rc_app_user_id`, `gender`)
+- `user_profiles` (incluye `ai_memory`, `rc_app_user_id`, `gender`, `country_code`)
 - `chats` + `chat_messages` (hilos por tema)
 - `saved_messages`
 - `plans` + `plan_days` + `user_plans` + `user_plan_days`
@@ -71,7 +71,7 @@ BibliaChat/
 - `deleted_user_archives` (archivado pseudonimizado para GDPR, 3 años retención)
 - `liturgical_readings` (calendario litúrgico católico - 365 días/año)
 
-## Migraciones SQL (24 total)
+## Migraciones SQL (25 total)
 - 00001-00009: Tablas core, ENUMs, RLS, índices
 - 00010: `rc_app_user_id` para restaurar compras
 - 00011: `gender` + enum `gender_type`
@@ -88,6 +88,7 @@ BibliaChat/
 - 00022: `deleted_user_archives` para archivado pseudonimizado (GDPR) al borrar cuenta
 - 00023: `bible_verses` tabla para almacenar Biblia localmente (reemplaza API.Bible)
 - 00024: `liturgical_readings` tabla para calendario litúrgico (reemplaza dependencia de API externa)
+- 00025: `country_code` en `user_profiles` para país específico (ISO 3166-1 alpha-2)
 
 ## EPICs del Proyecto (12 total)
 - **EPIC 0-1:** Foundation + Base de datos + RLS
@@ -142,7 +143,7 @@ BibliaChat/
   - Tema Material 3 (light/dark)
   - Pantallas creadas:
     - SplashScreen (auth anónimo automático)
-    - OnboardingScreen (12 páginas: Welcome → Edad → Género → País → Denominación → Biblia → Motivo → Recordatorio → Persistencia → Corazón → Análisis → Ready)
+    - OnboardingScreen (11 páginas: Welcome → Edad → Género → País → Denominación → Motivo → Recordatorio → Persistencia → Corazón → Análisis → Ready)
     - HomeScreen (racha, versículo, devoción, oración)
     - ChatListScreen (10 temas)
     - ChatScreen (interfaz de chat)
@@ -198,19 +199,18 @@ BibliaChat/
     - `userProfileStreamProvider` - Cambios en tiempo real
     - `hasCompletedOnboardingProvider` - Verificación onboarding
     - `onboardingProvider` - StateNotifier para formulario onboarding
-  - **Pantallas de onboarding (12 páginas):**
+  - **Pantallas de onboarding (11 páginas):**
     - 0: Welcome (nombre)
     - 1: Edad (age_group)
     - 2: Género (gender) - Hombre/Mujer
-    - 3: País (origin) - Dropdown 21 países hispanohablantes → mapea a origin_group
+    - 3: País - Dropdown 21 países hispanohablantes → guarda `origin` (origin_group) + `country_code` (ISO)
     - 4: Denominación
-    - 5: Versión Biblia
-    - 6: Motivo (tipo de apoyo)
-    - 7: Recordatorio (reminder_enabled, reminder_time) - Toggle + Time picker
-    - 8: Persistencia (persistence_self_report) - Sí/No para recomendar planes
-    - 9: Corazón (primer mensaje libre)
-    - 10: Análisis (animación)
-    - 11: Ready (confirmación + auto-detección timezone)
+    - 5: Motivo (tipo de apoyo)
+    - 6: Recordatorio (reminder_enabled, reminder_time) - Toggle + Time picker
+    - 7: Persistencia (persistence_self_report) - Sí/No para recomendar planes
+    - 8: Corazón (primer mensaje libre)
+    - 9: Análisis (animación)
+    - 10: Ready (confirmación + auto-detección timezone)
   - **Auto-detección de timezone:**
     - Usa `flutter_timezone` para detectar zona horaria del dispositivo
     - Se guarda en `user_profiles.timezone` al completar onboarding
@@ -824,14 +824,13 @@ BibliaChat/
 - [x] T-0307: Editar Perfil desde Settings
   - **ProfileEditScreen:**
     - Pantalla completa de edición con todas las preferencias del usuario
-    - Secciones: Datos Personales, Fe y Creencias, Origen, Biblia, Recordatorio
+    - Secciones: Datos Personales, Fe y Creencias, Origen, Recordatorio
   - **Campos editables:**
     - Nombre (TextField)
     - Género (Hombre/Mujer con iconos)
     - Denominación (10 opciones con ChoiceChips)
-    - País (Dropdown con banderas, idéntico al onboarding) → guarda `origin_group`
+    - País (Dropdown con banderas, idéntico al onboarding) → guarda `origin` (origin_group) + `country_code` (ISO)
     - Grupo de edad (ChoiceChips)
-    - Versión de la Biblia (Radio buttons: RVR1960, NVI, LBLA, NTV)
     - Recordatorio (Toggle + Time picker)
   - **ProfileEditNotifier:**
     - StateNotifier con `hasChanges` para detectar cambios sin guardar
@@ -1009,6 +1008,29 @@ BibliaChat/
     - `supabase/migrations/liturgical_data/liturgical_readings_2026.sql`
   - **Archivos modificados:**
     - `supabase/functions/fetch-daily-gospel/index.ts` - Usa tabla local con fallback
+
+- [x] Feature: Aislamiento de datos por usuario (User Data Isolation)
+  - **Problema:** Al crear un nuevo usuario anónimo en el mismo móvil, "Editar Perfil" mostraba datos del usuario anterior
+  - **Causa raíz:** Riverpod providers no se invalidaban al cambiar de usuario
+  - **Solución implementada:**
+    - Creado `currentUserIdProvider` que solo emite cuando el user ID realmente cambia
+    - Actualizado `currentUserProfileProvider`, `userProfileStreamProvider`, `hasCompletedOnboardingProvider` para usar este provider
+    - `onboardingProvider` ahora se resetea automáticamente al cambiar de usuario
+    - Añadido `ref.invalidate(currentUserProfileProvider)` después de completar onboarding
+  - **Stories progress aislado por usuario:**
+    - `StoryViewedService` ahora incluye user ID en la clave de SharedPreferences
+    - Formato: `story_viewed_{userId}_{date}` (antes solo `story_viewed_{date}`)
+    - Cada usuario tiene su propio progreso de Stories
+  - **Delete account ahora hace logout:**
+    - Añadido `await _supabase.auth.signOut()` después de borrar cuenta en servidor
+    - El usuario es redirigido correctamente a Splash
+  - **Archivos modificados:**
+    - `lib/features/profile/presentation/providers/user_profile_provider.dart` - `currentUserIdProvider` + invalidación
+    - `lib/core/services/story_viewed_service.dart` - User ID en clave
+    - `lib/core/providers/story_viewed_provider.dart` - Pasa user ID al servicio
+    - `lib/features/home/presentation/screens/home_screen.dart` - Usa user ID para marcar slides
+    - `lib/features/auth/data/repositories/auth_repository_impl.dart` - signOut después de delete
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - Invalidate profile después de onboarding
 
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
@@ -1289,3 +1311,9 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
   - Comparar con el valor del enum, NO con string: `status == PlanStatus.completed` (no `== 'completed'`)
   - Mejor aún: usar getters del entity como `userPlan.isCompleted` que ya hacen la comparación correcta
   - Error silencioso: `enum == 'string'` siempre es `false` sin error de compilación
+- **Aislamiento de datos por usuario (User Data Isolation):**
+  - Los providers que dependen del usuario deben observar `currentUserIdProvider`
+  - `currentUserIdProvider` extrae solo el user ID del auth state (evita invalidaciones innecesarias)
+  - Para StateNotifierProviders, usar `ref.listen()` con `ref.invalidateSelf()` cuando cambia el usuario
+  - SharedPreferences con datos por usuario deben incluir user ID en la clave: `{prefix}_{userId}_{date}`
+  - Después de operaciones que cambian datos del usuario (onboarding, delete), llamar `ref.invalidate()`

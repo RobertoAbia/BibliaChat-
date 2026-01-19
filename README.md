@@ -110,9 +110,9 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - Datos Personales (nombre, género)
   - Fe y Creencias (denominación)
   - Origen (país con banderas, grupo de edad)
-  - Biblia (versión preferida)
   - Recordatorio (toggle + hora)
 - **Dropdown de países** idéntico al onboarding (21 países hispanohablantes con banderas)
+- **Guarda país en dos campos:** `origin` (origin_group para IA) + `country_code` (ISO 3166-1)
 - **Detección de cambios** con diálogo de confirmación al salir sin guardar
 
 ### Eliminar Mensaje Individual
@@ -168,7 +168,7 @@ BibliaChat/
 │       │   └── providers/          # story_viewed_provider
 │       └── features/
 │           ├── auth/               # SplashScreen
-│           ├── onboarding/         # 12 páginas de onboarding
+│           ├── onboarding/         # 11 páginas de onboarding
 │           ├── home/
 │           │   ├── data/           # daily_activity_remote_datasource
 │           │   └── presentation/   # HomeScreen, daily_progress_provider
@@ -179,7 +179,7 @@ BibliaChat/
 │           ├── subscription/       # PaywallScreen, subscription_provider
 │           └── saved_messages/     # Mis Reflexiones (mensajes guardados)
 ├── supabase/
-│   ├── migrations/                 # 24 migraciones SQL
+│   ├── migrations/                 # 25 migraciones SQL
 │   └── functions/
 │       ├── fetch-daily-gospel/     # Edge Function evangelio (desplegada como clever-worker)
 │       ├── chat-send-message/      # Edge Function chat IA (combined.ts)

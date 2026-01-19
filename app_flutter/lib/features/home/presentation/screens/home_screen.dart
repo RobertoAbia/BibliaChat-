@@ -373,13 +373,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   /// Opens Stories at a specific slide index
   Future<void> _openStoriesAtIndex(int slideIndex) async {
+    final userId = ref.read(currentUserIdProvider);
     final gospelAsync = ref.read(dailyGospelProvider);
     final profileAsync = ref.read(currentUserProfileProvider);
     final service = ref.read(storyViewedServiceProvider);
 
     final gospel = gospelAsync.valueOrNull;
-    if (gospel == null || !gospel.hasStoriesContent) {
-      // No gospel content available
+    if (gospel == null || !gospel.hasStoriesContent || userId == null) {
+      // No gospel content available or no user
       return;
     }
 
@@ -395,8 +396,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           initialSlideIndex: slideIndex,
           topicKey: topicKey,
           onSlideViewed: (index) async {
-            // Mark slide as viewed
-            await service.markSlideAsViewed(gospel.date, index);
+            // Mark slide as viewed (with user ID)
+            await service.markSlideAsViewed(userId, gospel.date, index);
           },
         ),
         fullscreenDialog: true,
@@ -408,7 +409,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     // Read directly from SharedPreferences to check completion
     // This avoids race conditions with provider refresh
-    final viewedSlides = await service.getViewedSlides(gospel.date);
+    final viewedSlides = await service.getViewedSlides(userId, gospel.date);
     debugPrint('After Stories: viewedSlides = $viewedSlides (length=${viewedSlides.length})');
 
     if (viewedSlides.length >= 3) {
@@ -563,6 +564,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildGospelCard() {
+    final userId = ref.watch(currentUserIdProvider);
     final gospelAsync = ref.watch(dailyGospelProvider);
     final profileAsync = ref.watch(currentUserProfileProvider);
     final viewedSlidesAsync = ref.watch(viewedSlidesProvider);
@@ -581,7 +583,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         onRetry: () => ref.invalidate(dailyGospelProvider),
       ),
       data: (gospel) {
-        if (gospel == null) {
+        if (gospel == null || userId == null) {
           return _GospelErrorCard(
             message: 'No hay contenido disponible',
             onRetry: () => ref.invalidate(dailyGospelProvider),
@@ -607,7 +609,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     initialSlideIndex: 0,
                     topicKey: topicKey,
                     onSlideViewed: (index) async {
-                      await service.markSlideAsViewed(gospel.date, index);
+                      await service.markSlideAsViewed(userId, gospel.date, index);
                     },
                   ),
                   fullscreenDialog: true,
@@ -618,7 +620,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               ref.invalidate(viewedSlidesProvider);
 
               // Check completion - read directly from SharedPreferences
-              final viewedSlidesNow = await service.getViewedSlides(gospel.date);
+              final viewedSlidesNow = await service.getViewedSlides(userId, gospel.date);
               debugPrint('After Stories (Gospel Card): viewedSlides = $viewedSlidesNow (length=${viewedSlidesNow.length})');
 
               if (viewedSlidesNow.length >= 3) {

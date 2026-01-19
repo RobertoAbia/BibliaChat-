@@ -24,7 +24,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 12; // Welcome + 9 preguntas + Analyzing + Ready
+  final int _totalPages = 11; // Welcome + 8 preguntas + Analyzing + Ready
 
   @override
   void dispose() {
@@ -55,6 +55,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     final success = await notifier.completeOnboarding();
 
     if (success && mounted) {
+      // Invalidar el provider de perfil para que se recargue con los nuevos datos
+      ref.invalidate(currentUserProfileProvider);
       // Mostrar paywall después del onboarding
       context.go(RouteConstants.paywall);
     } else if (mounted) {
@@ -82,13 +84,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         return state.origin != null;
       case 4: // Denomination
         return state.denomination != null;
-      case 5: // Bible version
-        return state.bibleVersionCode != null;
-      case 6: // Support type
+      case 5: // Support type
         return state.supportType != null;
-      case 7: // Reminder - optional, always can proceed
+      case 6: // Reminder - optional, always can proceed
         return true;
-      case 8: // Persistence - requires selection
+      case 7: // Persistence - requires selection
         return state.persistenceSelfReport != null;
       default:
         return true;
@@ -197,6 +197,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         final notifier = ref.read(onboardingProvider.notifier);
                         return OnboardingCountryPage(
                           onSelect: (originGroup) => notifier.setOrigin(originGroup),
+                          onCountryCodeSelect: (code) => notifier.setCountryCode(code),
                           onNext: _canProceed() ? _nextPage : null,
                         );
                       },
@@ -245,45 +246,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 5: Bible version
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        final notifier = ref.read(onboardingProvider.notifier);
-                        return OnboardingSelectionPage(
-                          verseReference: '2 Timoteo 3:16',
-                          title: 'Toda la Escritura es inspirada por Dios.',
-                          subtitle: '¿Qué versión de la Biblia prefieres?',
-                          options: const [
-                            SelectionOption(
-                              key: 'RVR1960',
-                              label: 'Reina-Valera 1960',
-                              subtitle: 'Tradicional y ampliamente usada',
-                            ),
-                            SelectionOption(
-                              key: 'NVI',
-                              label: 'Nueva Versión Internacional',
-                              subtitle: 'Lenguaje contemporáneo',
-                            ),
-                            SelectionOption(
-                              key: 'NTV',
-                              label: 'Nueva Traducción Viviente',
-                              subtitle: 'Fácil de entender',
-                            ),
-                            SelectionOption(
-                              key: 'LBLA',
-                              label: 'La Biblia de las Américas',
-                              subtitle: 'Traducción literal',
-                            ),
-                          ],
-                          selectedKey: state.bibleVersionCode,
-                          onSelect: (key) => notifier.setBibleVersion(key),
-                          onNext: _canProceed() ? _nextPage : null,
-                        );
-                      },
-                    ),
-
-                    // Page 6: Support type
+                    // Page 5: Support type
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -311,7 +274,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 7: Reminder
+                    // Page 6: Reminder
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -326,7 +289,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 8: Persistence
+                    // Page 7: Persistence
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -339,7 +302,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 9: Heart input
+                    // Page 8: Heart input
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -355,12 +318,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 10: Analyzing
+                    // Page 9: Analyzing
                     OnboardingAnalyzingPage(
                       onComplete: _nextPage,
                     ),
 
-                    // Page 11: Ready
+                    // Page 10: Ready
                     OnboardingReadyPage(
                       onStart: _completeOnboarding,
                     ),

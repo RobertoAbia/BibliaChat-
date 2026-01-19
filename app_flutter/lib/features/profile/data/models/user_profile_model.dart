@@ -8,6 +8,7 @@ class UserProfileModel extends UserProfile {
     super.gender,
     super.denomination,
     super.origin,
+    super.countryCode,
     super.ageGroup,
     super.motive,
     super.reminderEnabled,
@@ -32,6 +33,7 @@ class UserProfileModel extends UserProfile {
       gender: GenderType.fromString(json['gender'] as String?),
       denomination: Denomination.fromString(json['denomination'] as String?),
       origin: OriginGroup.fromString(json['origin'] as String?),
+      countryCode: json['country_code'] as String?,
       ageGroup: AgeGroup.fromString(json['age_group'] as String?),
       motive: MotiveType.fromString(json['motive'] as String?),
       reminderEnabled: json['reminder_enabled'] as bool? ?? false,
@@ -59,6 +61,7 @@ class UserProfileModel extends UserProfile {
       if (gender != null) 'gender': gender!.dbValue,
       if (denomination != null) 'denomination': denomination!.dbValue,
       if (origin != null) 'origin': origin!.dbValue,
+      if (countryCode != null) 'country_code': countryCode,
       if (ageGroup != null) 'age_group': ageGroup!.dbValue,
       if (motive != null) 'motive': motive!.dbValue,
       'reminder_enabled': reminderEnabled,
@@ -81,6 +84,7 @@ class UserProfileModel extends UserProfile {
     GenderType? gender,
     Denomination? denomination,
     OriginGroup? origin,
+    String? countryCode,
     AgeGroup? ageGroup,
     MotiveType? motive,
     bool? reminderEnabled,
@@ -100,6 +104,7 @@ class UserProfileModel extends UserProfile {
     if (gender != null) map['gender'] = gender.dbValue;
     if (denomination != null) map['denomination'] = denomination.dbValue;
     if (origin != null) map['origin'] = origin.dbValue;
+    if (countryCode != null) map['country_code'] = countryCode;
     if (ageGroup != null) map['age_group'] = ageGroup.dbValue;
     if (motive != null) map['motive'] = motive.dbValue;
     if (reminderEnabled != null) map['reminder_enabled'] = reminderEnabled;
@@ -128,6 +133,7 @@ class UserProfileModel extends UserProfile {
       gender: entity.gender,
       denomination: entity.denomination,
       origin: entity.origin,
+      countryCode: entity.countryCode,
       ageGroup: entity.ageGroup,
       motive: entity.motive,
       reminderEnabled: entity.reminderEnabled,
