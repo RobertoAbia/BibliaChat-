@@ -40,6 +40,10 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
   final FocusNode _messageFocusNode = FocusNode();
   bool _isTextFieldFocused = false;
 
+  // Para diferenciar entre tap y long press
+  bool _isLongPressing = false;
+  double? _tapX;
+
   // Duración de cada slide (en segundos)
   static const int _slideDuration = 8;
 
@@ -182,35 +186,39 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
   }
 
   void _onTapDown(TapDownDetails details) {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final tapX = details.globalPosition.dx;
-
-    // Pausar el progreso
+    // Guardar posición para usar en _onTapUp
+    _tapX = details.globalPosition.dx;
+    // Pausar mientras está presionado
     _progressController.stop();
-
-    if (tapX < screenWidth / 3) {
-      // Tap izquierdo - anterior
-      _previousSlide();
-    } else if (tapX > screenWidth * 2 / 3) {
-      // Tap derecho - siguiente
-      _nextSlide();
-    }
-    // Tap central - solo pausa (se reanuda en onTapUp)
   }
 
   void _onTapUp(TapUpDetails details) {
-    // Reanudar el progreso
+    // Solo navegar si fue un tap rápido (no long press)
+    if (!_isLongPressing && _tapX != null) {
+      final screenWidth = MediaQuery.of(context).size.width;
+      if (_tapX! < screenWidth / 3) {
+        // Tap izquierdo - anterior
+        _previousSlide();
+        return; // _previousSlide ya reinicia el progreso
+      } else if (_tapX! > screenWidth * 2 / 3) {
+        // Tap derecho - siguiente
+        _nextSlide();
+        return; // _nextSlide ya reinicia el progreso
+      }
+    }
+    // Tap central o release después de long press - reanudar
     _progressController.forward();
+    _tapX = null;
   }
 
   void _onLongPressStart(LongPressStartDetails details) {
-    // Pausar en long press
+    _isLongPressing = true;
     _progressController.stop();
     HapticFeedback.lightImpact();
   }
 
   void _onLongPressEnd(LongPressEndDetails details) {
-    // Reanudar en long press end
+    _isLongPressing = false;
     _progressController.forward();
   }
 

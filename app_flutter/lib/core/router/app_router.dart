@@ -171,7 +171,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   );
 });
 
-/// Shell widget for bottom navigation
+/// Shell widget for bottom navigation with swipe support
 class MainShell extends StatefulWidget {
   final Widget child;
 
@@ -183,35 +183,69 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
+  late PageController _pageController;
 
-  void _onItemTapped(int index, BuildContext context) {
+  // Lista de rutas para sincronizar con GoRouter
+  static const _routes = [
+    RouteConstants.home,
+    RouteConstants.chatList,
+    RouteConstants.study,
+    RouteConstants.settings,
+  ];
+
+  // Las pantallas principales (se mantienen en memoria)
+  final List<Widget> _screens = const [
+    HomeScreen(),
+    ChatListScreen(),
+    StudyScreen(),
+    SettingsScreen(),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _selectedIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+    // Animar a la página seleccionada
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeInOut,
+    );
+    // Actualizar URL para deep linking
+    context.go(_routes[index]);
+  }
 
-    switch (index) {
-      case 0:
-        context.go(RouteConstants.home);
-        break;
-      case 1:
-        context.go(RouteConstants.chatList);
-        break;
-      case 2:
-        context.go(RouteConstants.study);
-        break;
-      case 3:
-        context.go(RouteConstants.settings);
-        break;
-    }
+  void _onPageChanged(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    // Actualizar URL para deep linking
+    context.go(_routes[index]);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: widget.child,
+      body: PageView(
+        controller: _pageController,
+        onPageChanged: _onPageChanged,
+        children: _screens,
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) => _onItemTapped(index, context),
+        onDestinationSelected: _onItemTapped,
         destinations: const [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),

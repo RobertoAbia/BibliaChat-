@@ -960,6 +960,38 @@ BibliaChat/
     - `lib/features/daily_gospel/presentation/screens/gospel_stories_screen.dart` - Icono share
     - `lib/features/daily_gospel/presentation/screens/share_image_screen.dart` - Editor expandido + captura optimizada
 
+- [x] Feature: Stories - Long press pausa en cualquier parte
+  - **Problema:** Long press en los laterales de la pantalla navegaba en vez de pausar
+  - **Comportamiento anterior:**
+    - Long press CENTRO → pausaba (correcto)
+    - Long press IZQUIERDA → navegaba a slide anterior (incorrecto)
+    - Long press DERECHA → navegaba a slide siguiente (incorrecto)
+  - **Comportamiento nuevo:**
+    - Long press CUALQUIER PARTE → pausa la story
+    - TAP (tap rápido) izquierda/derecha → navega entre slides
+  - **Solución técnica:**
+    - Añadidos flags `_isLongPressing` y `_tapX` para rastrear estado
+    - `_onTapDown` solo guarda posición y pausa (ya no navega)
+    - `_onTapUp` navega solo si NO fue long press
+    - `_onLongPressStart` marca `_isLongPressing = true`
+    - `_onLongPressEnd` marca `_isLongPressing = false`
+  - **Archivo modificado:**
+    - `lib/features/daily_gospel/presentation/screens/gospel_stories_screen.dart`
+
+- [x] Feature: Navegación por swipe entre pantallas principales
+  - **Funcionalidad:** Deslizar el dedo para navegar entre Home, Chat, Estudiar y Perfil
+  - **Implementación:**
+    - `MainShell` ahora usa `PageView` en lugar de mostrar solo `widget.child`
+    - `PageController` para controlar animaciones de swipe
+    - Las 4 pantallas principales se mantienen en memoria (no se reconstruyen)
+    - Sincronización bidireccional: swipe ↔ NavigationBar ↔ GoRouter URLs
+  - **Características:**
+    - Animación suave de 250ms con `Curves.easeInOut`
+    - Deep linking preservado (URLs se actualizan al navegar)
+    - Botones del NavigationBar también animan la transición
+  - **Archivo modificado:**
+    - `lib/core/router/app_router.dart` - `MainShell` con PageView
+
 - [x] Feature: Almacenar Biblia en Supabase (reemplaza API.Bible)
   - **Problema:** API.Bible cambió su modelo de precios y ya no permite acceso gratuito a Biblias en español
   - **Solución:** Almacenar la Reina Valera 1909 (dominio público) directamente en Supabase
@@ -1345,3 +1377,15 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
   - Para StateNotifierProviders, usar `ref.listen()` con `ref.invalidateSelf()` cuando cambia el usuario
   - SharedPreferences con datos por usuario deben incluir user ID en la clave: `{prefix}_{userId}_{date}`
   - Después de operaciones que cambian datos del usuario (onboarding, delete), llamar `ref.invalidate()`
+- **Diferenciar tap vs long press:**
+  - `onTapDown` se dispara ANTES de saber si es tap o long press
+  - Para lógica diferenciada: usar flag `_isLongPressing` + guardar posición en `_tapX`
+  - `onLongPressStart` → `_isLongPressing = true`
+  - `onLongPressEnd` → `_isLongPressing = false`
+  - `onTapUp` → solo ejecutar acción si `!_isLongPressing`
+- **Navegación por swipe entre tabs (PageView + NavigationBar):**
+  - En `ShellRoute`, el `MainShell` puede ignorar `widget.child` y usar `PageView` con pantallas fijas
+  - `PageController` para animaciones suaves entre páginas
+  - `onPageChanged` actualiza `_selectedIndex` y llama `context.go()` para sincronizar URL
+  - `onDestinationSelected` llama `_pageController.animateToPage()` para animación consistente
+  - Las pantallas se mantienen en memoria (no se reconstruyen al volver)
