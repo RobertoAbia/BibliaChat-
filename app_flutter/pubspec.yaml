@@ -65,6 +65,9 @@ dependencies:
   equatable: ^2.0.7
   gal: ^2.3.2
 
+  # App Store review
+  in_app_review: ^2.0.9
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

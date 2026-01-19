@@ -155,6 +155,14 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   3. Borra de `auth.users` (CASCADE elimina todo)
 - **UX**: Botón en Settings → Diálogo de confirmación → Redirección a Splash
 
+### Valorar la App + Compartir
+- **Valorar la app**: Dialog nativo de review (Google Play / App Store)
+  - Usa `in_app_review` para mostrar review nativo
+  - Fallback: abre store directamente si no está disponible
+- **Compartir con un amigo**: Sheet nativo de compartir
+  - Texto predefinido con enlaces a ambas stores
+  - Usa `share_plus` (nativo iOS/Android)
+
 ## Estructura del Proyecto
 
 ```

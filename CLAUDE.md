@@ -932,6 +932,20 @@ BibliaChat/
     - `pubspec.yaml` - Nuevas dependencias + dependency_override para app_links
   - **Pendiente:** Verificar que el fix de overflow funciona correctamente
 
+- [x] Feature: Simplificar Settings + Valorar/Compartir
+  - **Sección Privacidad eliminada:** No era necesaria para MVP (borrar cuenta ya existe)
+  - **"Valorar la app" implementado:**
+    - Usa `in_app_review` para mostrar dialog nativo de review
+    - Si no está disponible, abre App Store directamente
+    - App Store ID: `6740001949`
+  - **"Compartir con un amigo" implementado:**
+    - Usa `share_plus` para compartir nativo
+    - Texto predefinido con enlaces a iOS/Android stores
+  - **Dependencia añadida:** `in_app_review: ^2.0.9`
+  - **Archivos modificados:**
+    - `lib/features/settings/presentation/screens/settings_screen.dart` - Eliminada sección Privacidad, implementados onTap handlers
+    - `pubspec.yaml` - Nueva dependencia in_app_review
+
 - [x] Feature: Almacenar Biblia en Supabase (reemplaza API.Bible)
   - **Problema:** API.Bible cambió su modelo de precios y ya no permite acceso gratuito a Biblias en español
   - **Solución:** Almacenar la Reina Valera 1909 (dominio público) directamente en Supabase
