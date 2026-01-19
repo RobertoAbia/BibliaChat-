@@ -350,7 +350,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
             GestureDetector(
               onTap: _shareContent,
               child: Icon(
-                Icons.send_outlined,
+                Icons.ios_share,
                 color: AppTheme.textPrimary,
                 size: 26,
               ),

@@ -135,13 +135,14 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 
 ### Compartir Reflexión como Imagen
 - **Editor fullscreen estilo Instagram** al tocar compartir en Stories
+- **Selector de fondos expandido por defecto** (usuario entiende que puede editar)
 - **Controles compactos** con iconos: paleta (fondos), "Aa" (fuentes), "aA" (tamaño)
 - **5 fondos predefinidos** (gradientes: Noche, Dorado, Púrpura, Esperanza, Atardecer)
 - **Selector de foto de galería** con `image_picker`
 - **4 fuentes Google Fonts**: Lora, Playfair Display, Nunito, Merriweather
 - **Pellizcar para zoom** + arrastrar para mover texto
 - **Bottom sheet con opciones**: Compartir o Guardar en galería
-- Captura con `screenshot` package a 3x resolución
+- **Captura optimizada**: resolución 1x, sin parpadeo de UI
 
 ### Borrar Cuenta (GDPR-compliant)
 - **Cumplimiento GDPR/Protección de Datos**:

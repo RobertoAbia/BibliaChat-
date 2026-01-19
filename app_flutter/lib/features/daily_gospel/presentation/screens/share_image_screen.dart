@@ -40,7 +40,7 @@ class _ShareImageScreenState extends State<ShareImageScreen> {
   File? _customBackgroundImage;
   bool _isSharing = false;
   bool _showControls = true;
-  _ExpandedControl _expandedControl = _ExpandedControl.none;
+  _ExpandedControl _expandedControl = _ExpandedControl.background;
 
   // Text transformation - Instagram-style
   double _scale = 1.0;
@@ -218,16 +218,15 @@ class _ShareImageScreenState extends State<ShareImageScreen> {
       _isSharing = true;
       _showControls = false;
     });
-    await Future.delayed(const Duration(milliseconds: 100));
+    // Wait for next frame so controls are hidden
+    await Future.delayed(const Duration(milliseconds: 16));
 
     try {
-      return await _screenshotController.capture(pixelRatio: 3.0);
+      return await _screenshotController.capture(pixelRatio: 1.0);
     } finally {
       if (mounted) {
-        setState(() {
-          _isSharing = false;
-          _showControls = true;
-        });
+        setState(() => _isSharing = false);
+        // Note: _showControls is restored in _executeShare/_saveToGallery
       }
     }
   }
@@ -247,6 +246,8 @@ class _ShareImageScreenState extends State<ShareImageScreen> {
       await Share.shareXFiles([XFile(imagePath)]);
     } catch (e) {
       _showError('Error al compartir: $e');
+    } finally {
+      if (mounted) setState(() => _showControls = true);
     }
   }
 
@@ -274,6 +275,8 @@ class _ShareImageScreenState extends State<ShareImageScreen> {
       }
     } catch (e) {
       _showError('Error al guardar: $e');
+    } finally {
+      if (mounted) setState(() => _showControls = true);
     }
   }
 
@@ -324,6 +327,7 @@ class _ShareImageScreenState extends State<ShareImageScreen> {
               right: 0,
               child: _buildBottomBar(),
             ),
+
         ],
       ),
     );

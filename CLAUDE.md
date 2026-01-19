@@ -946,6 +946,20 @@ BibliaChat/
     - `lib/features/settings/presentation/screens/settings_screen.dart` - Eliminada sección Privacidad, implementados onTap handlers
     - `pubspec.yaml` - Nueva dependencia in_app_review
 
+- [x] Feature: Mejoras UX en Stories y ShareImageScreen
+  - **Icono de compartir en Stories:** Cambiado de `Icons.send_outlined` a `Icons.ios_share` (más reconocible)
+  - **ShareImageScreen - Editor desplegado por defecto:**
+    - Selector de fondos se muestra expandido al entrar (`_ExpandedControl.background`)
+    - Usuario entiende inmediatamente que puede editar
+  - **ShareImageScreen - Captura optimizada:**
+    - `pixelRatio: 1.0` (resolución del dispositivo, más rápido)
+    - Delay reducido a 16ms (un frame)
+    - Flujo simplificado: controles se ocultan solo durante captura
+    - Sin parpadeo de UI al compartir
+  - **Archivos modificados:**
+    - `lib/features/daily_gospel/presentation/screens/gospel_stories_screen.dart` - Icono share
+    - `lib/features/daily_gospel/presentation/screens/share_image_screen.dart` - Editor expandido + captura optimizada
+
 - [x] Feature: Almacenar Biblia en Supabase (reemplaza API.Bible)
   - **Problema:** API.Bible cambió su modelo de precios y ya no permite acceso gratuito a Biblias en español
   - **Solución:** Almacenar la Reina Valera 1909 (dominio público) directamente en Supabase
