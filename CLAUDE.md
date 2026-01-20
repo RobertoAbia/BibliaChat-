@@ -1286,6 +1286,36 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
 - **Navegación fullscreen (ocultar bottom nav):**
   - Usar `Navigator.of(context, rootNavigator: true).push()` + `fullscreenDialog: true`
   - El `pop()` también debe usar `rootNavigator: true`
+- **Swipe entre tabs + GoRouter ShellRoute:**
+  - MainShell usa PageView para swipe entre tabs principales (Home, Chat, Study, Settings)
+  - **Problema:** ShellRoute pasa `child` pero si usas PageView con pantallas hardcodeadas, ignoras el child y las rutas anidadas no funcionan
+  - **Solución:** Detectar si estamos en ruta principal o anidada:
+    ```dart
+    body: isMainRoute
+        ? PageView(children: _screens)  // Tabs: swipe funciona
+        : widget.child,                  // Rutas anidadas: GoRouter controla
+    ```
+  - `_isMainRoute()` compara location exacta con `/home`, `/chat`, `/study`, `/settings`
+  - Recrear PageController al volver de ruta anidada para mostrar la tab correcta
+- **Botón atrás Android + GoRouter:**
+  - `PopScope` con `canPop: false` NO recibe eventos en Android 13+ con GoRouter
+  - **Solución:** Usar `BackButtonListener` que sí recibe el evento:
+    ```dart
+    BackButtonListener(
+      onBackButtonPressed: () async {
+        if (GoRouter.of(context).canPop()) {
+          GoRouter.of(context).pop();
+          return true;
+        } else if (isMainRoute) {
+          await SystemNavigator.pop(); // Cierra la app
+          return true;
+        }
+        return false;
+      },
+      child: Scaffold(...),
+    )
+    ```
+  - Requiere `android:enableOnBackInvokedCallback="true"` en AndroidManifest.xml
 - **TextField sin contenedores anidados:**
   - Usar Container con borde + TextField con `fillColor: Colors.transparent`, `filled: false`
   - Evitar GlassContainer.input() que crea efecto de caja dentro de caja

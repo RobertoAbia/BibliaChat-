@@ -23,7 +23,7 @@ class RouteConstants {
 
   // Study Plans
   static const String planDetail = '/study/plan/:planId';
-  static const String planDay = '/study/plan/:planId/day/:dayNumber';
+  static const String planDay = '/study/day/:userPlanId';
 
   // Subscription
   static const String paywall = '/paywall';

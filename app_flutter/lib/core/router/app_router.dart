@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -182,18 +183,18 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  int _selectedIndex = 0;
-  late PageController _pageController;
+  PageController? _pageController;
+  String? _lastLocation;
 
-  // Lista de rutas para sincronizar con GoRouter
-  static const _routes = [
+  // Rutas principales (tabs)
+  static const _mainRoutes = [
     RouteConstants.home,
     RouteConstants.chatList,
     RouteConstants.study,
     RouteConstants.settings,
   ];
 
-  // Las pantallas principales (se mantienen en memoria)
+  // Las pantallas principales (se mantienen en memoria para swipe)
   final List<Widget> _screens = const [
     HomeScreen(),
     ChatListScreen(),
@@ -202,72 +203,109 @@ class _MainShellState extends State<MainShell> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _pageController = PageController(initialPage: _selectedIndex);
-  }
-
-  @override
   void dispose() {
-    _pageController.dispose();
+    _pageController?.dispose();
     super.dispose();
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    // Animar a la página seleccionada
-    _pageController.animateToPage(
+  // Detectar si estamos en una ruta principal (tab) o anidada
+  bool _isMainRoute(String location) {
+    return _mainRoutes.contains(location);
+  }
+
+  // Obtener el índice de la tab según la ruta
+  int _getTabIndex(String location) {
+    if (location.startsWith('/settings')) return 3;
+    if (location.startsWith('/study')) return 2;
+    if (location.startsWith('/chat')) return 1;
+    return 0; // /home por defecto
+  }
+
+  void _onItemTapped(int index, String currentLocation) {
+    // Si estamos en ruta anidada, navegar a la tab
+    if (!_isMainRoute(currentLocation)) {
+      context.go(_mainRoutes[index]);
+      return;
+    }
+
+    // Si estamos en tabs, animar el PageView y sincronizar
+    _pageController?.animateToPage(
       index,
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeInOut,
     );
-    // Actualizar URL para deep linking
-    context.go(_routes[index]);
+    context.go(_mainRoutes[index]);
   }
 
   void _onPageChanged(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    // Actualizar URL para deep linking
-    context.go(_routes[index]);
+    context.go(_mainRoutes[index]);
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: PageView(
-        controller: _pageController,
-        onPageChanged: _onPageChanged,
-        children: _screens,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: _onItemTapped,
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: 'Hoy',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.chat_bubble_outline),
-            selectedIcon: Icon(Icons.chat_bubble),
-            label: 'Chat',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.menu_book_outlined),
-            selectedIcon: Icon(Icons.menu_book),
-            label: 'Estudiar',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Perfil',
-          ),
-        ],
+    final location = GoRouterState.of(context).uri.path;
+    final isMainRoute = _isMainRoute(location);
+    final selectedIndex = _getTabIndex(location);
+
+    // Detectar si venimos de una ruta anidada
+    final wasOnNestedRoute = _lastLocation != null && !_isMainRoute(_lastLocation!);
+
+    // Crear PageController o recrearlo si volvemos de ruta anidada
+    if (isMainRoute) {
+      if (_pageController == null || wasOnNestedRoute) {
+        _pageController?.dispose();
+        _pageController = PageController(initialPage: selectedIndex);
+      }
+    }
+    _lastLocation = location;
+
+    return BackButtonListener(
+      onBackButtonPressed: () async {
+        final router = GoRouter.of(context);
+        if (router.canPop()) {
+          router.pop();
+          return true;
+        } else if (isMainRoute) {
+          await SystemNavigator.pop();
+          return true;
+        }
+        return false;
+      },
+      child: Scaffold(
+        // Si es ruta principal → PageView (swipe), si es anidada → child
+        body: isMainRoute
+            ? PageView(
+                controller: _pageController,
+                onPageChanged: _onPageChanged,
+                children: _screens,
+              )
+            : widget.child,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: selectedIndex,
+          onDestinationSelected: (index) => _onItemTapped(index, location),
+          destinations: const [
+            NavigationDestination(
+              icon: Icon(Icons.home_outlined),
+              selectedIcon: Icon(Icons.home),
+              label: 'Hoy',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.chat_bubble_outline),
+              selectedIcon: Icon(Icons.chat_bubble),
+              label: 'Chat',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.menu_book_outlined),
+              selectedIcon: Icon(Icons.menu_book),
+              label: 'Estudiar',
+            ),
+            NavigationDestination(
+              icon: Icon(Icons.person_outline),
+              selectedIcon: Icon(Icons.person),
+              label: 'Perfil',
+            ),
+          ],
+        ),
       ),
     );
   }
