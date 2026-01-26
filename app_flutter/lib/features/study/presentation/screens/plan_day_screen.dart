@@ -211,8 +211,8 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
         ref.read(pendingPlanContentProvider.notifier).state = dayContent;
       }
 
-      // Navigate to chat (sin bottom nav)
-      context.push('/chat-conversation/$chatId');
+      // Navigate to chat
+      context.push('/chat/id/$chatId');
     } catch (e, st) {
       debugPrint('❌ Error opening plan chat: $e');
       debugPrint('Stack trace: $st');

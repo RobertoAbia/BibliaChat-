@@ -46,9 +46,6 @@ class _BibliaChatAppState extends ConsumerState<BibliaChatApp> {
 
   // Helper para obtener la ruta padre de una ruta anidada
   String _getParentRoute(String location) {
-    // Chat conversations (fuera del ShellRoute) → volver a lista de chats
-    if (location.startsWith('/chat-conversation')) return RouteConstants.chatList;
-    // Rutas anidadas dentro del ShellRoute
     if (location.startsWith('/chat/')) return RouteConstants.chatList;
     if (location.startsWith('/study/')) return RouteConstants.study;
     if (location.startsWith('/settings/')) return RouteConstants.settings;

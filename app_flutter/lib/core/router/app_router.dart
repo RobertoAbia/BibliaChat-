@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../app.dart'; // Para currentTabIndexProvider y currentLocationProvider
+import '../../app.dart'; // Para currentTabIndexProvider
 
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
@@ -26,20 +26,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: RouteConstants.splash,
     debugLogDiagnostics: true,
-    // Actualizar el provider global con la ruta actual (para rutas fuera del ShellRoute)
-    redirect: (context, state) {
-      final location = state.uri.path;
-      // Solo actualizar para rutas fuera del ShellRoute
-      if (location.startsWith('/chat-conversation') ||
-          location.startsWith('/paywall') ||
-          location.startsWith('/saved-messages')) {
-        // Usar addPostFrameCallback para evitar modificar providers durante build
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          ref.read(currentLocationProvider.notifier).state = location;
-        });
-      }
-      return null; // No redirigir, solo actualizar el provider
-    },
     routes: [
       // Splash Screen
       GoRoute(
@@ -94,29 +80,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const SavedMessagesScreen(),
       ),
 
-      // Chat conversation screens (sin bottom navigation para experiencia inmersiva)
-      GoRoute(
-        path: '/chat-conversation/new',
-        name: 'chatConversationNew',
-        builder: (context, state) => const ChatScreen(),
-      ),
-      GoRoute(
-        path: '/chat-conversation/:chatId',
-        name: 'chatConversationById',
-        builder: (context, state) {
-          final chatId = state.pathParameters['chatId']!;
-          return ChatScreen(chatId: chatId);
-        },
-      ),
-      GoRoute(
-        path: '/chat-conversation/topic/:topicKey',
-        name: 'chatConversationByTopic',
-        builder: (context, state) {
-          final topicKey = state.pathParameters['topicKey']!;
-          return ChatScreen(topicKey: topicKey);
-        },
-      ),
-
       // Main App with Bottom Navigation
       ShellRoute(
         builder: (context, state, child) {
@@ -133,7 +96,32 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: RouteConstants.chatList,
             name: 'chatList',
             builder: (context, state) => const ChatListScreen(),
-            // Chat screens están fuera del ShellRoute (sin bottom nav)
+            routes: [
+              // Nueva conversación (chat libre)
+              GoRoute(
+                path: 'new',
+                name: 'chatNew',
+                builder: (context, state) => const ChatScreen(),
+              ),
+              // Chat existente por ID
+              GoRoute(
+                path: 'id/:chatId',
+                name: 'chatById',
+                builder: (context, state) {
+                  final chatId = state.pathParameters['chatId']!;
+                  return ChatScreen(chatId: chatId);
+                },
+              ),
+              // Chat por topic (desde Stories o temas guiados)
+              GoRoute(
+                path: 'topic/:topicKey',
+                name: 'chatByTopic',
+                builder: (context, state) {
+                  final topicKey = state.pathParameters['topicKey']!;
+                  return ChatScreen(topicKey: topicKey);
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: RouteConstants.study,
@@ -310,6 +298,9 @@ class _MainShellState extends ConsumerState<MainShell> {
     }
     _lastLocation = location;
 
+    // Ocultar bottom nav en pantallas de chat (excepto la lista)
+    final shouldHideBottomNav = location.startsWith('/chat/') && location != '/chat';
+
     return Scaffold(
       // Si es ruta principal → PageView (swipe), si es anidada → child
       body: isMainRoute
@@ -319,7 +310,7 @@ class _MainShellState extends ConsumerState<MainShell> {
               children: _screens,
             )
           : widget.child,
-      bottomNavigationBar: NavigationBar(
+      bottomNavigationBar: shouldHideBottomNav ? null : NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) => _onItemTapped(index, location),
         destinations: const [

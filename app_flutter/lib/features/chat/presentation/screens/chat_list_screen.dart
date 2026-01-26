@@ -46,7 +46,7 @@ class ChatListScreen extends ConsumerWidget {
                           child: Center(
                             child: _NewConversationButton(
                               onTap: () async {
-                                await context.push('/chat-conversation/new');
+                                await context.push('/chat/new');
                                 // Refrescar lista al volver del chat
                                 ref.read(userChatsRefreshProvider.notifier).state++;
                               },
@@ -434,7 +434,7 @@ class _ChatTileState extends State<_ChatTile>
       onTapUp: (_) => _controller.reverse(),
       onTapCancel: () => _controller.reverse(),
       onTap: () async {
-        await context.push('/chat-conversation/${widget.chat.id}');
+        await context.push('/chat/id/${widget.chat.id}');
         widget.onReturn?.call();
       },
       child: AnimatedBuilder(
@@ -769,7 +769,7 @@ class _TopicChipState extends State<_TopicChip>
       onTapUp: (_) => _controller.reverse(),
       onTapCancel: () => _controller.reverse(),
       onTap: () async {
-        await context.push('/chat-conversation/topic/${widget.topic.key}');
+        await context.push('/chat/topic/${widget.topic.key}');
         widget.onReturn?.call();
       },
       child: AnimatedBuilder(

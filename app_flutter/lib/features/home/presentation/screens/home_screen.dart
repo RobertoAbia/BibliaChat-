@@ -671,29 +671,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 );
               }
             } else {
-              // Si no, ir directo al chat (sin bottom nav)
-              Navigator.of(context, rootNavigator: true).push(
+              // Si no, ir directo al chat
+              Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => ChatScreen(
                     topicKey: topicKey,
                     initialGospelText: gospel.text,
                     initialGospelReference: gospel.reference,
                   ),
-                  fullscreenDialog: true,
                 ),
               );
             }
           },
           onChatTap: () {
-            // Sin bottom nav
-            Navigator.of(context, rootNavigator: true).push(
+            Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (context) => ChatScreen(
                   topicKey: topicKey,
                   initialGospelText: gospel.text,
                   initialGospelReference: gospel.reference,
                 ),
-                fullscreenDialog: true,
               ),
             );
           },

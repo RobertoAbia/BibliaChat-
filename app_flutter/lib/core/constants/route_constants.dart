@@ -13,12 +13,10 @@ class RouteConstants {
   // Main App
   static const String home = '/home';
   static const String chatList = '/chat';
+  static const String chatNew = '/chat/new';
+  static const String chatById = '/chat/id/:chatId';
+  static const String chatByTopic = '/chat/topic/:topicKey';
   static const String study = '/study';
-
-  // Chat conversations (fuera del ShellRoute - sin bottom nav)
-  static const String chatConversationNew = '/chat-conversation/new';
-  static const String chatConversationById = '/chat-conversation'; // + /:chatId
-  static const String chatConversationByTopic = '/chat-conversation/topic'; // + /:topicKey
   static const String settings = '/settings';
   static const String profileEdit = '/settings/edit';
   static const String savedMessages = '/saved-messages';
