@@ -40,7 +40,8 @@ BibliaChat/
 │   ├── 02.Historias de usuario. Backlog.md
 │   ├── 03.Casos de Uso, Arquitectura y C4.md
 │   ├── 04.BBDD.md
-│   └── 05.Tickets de Trabajo.md
+│   ├── 05.Tickets de Trabajo.md
+│   └── back-button-intentos.md  # Historial de intentos para arreglar botón atrás Android
 ├── .env.example
 ├── .gitignore
 └── README.md
@@ -1092,6 +1093,23 @@ BibliaChat/
     - `lib/features/auth/data/repositories/auth_repository_impl.dart` - signOut después de delete
     - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - Invalidate profile después de onboarding
 
+- [x] Feature: Botón atrás Android funciona correctamente en Chat
+  - **Problema:** Al presionar back dentro de un chat, iba a Home en lugar de a la lista de chats
+  - **Causa raíz:** `chat_list_screen.dart` usaba `Navigator.push()` en lugar de `context.push()`
+  - **Por qué fallaba:** `Navigator.push()` bypasea GoRouter, así que el router no conocía la ruta real (`/chat/id/xxx`) y el `BackButtonInterceptor` veía `/chat` como ubicación
+  - **Solución implementada:**
+    - Cambiar de `Navigator.push()` a `context.push()` en 3 lugares de `chat_list_screen.dart`
+    - Nueva conversación: `context.push('/chat/new')`
+    - Chat existente: `context.push('/chat/id/${widget.chat.id}')`
+    - Topic guiado: `context.push('/chat/topic/${widget.topic.key}')`
+  - **Comportamiento final:**
+    - Dentro de chat → Lista de chats
+    - Lista de chats → Home
+    - Home → Cierra la app
+  - **Archivos modificados:**
+    - `lib/features/chat/presentation/screens/chat_list_screen.dart` - Usa `context.push()` + import go_router
+  - **Documentación:** `docs/back-button-intentos.md` - Historial completo de 8 intentos fallidos y solución final
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.0.21 (estable, no 2.1.0 que es muy nueva)
@@ -1120,6 +1138,7 @@ BibliaChat/
 - [x] T-0512: Compartir reflexión como imagen - COMPLETADO
 - [x] Feature: Almacenar Biblia en Supabase (reemplaza API.Bible) - COMPLETADO
 - [x] Feature: Almacenar Calendario Litúrgico en Supabase - COMPLETADO
+- [x] Feature: Botón atrás Android en Chat - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 
@@ -1419,3 +1438,11 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
   - `onPageChanged` actualiza `_selectedIndex` y llama `context.go()` para sincronizar URL
   - `onDestinationSelected` llama `_pageController.animateToPage()` para animación consistente
   - Las pantallas se mantienen en memoria (no se reconstruyen al volver)
+- **Botón atrás Android con GoRouter + ShellRoute:**
+  - NUNCA usar `Navigator.push()` para rutas que están definidas en GoRouter
+  - `Navigator.push()` bypasea GoRouter → el router no conoce la ruta → back button falla
+  - SIEMPRE usar `context.push('/ruta')` para navegar a rutas dentro del ShellRoute
+  - Las rutas anidadas (ej: `/chat/id/xxx`) deben estar definidas dentro del ShellRoute
+  - El `BackButtonInterceptor` en `app.dart` lee la ruta desde `router.routerDelegate.currentConfiguration.uri.path`
+  - Si usas `Navigator.push()`, esa propiedad devuelve la ruta padre (`/chat`) en vez de la real (`/chat/id/xxx`)
+  - Documentación completa en `docs/back-button-intentos.md`

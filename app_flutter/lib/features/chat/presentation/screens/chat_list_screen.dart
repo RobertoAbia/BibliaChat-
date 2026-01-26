@@ -2,12 +2,12 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/chat_message.dart';
 import '../providers/chat_provider.dart';
-import 'chat_screen.dart';
 
 class ChatListScreen extends ConsumerWidget {
   const ChatListScreen({super.key});
@@ -46,12 +46,7 @@ class ChatListScreen extends ConsumerWidget {
                           child: Center(
                             child: _NewConversationButton(
                               onTap: () async {
-                                await Navigator.of(context, rootNavigator: true).push(
-                                  MaterialPageRoute(
-                                    builder: (_) => const ChatScreen(),
-                                    fullscreenDialog: true,
-                                  ),
-                                );
+                                await context.push('/chat/new');
                                 // Refrescar lista al volver del chat
                                 ref.read(userChatsRefreshProvider.notifier).state++;
                               },
@@ -439,12 +434,7 @@ class _ChatTileState extends State<_ChatTile>
       onTapUp: (_) => _controller.reverse(),
       onTapCancel: () => _controller.reverse(),
       onTap: () async {
-        await Navigator.of(context, rootNavigator: true).push(
-          MaterialPageRoute(
-            builder: (_) => ChatScreen(chatId: widget.chat.id),
-            fullscreenDialog: true,
-          ),
-        );
+        await context.push('/chat/id/${widget.chat.id}');
         widget.onReturn?.call();
       },
       child: AnimatedBuilder(
@@ -779,12 +769,7 @@ class _TopicChipState extends State<_TopicChip>
       onTapUp: (_) => _controller.reverse(),
       onTapCancel: () => _controller.reverse(),
       onTap: () async {
-        await Navigator.of(context, rootNavigator: true).push(
-          MaterialPageRoute(
-            builder: (_) => ChatScreen(topicKey: widget.topic.key),
-            fullscreenDialog: true,
-          ),
-        );
+        await context.push('/chat/topic/${widget.topic.key}');
         widget.onReturn?.call();
       },
       child: AnimatedBuilder(

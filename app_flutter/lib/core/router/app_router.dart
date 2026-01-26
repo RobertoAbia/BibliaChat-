@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../app.dart'; // Para currentTabIndexProvider
 
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
@@ -82,7 +83,8 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Main App with Bottom Navigation
       ShellRoute(
         builder: (context, state, child) {
-          return MainShell(child: child);
+          // state.uri.path tiene la ruta REAL (ej: /chat/id/xxx)
+          return MainShell(child: child, location: state.uri.path);
         },
         routes: [
           GoRoute(
@@ -173,18 +175,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 });
 
 /// Shell widget for bottom navigation with swipe support
-class MainShell extends StatefulWidget {
+class MainShell extends ConsumerStatefulWidget {
   final Widget child;
+  final String location; // Ruta REAL desde el ShellRoute builder
 
-  const MainShell({super.key, required this.child});
+  const MainShell({super.key, required this.child, required this.location});
 
   @override
-  State<MainShell> createState() => _MainShellState();
+  ConsumerState<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends ConsumerState<MainShell> {
   PageController? _pageController;
   String? _lastLocation;
+  bool _isSyncing = false; // Flag para evitar cascada de navegaciones
 
   // Rutas principales (tabs)
   static const _mainRoutes = [
@@ -222,6 +226,9 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _onItemTapped(int index, String currentLocation) {
+    // Actualizar el provider global
+    ref.read(currentTabIndexProvider.notifier).state = index;
+
     // Si estamos en ruta anidada, navegar a la tab
     if (!_isMainRoute(currentLocation)) {
       context.go(_mainRoutes[index]);
@@ -238,14 +245,26 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _onPageChanged(int index) {
+    // Actualizar el provider global
+    ref.read(currentTabIndexProvider.notifier).state = index;
+
+    // NO navegar si estamos sincronizando (evita cascada de navegaciones)
+    if (_isSyncing) return;
+
     context.go(_mainRoutes[index]);
   }
 
   @override
   Widget build(BuildContext context) {
-    final location = GoRouterState.of(context).uri.path;
+    // Usar widget.location que viene del ShellRoute builder (ruta REAL)
+    final location = widget.location;
     final isMainRoute = _isMainRoute(location);
     final selectedIndex = _getTabIndex(location);
+
+    // Actualizar el provider global con la ruta REAL (para BackButtonInterceptor)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(currentLocationProvider.notifier).state = location;
+    });
 
     // Detectar si venimos de una ruta anidada
     final wasOnNestedRoute = _lastLocation != null && !_isMainRoute(_lastLocation!);
@@ -255,57 +274,64 @@ class _MainShellState extends State<MainShell> {
       if (_pageController == null || wasOnNestedRoute) {
         _pageController?.dispose();
         _pageController = PageController(initialPage: selectedIndex);
+      } else {
+        // Sincronizar PageController si la ruta cambió (ej: back button)
+        final currentPage = _pageController!.hasClients
+            ? _pageController!.page?.round() ?? 0
+            : 0;
+        if (currentPage != selectedIndex) {
+          // Usar addPostFrameCallback para animar después del build
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_pageController!.hasClients) {
+              _isSyncing = true; // Evitar que onPageChanged haga go()
+              _pageController!.animateToPage(
+                selectedIndex,
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+              ).then((_) {
+                _isSyncing = false; // Restaurar después de animar
+              });
+            }
+          });
+        }
       }
     }
     _lastLocation = location;
 
-    return BackButtonListener(
-      onBackButtonPressed: () async {
-        final router = GoRouter.of(context);
-        if (router.canPop()) {
-          router.pop();
-          return true;
-        } else if (isMainRoute) {
-          await SystemNavigator.pop();
-          return true;
-        }
-        return false;
-      },
-      child: Scaffold(
-        // Si es ruta principal → PageView (swipe), si es anidada → child
-        body: isMainRoute
-            ? PageView(
-                controller: _pageController,
-                onPageChanged: _onPageChanged,
-                children: _screens,
-              )
-            : widget.child,
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: selectedIndex,
-          onDestinationSelected: (index) => _onItemTapped(index, location),
-          destinations: const [
-            NavigationDestination(
-              icon: Icon(Icons.home_outlined),
-              selectedIcon: Icon(Icons.home),
-              label: 'Hoy',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.chat_bubble_outline),
-              selectedIcon: Icon(Icons.chat_bubble),
-              label: 'Chat',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.menu_book_outlined),
-              selectedIcon: Icon(Icons.menu_book),
-              label: 'Estudiar',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.person_outline),
-              selectedIcon: Icon(Icons.person),
-              label: 'Perfil',
-            ),
-          ],
-        ),
+    return Scaffold(
+      // Si es ruta principal → PageView (swipe), si es anidada → child
+      body: isMainRoute
+          ? PageView(
+              controller: _pageController,
+              onPageChanged: _onPageChanged,
+              children: _screens,
+            )
+          : widget.child,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: selectedIndex,
+        onDestinationSelected: (index) => _onItemTapped(index, location),
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: 'Hoy',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.chat_bubble_outline),
+            selectedIcon: Icon(Icons.chat_bubble),
+            label: 'Chat',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.menu_book_outlined),
+            selectedIcon: Icon(Icons.menu_book),
+            label: 'Estudiar',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.person_outline),
+            selectedIcon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
+        ],
       ),
     );
   }

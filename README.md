@@ -164,6 +164,16 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - Texto predefinido con enlaces a ambas stores
   - Usa `share_plus` (nativo iOS/Android)
 
+### Navegación Android (Back Button + Swipe)
+- **Swipe entre tabs**: PageView para deslizar entre Home, Chat, Estudiar y Perfil
+- **Botón atrás Android** con comportamiento correcto:
+  - Dentro de un chat → Vuelve a lista de chats
+  - En lista de chats → Va a Home
+  - En Home → Cierra la app
+- **Implementación**: `BackButtonInterceptor` + GoRouter con `context.push()`
+- **Importante**: NUNCA usar `Navigator.push()` para rutas en GoRouter (bypasea el router)
+- **Documentación técnica**: `docs/back-button-intentos.md` (8 intentos + solución final)
+
 ## Estructura del Proyecto
 
 ```
@@ -206,7 +216,8 @@ BibliaChat/
 │   ├── 02.Historias de usuario. Backlog.md
 │   ├── 03.Casos de Uso, Arquitectura y C4.md
 │   ├── 04.BBDD.md
-│   └── 05.Tickets de Trabajo.md
+│   ├── 05.Tickets de Trabajo.md
+│   └── back-button-intentos.md     # Historial de intentos botón atrás Android
 ├── .env.example
 ├── CLAUDE.md                       # Memoria del proyecto para Claude
 └── README.md
