@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/providers/story_viewed_provider.dart';
+import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../data/datasources/daily_activity_remote_datasource.dart';
 
 /// Provider para el datasource de actividad diaria.
@@ -19,6 +20,7 @@ final todayProgressProvider = Provider<int>((ref) {
 
 /// Provider de la racha actual (días consecutivos completados) desde Supabase.
 final streakDaysProvider = FutureProvider<int>((ref) async {
+  ref.watch(currentUserIdProvider); // Invalidar al cambiar usuario
   final datasource = ref.watch(dailyActivityDatasourceProvider);
   return await datasource.getStreakDays();
 });
@@ -39,6 +41,7 @@ final streakDaysDisplayProvider = Provider<int>((ref) {
 
 /// Provider para verificar si hoy ya está completado.
 final isTodayCompletedProvider = FutureProvider<bool>((ref) async {
+  ref.watch(currentUserIdProvider); // Invalidar al cambiar usuario
   final datasource = ref.watch(dailyActivityDatasourceProvider);
   return await datasource.isTodayCompleted();
 });
@@ -63,10 +66,10 @@ Future<bool> markDayAsCompleted(WidgetRef ref) async {
   ref.invalidate(streakDaysProvider);
   ref.invalidate(isTodayCompletedProvider);
 
-  // Limpiar estado optimista después de que Supabase responda
-  Future.delayed(const Duration(milliseconds: 500), () {
-    ref.read(streakDaysStateProvider.notifier).state = null;
-  });
+  // Esperar a que streakDaysProvider termine de cargar antes de limpiar estado optimista
+  // Esto evita la race condition donde el timeout fijo de 500ms no era suficiente
+  await ref.read(streakDaysProvider.future);
+  ref.read(streakDaysStateProvider.notifier).state = null;
 
   return true;
 }

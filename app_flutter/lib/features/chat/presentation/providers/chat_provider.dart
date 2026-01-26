@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../data/datasources/chat_remote_datasource.dart';
 import '../../data/models/chat_message_model.dart';
 import '../../data/repositories/chat_repository_impl.dart';
@@ -405,9 +406,10 @@ final userChatsProvider = FutureProvider<List<Chat>>((ref) async {
 // Provider para refrescar la lista de chats
 final userChatsRefreshProvider = StateProvider<int>((ref) => 0);
 
-// Provider que refresca cuando cambia el contador
+// Provider que refresca cuando cambia el contador o el usuario
 final refreshableUserChatsProvider = FutureProvider<List<Chat>>((ref) async {
   ref.watch(userChatsRefreshProvider);
+  ref.watch(currentUserIdProvider); // Invalidar al cambiar usuario
   final repository = ref.watch(chatRepositoryProvider);
   return repository.getUserChats();
 });

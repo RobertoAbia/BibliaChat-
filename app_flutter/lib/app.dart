@@ -61,11 +61,10 @@ class _BibliaChatAppState extends ConsumerState<BibliaChatApp> {
 
     debugPrint('BackButtonInterceptor: location=$location, isMainRoute=$isMainRoute, tabIndex=$currentTabIndex');
 
-    // Si NO estamos en una ruta principal, es una ruta GoRouter anidada → ir a la ruta padre
+    // Si NO estamos en una ruta principal, es una ruta GoRouter anidada → pop para volver
     if (!isMainRoute) {
-      debugPrint('BackButtonInterceptor: Nested GoRouter route, going to parent');
-      final parentRoute = _getParentRoute(location);
-      router.go(parentRoute);
+      debugPrint('BackButtonInterceptor: Nested GoRouter route, popping');
+      router.pop();
       return true;
     }
 

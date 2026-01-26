@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/services/message_limit_service.dart';
+import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 
 /// Estado del límite de mensajes
@@ -86,6 +87,7 @@ final messageLimitServiceProvider = Provider<MessageLimitService>((ref) {
 /// Provider principal del límite de mensajes
 final messageLimitProvider =
     StateNotifierProvider<MessageLimitNotifier, MessageLimitState>((ref) {
+  ref.watch(currentUserIdProvider); // Invalidar al cambiar usuario
   final service = ref.watch(messageLimitServiceProvider);
   return MessageLimitNotifier(service, ref);
 });

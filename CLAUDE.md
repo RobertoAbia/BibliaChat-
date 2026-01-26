@@ -1110,6 +1110,17 @@ BibliaChat/
     - `lib/features/chat/presentation/screens/chat_list_screen.dart` - Usa `context.push()` + import go_router
   - **Documentación:** `docs/back-button-intentos.md` - Historial completo de 8 intentos fallidos y solución final
 
+- [x] Fix: Racha no se incrementa al ver 3 Stories
+  - **Problema:** Después de ver las 3 stories, la racha mostraba 0 en lugar de 1
+  - **Causa raíz:** Race condition en el sistema de "Optimistic UI" para la racha
+    - `markDayAsCompleted()` usaba `Future.delayed(500ms)` para limpiar el estado optimista
+    - Si la recarga de Supabase tardaba más de 500ms, el estado optimista se limpiaba antes de que llegaran los datos reales
+    - El provider quedaba en estado "loading" y `.valueOrNull ?? 0` retornaba 0
+  - **Por qué apareció ahora:** El aislamiento de datos por usuario añadió `ref.watch(currentUserIdProvider)` a `streakDaysProvider`, lo que añade unos milisegundos extra al re-evaluar la cadena de dependencias
+  - **Solución:** En lugar de timeout fijo, esperar a que `streakDaysProvider.future` termine antes de limpiar el estado optimista
+  - **Archivo modificado:**
+    - `lib/features/home/presentation/providers/daily_progress_provider.dart` - Cambiar `Future.delayed` por `await ref.read(streakDaysProvider.future)`
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.0.21 (estable, no 2.1.0 que es muy nueva)
@@ -1344,7 +1355,8 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
 - **Optimistic UI en Riverpod:**
   - Patrón: `StateProvider` (optimista) + `FutureProvider` (real) + `Provider` (combinado)
   - El provider combinado devuelve el estado optimista si existe, sino el de Supabase
-  - Después de la operación async, limpiar estado optimista con `Future.delayed`
+  - **IMPORTANTE:** NO usar `Future.delayed` para limpiar estado optimista (race condition)
+  - En su lugar, esperar a que el provider real termine: `await ref.read(realProvider.future)`
 - **Mutex/Lock en Dart:**
   - Usar `Completer<void>?` para serializar operaciones async concurrentes
   - Patrón: `while (_lock != null) await _lock!.future;` antes de operar

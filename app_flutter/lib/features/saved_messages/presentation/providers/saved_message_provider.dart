@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../data/datasources/saved_message_remote_datasource.dart';
 import '../../data/repositories/saved_message_repository_impl.dart';
 import '../../domain/entities/saved_message.dart';
@@ -23,6 +24,7 @@ final savedMessagesRefreshProvider = StateProvider<int>((ref) => 0);
 final savedMessagesProvider = FutureProvider<List<SavedMessage>>((ref) async {
   // Watch refresh trigger to reload when needed
   ref.watch(savedMessagesRefreshProvider);
+  ref.watch(currentUserIdProvider); // Invalidar al cambiar usuario
   final repo = ref.watch(savedMessageRepositoryProvider);
   return repo.getSavedMessages();
 });
@@ -31,6 +33,7 @@ final savedMessagesProvider = FutureProvider<List<SavedMessage>>((ref) async {
 final savedMessageIdsProvider = FutureProvider<Set<String>>((ref) async {
   // Watch refresh trigger to reload when needed
   ref.watch(savedMessagesRefreshProvider);
+  ref.watch(currentUserIdProvider); // Invalidar al cambiar usuario
   final repo = ref.watch(savedMessageRepositoryProvider);
   return repo.getSavedMessageIds();
 });

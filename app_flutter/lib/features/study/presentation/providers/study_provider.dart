@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../data/datasources/study_remote_datasource.dart';
 import '../../data/repositories/study_repository_impl.dart';
 import '../../domain/entities/plan.dart';
@@ -39,6 +40,7 @@ final userPlansRefreshProvider = StateProvider<int>((ref) => 0);
 /// Get all user plans (to check completed/abandoned status)
 final allUserPlansProvider = FutureProvider<List<UserPlan>>((ref) async {
   ref.watch(userPlansRefreshProvider);
+  ref.watch(currentUserIdProvider); // Invalidar al cambiar usuario
 
   final user = Supabase.instance.client.auth.currentUser;
   if (user == null) return [];
@@ -56,6 +58,7 @@ final activePlanRefreshProvider = StateProvider<int>((ref) => 0);
 
 final activeUserPlanProvider = FutureProvider<UserPlan?>((ref) async {
   ref.watch(activePlanRefreshProvider);
+  ref.watch(currentUserIdProvider); // Invalidar al cambiar usuario
 
   final user = Supabase.instance.client.auth.currentUser;
   if (user == null) return null;

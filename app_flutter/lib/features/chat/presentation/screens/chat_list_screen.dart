@@ -48,6 +48,7 @@ class ChatListScreen extends ConsumerWidget {
                               onTap: () async {
                                 await context.push('/chat/new');
                                 // Refrescar lista al volver del chat
+                                if (!context.mounted) return;
                                 ref.read(userChatsRefreshProvider.notifier).state++;
                               },
                             ),
@@ -98,7 +99,10 @@ class ChatListScreen extends ConsumerWidget {
                                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                                     child: _ChatTile(
                                       chat: chat,
-                                      onReturn: () => ref.read(userChatsRefreshProvider.notifier).state++,
+                                      onReturn: () {
+                                        if (!context.mounted) return;
+                                        ref.read(userChatsRefreshProvider.notifier).state++;
+                                      },
                                     ),
                                   ),
                                 );
@@ -127,7 +131,10 @@ class ChatListScreen extends ConsumerWidget {
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
                           child: _GuidedTopicsSection(
-                            onTopicReturn: () => ref.read(userChatsRefreshProvider.notifier).state++,
+                            onTopicReturn: () {
+                              if (!context.mounted) return;
+                              ref.read(userChatsRefreshProvider.notifier).state++;
+                            },
                           ),
                         ),
                       ),
