@@ -51,9 +51,11 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 - **Barra de progreso diario** (0%, 33%, 66%, 100%) según slides vistos
 - **Racha de días consecutivos** calculada desde Supabase (`daily_activity`)
 - **Optimistic UI**: La racha se actualiza instantáneamente sin esperar al servidor
+  - Usa `await ref.read(provider.future)` para sincronizar (NO `Future.delayed`)
 - **Celebración**: SnackBar dorado "¡Felicidades! 🔥 X días seguidos" al completar
-- **Almacenamiento local**: Slides vistos en SharedPreferences por fecha
+- **Almacenamiento local**: Slides vistos en SharedPreferences por usuario y fecha
 - **Mutex para concurrencia**: Evita race conditions en escrituras rápidas
+- **Aislamiento por usuario**: Cada usuario tiene su propio progreso de Stories
 
 ### Chat IA Denominacional (Sistema Híbrido)
 - **Estilo ChatGPT**: Conversaciones libres + temas guiados
@@ -174,6 +176,17 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 - **Implementación**: `BackButtonInterceptor` + GoRouter con `context.push()`
 - **Importante**: NUNCA usar `Navigator.push()` para rutas en GoRouter (bypasea el router)
 - **Documentación técnica**: `docs/back-button-intentos.md` (8 intentos + solución final)
+
+### Aislamiento de Datos por Usuario
+- **Problema resuelto**: Al cambiar de usuario anónimo, los datos del usuario anterior ya no se muestran
+- **Implementación**: Todos los providers dependientes del usuario observan `currentUserIdProvider`
+- **Providers afectados**:
+  - `chat_provider`: Lista de chats del usuario
+  - `message_limit_provider`: Contador de mensajes diarios
+  - `saved_message_provider`: Mensajes guardados (❤️)
+  - `study_provider`: Planes de estudio activos/completados
+  - `daily_progress_provider`: Racha y progreso diario
+- **SharedPreferences**: Las claves incluyen el user ID (`story_viewed_{userId}_{date}`)
 
 ## Estructura del Proyecto
 
