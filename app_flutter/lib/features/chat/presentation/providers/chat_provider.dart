@@ -138,13 +138,19 @@ class ChatState {
 class ChatNotifier extends StateNotifier<ChatState> {
   final ChatRepository _repository;
   final ChatIdentifier _identifier;
+  final Ref _ref;
 
-  ChatNotifier(this._repository, this._identifier)
+  ChatNotifier(this._repository, this._identifier, this._ref)
       : super(ChatState(
           topicKey: _identifier.topicKey,
           chatId: _identifier.chatId,
           showStarterSuggestions: _identifier.isNewChat,
         ));
+
+  /// Notifica a la lista de chats que debe refrescarse
+  void _notifyChatListRefresh() {
+    _ref.read(userChatsRefreshProvider.notifier).state++;
+  }
 
   // Resetea el estado para empezar un chat completamente nuevo
   // Esto es necesario porque Riverpod cachea el provider por identifier
@@ -288,6 +294,9 @@ class ChatNotifier extends StateNotifier<ChatState> {
           isSending: false,
         );
       }
+
+      // Notificar a la lista de chats que debe refrescarse
+      _notifyChatListRefresh();
     } catch (e) {
       state = state.copyWith(
         isSending: false,
@@ -393,7 +402,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
 final chatNotifierProvider = StateNotifierProvider.family<ChatNotifier, ChatState, ChatIdentifier>(
   (ref, identifier) {
     final repository = ref.watch(chatRepositoryProvider);
-    return ChatNotifier(repository, identifier);
+    return ChatNotifier(repository, identifier, ref);
   },
 );
 

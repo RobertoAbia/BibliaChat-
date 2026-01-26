@@ -1121,6 +1121,19 @@ BibliaChat/
   - **Archivo modificado:**
     - `lib/features/home/presentation/providers/daily_progress_provider.dart` - Cambiar `Future.delayed` por `await ref.read(streakDaysProvider.future)`
 
+- [x] Fix: Lista de chats no se actualiza al volver de un chat
+  - **Problema:** Al crear una nueva conversación y volver al tab de chats, la conversación no aparecía en la lista
+  - **Causa raíz:** La lista de chats no se enteraba de que había un nuevo chat porque no había comunicación entre providers
+  - **Por qué los listeners de ruta no funcionaron:** Con ShellRoute, el widget `ChatListScreen` se mantiene montado durante toda la navegación, así que `didChangeDependencies` y otros lifecycle methods no se disparan
+  - **Solución implementada:**
+    - `ChatNotifier` ahora recibe `Ref` en el constructor
+    - Añadido método `_notifyChatListRefresh()` que incrementa `userChatsRefreshProvider`
+    - Después de enviar un mensaje exitosamente, se llama `_notifyChatListRefresh()`
+    - `ChatListScreen` observa `refreshableUserChatsProvider` (que depende de `userChatsRefreshProvider`) y se actualiza automáticamente
+  - **Patrón:** Comunicación directa entre providers en lugar de detectar navegación
+  - **Archivos modificados:**
+    - `lib/features/chat/presentation/providers/chat_provider.dart` - `ChatNotifier` con `Ref` + `_notifyChatListRefresh()`
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.0.21 (estable, no 2.1.0 que es muy nueva)
@@ -1470,3 +1483,25 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
     ```
   - Las rutas siguen dentro del ShellRoute → back button funciona correctamente
   - Solo se oculta el UI del bottom nav, la estructura de navegación no cambia
+- **Refrescar listas desde otros providers (comunicación cross-provider):**
+  - Con ShellRoute, los widgets de tabs se mantienen montados → los lifecycle methods no detectan navegación
+  - **Patrón recomendado:** Comunicación directa entre providers usando `Ref`
+  - El StateNotifier que modifica datos recibe `Ref` en el constructor
+  - Después de modificar, incrementa un `StateProvider<int>` que la lista observa
+  - Ejemplo:
+    ```dart
+    class ChatNotifier extends StateNotifier<ChatState> {
+      final Ref _ref;
+      ChatNotifier(this._repository, this._ref) : super(...);
+
+      void _notifyChatListRefresh() {
+        _ref.read(userChatsRefreshProvider.notifier).state++;
+      }
+
+      Future<void> sendMessage(...) async {
+        // ... enviar mensaje ...
+        _notifyChatListRefresh(); // Notifica a la lista
+      }
+    }
+    ```
+  - La lista usa `ref.watch(refreshableUserChatsProvider)` que depende del contador

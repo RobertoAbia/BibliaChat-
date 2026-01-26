@@ -73,6 +73,7 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - Últimos 10 mensajes (corto plazo)
 - **Tono**: "Amigo cristiano de WhatsApp" - casual, cercano, sin sermones
 - **Modelos IA**: GPT-4o (chat) + GPT-4o-mini (memorias)
+- **Refresco automático de lista**: Al enviar un mensaje, la lista de chats se actualiza automáticamente (comunicación cross-provider con `Ref`)
 
 ### Planes de Estudio (7 Pecados Capitales)
 - **7 planes de 7 días** cada uno:

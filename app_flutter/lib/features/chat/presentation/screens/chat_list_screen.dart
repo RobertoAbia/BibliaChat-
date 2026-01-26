@@ -9,11 +9,61 @@ import '../../../../core/theme/app_theme.dart';
 import '../../domain/entities/chat_message.dart';
 import '../providers/chat_provider.dart';
 
-class ChatListScreen extends ConsumerWidget {
+class ChatListScreen extends ConsumerStatefulWidget {
   const ChatListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ChatListScreen> createState() => _ChatListScreenState();
+}
+
+class _ChatListScreenState extends ConsumerState<ChatListScreen> {
+  String? _lastLocation;
+
+  @override
+  void initState() {
+    super.initState();
+    // Escuchar cambios de ruta para refrescar cuando volvemos de un chat
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _setupRouteListener();
+    });
+  }
+
+  void _setupRouteListener() {
+    final router = GoRouter.of(context);
+    router.routerDelegate.addListener(_onRouteChange);
+  }
+
+  @override
+  void dispose() {
+    // Intentar remover el listener si el context sigue válido
+    try {
+      final router = GoRouter.of(context);
+      router.routerDelegate.removeListener(_onRouteChange);
+    } catch (_) {
+      // Context ya no es válido, ignorar
+    }
+    super.dispose();
+  }
+
+  void _onRouteChange() {
+    if (!mounted) return;
+
+    final router = GoRouter.of(context);
+    final currentLocation = router.routerDelegate.currentConfiguration.uri.path;
+
+    // Si volvemos a /chat desde una ruta de chat (ej: /chat/id/xxx, /chat/new, /chat/topic/xxx)
+    if (currentLocation == '/chat' &&
+        _lastLocation != null &&
+        _lastLocation!.startsWith('/chat/')) {
+      // Refrescar la lista de chats
+      ref.invalidate(refreshableUserChatsProvider);
+    }
+
+    _lastLocation = currentLocation;
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final chatsAsync = ref.watch(refreshableUserChatsProvider);
 
     return Scaffold(
@@ -442,6 +492,7 @@ class _ChatTileState extends State<_ChatTile>
       onTapCancel: () => _controller.reverse(),
       onTap: () async {
         await context.push('/chat/id/${widget.chat.id}');
+        if (!mounted) return;
         widget.onReturn?.call();
       },
       child: AnimatedBuilder(
@@ -777,6 +828,7 @@ class _TopicChipState extends State<_TopicChip>
       onTapCancel: () => _controller.reverse(),
       onTap: () async {
         await context.push('/chat/topic/${widget.topic.key}');
+        if (!mounted) return;
         widget.onReturn?.call();
       },
       child: AnimatedBuilder(
