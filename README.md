@@ -166,6 +166,7 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 
 ### Navegación Android (Back Button + Swipe)
 - **Swipe entre tabs**: PageView para deslizar entre Home, Chat, Estudiar y Perfil
+- **Bottom nav oculto en chat**: Se oculta condicionalmente cuando `location.startsWith('/chat/')` (experiencia inmersiva)
 - **Botón atrás Android** con comportamiento correcto:
   - Dentro de un chat → Vuelve a lista de chats
   - En lista de chats → Va a Home

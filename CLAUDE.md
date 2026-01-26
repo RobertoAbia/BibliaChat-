@@ -1446,3 +1446,15 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
   - El `BackButtonInterceptor` en `app.dart` lee la ruta desde `router.routerDelegate.currentConfiguration.uri.path`
   - Si usas `Navigator.push()`, esa propiedad devuelve la ruta padre (`/chat`) en vez de la real (`/chat/id/xxx`)
   - Documentación completa en `docs/back-button-intentos.md`
+- **Ocultar bottom nav en rutas específicas (sin mover rutas fuera del ShellRoute):**
+  - NO mover rutas fuera del ShellRoute para ocultar bottom nav (rompe el back button)
+  - Solución simple: ocultar condicionalmente en `MainShell.build()`:
+    ```dart
+    final shouldHideBottomNav = location.startsWith('/chat/') && location != '/chat';
+    return Scaffold(
+      body: ...,
+      bottomNavigationBar: shouldHideBottomNav ? null : NavigationBar(...),
+    );
+    ```
+  - Las rutas siguen dentro del ShellRoute → back button funciona correctamente
+  - Solo se oculta el UI del bottom nav, la estructura de navegación no cambia
