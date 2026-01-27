@@ -987,9 +987,15 @@ BibliaChat/
     - Las 4 pantallas principales se mantienen en memoria (no se reconstruyen)
     - Sincronización bidireccional: swipe ↔ NavigationBar ↔ GoRouter URLs
   - **Características:**
-    - Animación suave de 250ms con `Curves.easeInOut`
+    - `PageScrollPhysics` por defecto: la pantalla sigue el dedo y encaja al soltar
+    - Animación de NavigationBar: 300ms con `Curves.easeOutCubic`
     - Deep linking preservado (URLs se actualizan al navegar)
     - Botones del NavigationBar también animan la transición
+  - **Iteraciones de optimización:**
+    - v1: `BouncingScrollPhysics` → demasiado recorrido de dedo
+    - v2: `ClampingScrollPhysics` → mejor pero todavía mucho recorrido
+    - v3: `GestureDetector` + `NeverScrollableScrollPhysics` → sensibilidad perfecta pero sin feedback visual (la pantalla no seguía el dedo)
+    - v4 (final): `PageScrollPhysics` por defecto → la pantalla sigue el dedo + snap natural
   - **Archivo modificado:**
     - `lib/core/router/app_router.dart` - `MainShell` con PageView
 
@@ -1133,6 +1139,29 @@ BibliaChat/
   - **Patrón:** Comunicación directa entre providers en lugar de detectar navegación
   - **Archivos modificados:**
     - `lib/features/chat/presentation/providers/chat_provider.dart` - `ChatNotifier` con `Ref` + `_notifyChatListRefresh()`
+
+- [x] Feature: Mejoras en pantalla de Perfil (Settings)
+  - **Stats conectados a datos reales:**
+    - Racha: Usa `streakDaysDisplayProvider` (antes hardcodeado a "0")
+    - Planes Completados: Usa `allUserPlansProvider` filtrado por `.isCompleted` (antes hardcodeado)
+    - Label cambiado de "Planes" a "Planes\nCompletados" con `textAlign: TextAlign.center`
+  - **Eliminado "Puntos":** Sistema de puntos/gamificación no se implementará en MVP
+  - **Eliminado "Centro de ayuda":** No habrá sección de FAQ
+  - **Archivos modificados:**
+    - `lib/features/settings/presentation/screens/settings_screen.dart` - Stats reales, eliminados Puntos y Centro de ayuda
+
+- [x] Fix: Contador de planes completados no se actualizaba
+  - **Problema:** Al completar un plan de estudio, el contador en Perfil mostraba 0
+  - **Causa raíz:** `completeDay()` en `StudyActionsNotifier` solo incrementaba `activePlanRefreshProvider` pero NO `userPlansRefreshProvider`
+  - **Solución:** Añadir `_ref.read(userPlansRefreshProvider.notifier).state++` en `completeDay()`
+  - **Archivo modificado:**
+    - `lib/features/study/presentation/providers/study_provider.dart` - Incrementa ambos refresh providers
+
+- [x] Fix: Gradiente dorado desbordado en diálogo de celebración
+  - **Problema:** El gradiente dorado del botón "Continuar" se extendía más allá de los bordes del diálogo
+  - **Solución:** Añadir `clipBehavior: Clip.antiAlias` y `shape: RoundedRectangleBorder` al Dialog
+  - **Archivo modificado:**
+    - `lib/features/study/presentation/screens/plan_day_screen.dart` - Dialog con clip
 
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
@@ -1461,8 +1490,10 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
   - En `ShellRoute`, el `MainShell` puede ignorar `widget.child` y usar `PageView` con pantallas fijas
   - `PageController` para animaciones suaves entre páginas
   - `onPageChanged` actualiza `_selectedIndex` y llama `context.go()` para sincronizar URL
-  - `onDestinationSelected` llama `_pageController.animateToPage()` para animación consistente
+  - `onDestinationSelected` llama `_pageController.animateToPage()` (300ms, `easeOutCubic`) para animación consistente
   - Las pantallas se mantienen en memoria (no se reconstruyen al volver)
+  - Usar `PageScrollPhysics` por defecto (NO `BouncingScrollPhysics` ni `ClampingScrollPhysics`) - la pantalla sigue el dedo y encaja naturalmente
+  - NO usar `GestureDetector` + `NeverScrollableScrollPhysics` - funciona bien para sensibilidad pero la pantalla no sigue el dedo (mala UX)
 - **Botón atrás Android con GoRouter + ShellRoute:**
   - NUNCA usar `Navigator.push()` para rutas que están definidas en GoRouter
   - `Navigator.push()` bypasea GoRouter → el router no conoce la ruta → back button falla

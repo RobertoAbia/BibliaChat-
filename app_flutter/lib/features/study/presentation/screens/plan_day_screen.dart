@@ -881,6 +881,10 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
       barrierDismissible: false,
       builder: (context) => Dialog(
         backgroundColor: Colors.transparent,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
           child: BackdropFilter(

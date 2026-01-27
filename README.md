@@ -27,7 +27,7 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 
 1. **HOY** - Retención diaria (racha, evangelio del día con Stories, devoción, oración)
 2. **CHAT** - IA denominacional con 12 temas hispanos (sistema híbrido: chats libres + guiados)
-3. **ESTUDIAR** - 7 planes de estudio + gamificación
+3. **ESTUDIAR** - 7 planes de estudio temáticos (pecados capitales → virtudes)
 
 ## Features Principales
 
@@ -92,7 +92,6 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - Modo lectura para revisar contenido sin modificar progreso
   - Navegación entre días (Día anterior / Día siguiente)
 - **Status del plan**: `in_progress`, `completed`, `abandoned`
-- Gamificación con puntos y badges
 
 ### Suscripción y Paywall
 - **RevenueCat** integrado (iOS configurado, Android pendiente)
@@ -168,7 +167,9 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - Usa `share_plus` (nativo iOS/Android)
 
 ### Navegación Android (Back Button + Swipe)
-- **Swipe entre tabs**: PageView para deslizar entre Home, Chat, Estudiar y Perfil
+- **Swipe entre tabs**: PageView con `PageScrollPhysics` para deslizar entre Home, Chat, Estudiar y Perfil
+  - La pantalla sigue el dedo y encaja naturalmente al soltar
+  - Animación de NavigationBar: 300ms con `easeOutCubic`
 - **Bottom nav oculto en chat**: Se oculta condicionalmente cuando `location.startsWith('/chat/')` (experiencia inmersiva)
 - **Botón atrás Android** con comportamiento correcto:
   - Dentro de un chat → Vuelve a lista de chats
@@ -177,6 +178,16 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 - **Implementación**: `BackButtonInterceptor` + GoRouter con `context.push()`
 - **Importante**: NUNCA usar `Navigator.push()` para rutas en GoRouter (bypasea el router)
 - **Documentación técnica**: `docs/back-button-intentos.md` (8 intentos + solución final)
+
+### Pantalla de Perfil
+- **Stats en tiempo real:**
+  - Racha de días consecutivos
+  - Planes de estudio completados
+- **Secciones de configuración:**
+  - Cuenta (editar perfil, vincular email)
+  - Preferencias (Mis Reflexiones)
+  - Información (valorar app, compartir, términos, privacidad)
+  - Zona de peligro (cerrar sesión, borrar cuenta)
 
 ### Aislamiento de Datos por Usuario
 - **Problema resuelto**: Al cambiar de usuario anónimo, los datos del usuario anterior ya no se muestran

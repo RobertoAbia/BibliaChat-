@@ -238,8 +238,8 @@ class _MainShellState extends ConsumerState<MainShell> {
     // Si estamos en tabs, animar el PageView y sincronizar
     _pageController?.animateToPage(
       index,
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeInOut,
+      duration: const Duration(milliseconds: 150),
+      curve: Curves.easeOutCubic,
     );
     context.go(_mainRoutes[index]);
   }

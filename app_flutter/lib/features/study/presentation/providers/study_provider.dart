@@ -185,6 +185,7 @@ class StudyActionsNotifier extends StateNotifier<AsyncValue<void>> {
       await _datasource.advanceToNextDay(userPlanId, currentDay + 1, isLastDay);
 
       _ref.read(activePlanRefreshProvider.notifier).state++;
+      _ref.read(userPlansRefreshProvider.notifier).state++;
       state = const AsyncValue.data(null);
       return true;
     } catch (e, st) {

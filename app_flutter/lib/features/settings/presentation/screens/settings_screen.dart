@@ -8,6 +8,8 @@ import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
+import '../../../home/presentation/providers/daily_progress_provider.dart';
+import '../../../study/presentation/providers/study_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -86,9 +88,10 @@ class SettingsScreen extends ConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildStat(context, '1', 'Racha'),
-                  _buildStat(context, '0', 'Planes'),
-                  _buildStat(context, '10', 'Puntos'),
+                  _buildStat(context, ref.watch(streakDaysDisplayProvider).toString(), 'Racha'),
+                  _buildStat(context, ref.watch(allUserPlansProvider).whenOrNull(
+                    data: (plans) => plans.where((p) => p.isCompleted).length,
+                  )?.toString() ?? '0', 'Planes\nCompletados'),
                 ],
               ),
             ),
@@ -173,11 +176,6 @@ class SettingsScreen extends ConsumerWidget {
                   },
                 ),
                 SettingsItem(
-                  icon: Icons.help_outline,
-                  title: 'Centro de ayuda',
-                  onTap: () {},
-                ),
-                SettingsItem(
                   icon: Icons.description_outlined,
                   title: 'Términos de uso',
                   onTap: () {},
@@ -242,6 +240,7 @@ class SettingsScreen extends ConsumerWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall,
+          textAlign: TextAlign.center,
         ),
       ],
     );
