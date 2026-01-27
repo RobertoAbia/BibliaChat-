@@ -27,4 +27,7 @@ class RouteConstants {
 
   // Subscription
   static const String paywall = '/paywall';
+
+  // Legal
+  static const String privacyPolicy = '/privacy-policy';
 }

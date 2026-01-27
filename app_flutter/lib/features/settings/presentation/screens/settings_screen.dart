@@ -183,7 +183,7 @@ class SettingsScreen extends ConsumerWidget {
                 SettingsItem(
                   icon: Icons.privacy_tip_outlined,
                   title: 'Política de privacidad',
-                  onTap: () {},
+                  onTap: () => context.push(RouteConstants.privacyPolicy),
                 ),
               ],
             ),

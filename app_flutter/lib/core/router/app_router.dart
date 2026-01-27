@@ -20,6 +20,7 @@ import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/subscription/presentation/screens/paywall_screen.dart';
 import '../../features/profile/presentation/screens/profile_edit_screen.dart';
 import '../../features/saved_messages/presentation/screens/saved_messages_screen.dart';
+import '../../features/legal/presentation/screens/privacy_policy_screen.dart';
 import '../constants/route_constants.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
@@ -78,6 +79,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RouteConstants.savedMessages,
         name: 'savedMessages',
         builder: (context, state) => const SavedMessagesScreen(),
+      ),
+
+      // Privacy Policy (sin bottom navigation)
+      GoRoute(
+        path: RouteConstants.privacyPolicy,
+        name: 'privacyPolicy',
+        builder: (context, state) => const PrivacyPolicyScreen(),
       ),
 
       // Main App with Bottom Navigation
