@@ -24,6 +24,7 @@ class SettingsScreen extends ConsumerWidget {
         title: const Text('Perfil'),
       ),
       body: SingleChildScrollView(
+        key: const PageStorageKey<String>('settings_scroll'),
         child: Column(
           children: [
             // Profile Header
