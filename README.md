@@ -188,6 +188,28 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - Preferencias (Mis Reflexiones)
   - Información (valorar app, compartir, términos, privacidad)
   - Zona de peligro (cerrar sesión, borrar cuenta)
+- **PageStorageKey**: Preserva posición de scroll al volver de subpantallas
+- **Rutas anidadas bajo `/settings`**: Back button vuelve correctamente al tab de Perfil
+
+### Páginas Legales (GDPR/CCPA)
+- **Política de Privacidad** (13 secciones):
+  - Introducción con definición legal de "Información Personal"
+  - Referencias a RGPD, UK Data Act, CCPA, VCDPA
+  - Datos recopilados, uso, base legal, IA, terceros
+  - Seguridad, retención, derechos, menores, transferencias
+- **Términos y Condiciones** (17 secciones):
+  - Introducción, quiénes somos, cambios, registro
+  - Suscripciones, licencia, contenido usuario, terceros
+  - Uso aceptable, asunción de riesgo, indemnización
+  - Exención, limitación, terminación, ley aplicable
+- **Versiones:**
+  - **App**: Pantallas Flutter con UI glassmorphism
+  - **Web**: Archivos HTML standalone para Hostinger
+- **URLs web:**
+  - Privacidad: `https://releasemvps.com/biblia-chat-cristiano-privacy`
+  - Términos: `https://releasemvps.com/biblia-chat-cristiano-terminos-y-condiciones`
+- **Empresa**: Bikain OÜ (Estonia)
+- **Contacto**: info@releasemvps.com
 
 ### Aislamiento de Datos por Usuario
 - **Problema resuelto**: Al cambiar de usuario anónimo, los datos del usuario anterior ya no se muestran
@@ -212,17 +234,21 @@ BibliaChat/
 │       │   ├── services/           # StoryViewedService, MessageLimitService, RevenueCatService
 │       │   └── providers/          # story_viewed_provider
 │       └── features/
-│           ├── auth/               # SplashScreen
+│           ├── auth/               # SplashScreen, LoginScreen, etc.
 │           ├── onboarding/         # 11 páginas de onboarding
 │           ├── home/
 │           │   ├── data/           # daily_activity_remote_datasource
 │           │   └── presentation/   # HomeScreen, daily_progress_provider
 │           ├── chat/               # ChatListScreen, ChatScreen
-│           ├── study/              # StudyScreen
-│           ├── profile/            # Perfil de usuario
+│           ├── study/              # StudyScreen, PlanDetailScreen, PlanDayScreen
+│           ├── profile/            # Perfil de usuario, ProfileEditScreen
+│           ├── settings/           # SettingsScreen
 │           ├── daily_gospel/       # Feature Evangelio + Stories
 │           ├── subscription/       # PaywallScreen, subscription_provider
-│           └── saved_messages/     # Mis Reflexiones (mensajes guardados)
+│           ├── saved_messages/     # Mis Reflexiones (mensajes guardados)
+│           └── legal/              # Política de Privacidad, Términos y Condiciones
+│               ├── data/           # privacy_policy_content, terms_conditions_content
+│               └── presentation/   # PrivacyPolicyScreen, TermsConditionsScreen
 ├── supabase/
 │   ├── migrations/                 # 25 migraciones SQL
 │   └── functions/
@@ -246,6 +272,8 @@ BibliaChat/
 │   └── back-button-intentos.md     # Historial de intentos botón atrás Android
 ├── .env.example
 ├── CLAUDE.md                       # Memoria del proyecto para Claude
+├── privacy-policy.html             # Política de Privacidad (web)
+├── terms-conditions.html           # Términos y Condiciones (web)
 └── README.md
 ```
 
