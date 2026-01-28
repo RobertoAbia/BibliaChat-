@@ -1181,8 +1181,8 @@ BibliaChat/
     - `lib/features/legal/presentation/screens/privacy_policy_screen.dart` - Pantalla Flutter
     - `privacy-policy.html` - Versión web standalone
   - **Archivos modificados:**
-    - `lib/core/constants/route_constants.dart` - Ruta `/privacy-policy`
-    - `lib/core/router/app_router.dart` - GoRoute fuera de ShellRoute
+    - `lib/core/constants/route_constants.dart` - Ruta `/settings/privacy-policy`
+    - `lib/core/router/app_router.dart` - GoRoute anidado bajo settings
     - `lib/features/settings/presentation/screens/settings_screen.dart` - onTap conectado
 
 - [x] Feature: Términos y Condiciones
@@ -1193,14 +1193,32 @@ BibliaChat/
   - **Página web (HTML):**
     - Archivo `terms-conditions.html` en raíz del proyecto
     - Enlace a política de privacidad desde la introducción
+  - **URLs web (Hostinger):**
+    - Política: `https://releasemvps.com/biblia-chat-cristiano-privacy`
+    - Términos: `https://releasemvps.com/biblia-chat-cristiano-terminos-y-condiciones`
   - **Archivos creados:**
     - `lib/features/legal/data/terms_conditions_content.dart` - Contenido estructurado
     - `lib/features/legal/presentation/screens/terms_conditions_screen.dart` - Pantalla Flutter
     - `terms-conditions.html` - Versión web standalone
   - **Archivos modificados:**
-    - `lib/core/constants/route_constants.dart` - Ruta `/terms-conditions`
-    - `lib/core/router/app_router.dart` - GoRoute
+    - `lib/core/constants/route_constants.dart` - Ruta `/settings/terms-conditions`
+    - `lib/core/router/app_router.dart` - GoRoute anidado bajo settings
     - `lib/features/settings/presentation/screens/settings_screen.dart` - onTap conectado
+
+- [x] Fix: Navegación atrás desde pantallas de Settings
+  - **Problema:** Al presionar back desde Términos, Privacidad o Mis Reflexiones, iba a Home en lugar de Settings
+  - **Causa:** Las rutas estaban fuera del ShellRoute, GoRouter no conocía la jerarquía
+  - **Solución:** Mover rutas dentro del ShellRoute como hijas de `/settings`
+  - **Rutas actualizadas:**
+    - `/settings/edit` (ya existía)
+    - `/settings/saved-messages` (movida)
+    - `/settings/privacy-policy` (movida)
+    - `/settings/terms-conditions` (movida)
+  - **PageStorageKey:** Añadido al `SingleChildScrollView` de Settings para preservar posición de scroll al volver
+  - **Archivos modificados:**
+    - `lib/core/constants/route_constants.dart` - Nuevas rutas anidadas
+    - `lib/core/router/app_router.dart` - Rutas movidas dentro de settings
+    - `lib/features/settings/presentation/screens/settings_screen.dart` - PageStorageKey
 
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
@@ -1575,3 +1593,14 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
     }
     ```
   - La lista usa `ref.watch(refreshableUserChatsProvider)` que depende del contador
+- **Preservar posición de scroll al navegar (PageStorageKey):**
+  - Por defecto, al volver a una pantalla el scroll vuelve al inicio
+  - Añadir `PageStorageKey` al `ScrollView` para que Flutter recuerde la posición:
+    ```dart
+    SingleChildScrollView(
+      key: const PageStorageKey<String>('settings_scroll'),
+      child: Column(...),
+    )
+    ```
+  - Funciona con `ListView`, `SingleChildScrollView`, `CustomScrollView`, etc.
+  - La key debe ser única por pantalla
