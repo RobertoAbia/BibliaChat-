@@ -45,6 +45,7 @@ BibliaChat/
 ├── .env.example
 ├── .gitignore
 ├── privacy-policy.html  # HTML para web (Hostinger)
+├── terms-conditions.html  # HTML para web (Hostinger)
 └── README.md
 ```
 
@@ -1182,6 +1183,23 @@ BibliaChat/
   - **Archivos modificados:**
     - `lib/core/constants/route_constants.dart` - Ruta `/privacy-policy`
     - `lib/core/router/app_router.dart` - GoRoute fuera de ShellRoute
+    - `lib/features/settings/presentation/screens/settings_screen.dart` - onTap conectado
+
+- [x] Feature: Términos y Condiciones
+  - **Pantalla Flutter:**
+    - 17 secciones: Introducción, Quiénes somos, Cambios, Registro, Suscripciones, Licencia, Contenido usuario, Terceros, Uso aceptable, Riesgo, Indemnización, Exención, Limitación, Terminación, Ley aplicable, Disposiciones, Contacto
+    - UI glassmorphism idéntica a Política de Privacidad
+    - Acceso desde Settings → "Términos de uso"
+  - **Página web (HTML):**
+    - Archivo `terms-conditions.html` en raíz del proyecto
+    - Enlace a política de privacidad desde la introducción
+  - **Archivos creados:**
+    - `lib/features/legal/data/terms_conditions_content.dart` - Contenido estructurado
+    - `lib/features/legal/presentation/screens/terms_conditions_screen.dart` - Pantalla Flutter
+    - `terms-conditions.html` - Versión web standalone
+  - **Archivos modificados:**
+    - `lib/core/constants/route_constants.dart` - Ruta `/terms-conditions`
+    - `lib/core/router/app_router.dart` - GoRoute
     - `lib/features/settings/presentation/screens/settings_screen.dart` - onTap conectado
 
 ### Configuración Android Build (actualizado)

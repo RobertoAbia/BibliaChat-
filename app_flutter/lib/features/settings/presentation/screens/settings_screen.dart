@@ -178,7 +178,7 @@ class SettingsScreen extends ConsumerWidget {
                 SettingsItem(
                   icon: Icons.description_outlined,
                   title: 'Términos de uso',
-                  onTap: () {},
+                  onTap: () => context.push(RouteConstants.termsConditions),
                 ),
                 SettingsItem(
                   icon: Icons.privacy_tip_outlined,
