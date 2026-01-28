@@ -12,245 +12,156 @@ class PrivacyPolicyContent {
     // 1. Introducción
     PrivacyPolicySection(
       title: 'Introduccion',
-      body: '''Esta Politica de Privacidad (la "Politica") describe las practicas de Bikain OU (en adelante "Biblia Chat", "nosotros" o "nos") con respecto a la informacion personal recopilada, almacenada, utilizada, transferida, compartida y procesada de nuestros usuarios ("tu" o "usted") en conexion con la aplicacion movil Biblia Chat y todos los servicios relacionados (colectivamente, la "App" o los "Servicios").
+      body: '''Esta Politica de Privacidad (la "Politica") describe las practicas de Bikain OU (en adelante "Biblia Chat Cristiano", "nosotros" o "nos") con respecto a la informacion personal de nuestros usuarios ("tu" o "usted") en conexion con la aplicacion movil Biblia Chat Cristiano y todos los servicios relacionados (la "App" o los "Servicios"). Esta Politica forma parte de nuestros Terminos y Condiciones.
 
-Bikain OU es una sociedad de responsabilidad limitada constituida bajo las leyes de Estonia, con domicilio social en Harju maakond, Tallinn, Kristiine linnaosa, Kotkapoja tn 2a-10, 10615, identificada con el codigo de registro 16315409 y numero de IVA EE102419777.
+"Informacion Personal" significa, segun corresponda, la informacion relacionada con una persona fisica identificada o identificable segun lo definido por el Reglamento (UE) 2016/679 ("RGPD"), la Ley de Proteccion de Datos del Reino Unido de 2018 ("UK Data Act"), la Ley de Privacidad del Consumidor de California ("CCPA"), la Ley de Proteccion de Datos del Consumidor de Virginia ("VCDPA") y otras leyes de privacidad aplicables (el RGPD, la UK Data Act, la CCPA y cualquier otra ley de proteccion de datos aplicable, cuando y segun corresponda, denominadas conjuntamente la "Ley"), incluyendo tambien datos sensibles, si fuera el caso ("Informacion Personal"). Las disposiciones aplicables de esta Politica pueden variar segun tu residencia y se ajustaran a la Ley aplicable.
 
-"Informacion Personal" significa, segun corresponda, la informacion relacionada con una persona fisica identificada o identificable segun lo definido por el Reglamento (UE) 2016/679 ("RGPD"), la Ley de Privacidad del Consumidor de California ("CCPA") y otras leyes de privacidad aplicables.
+El responsable del tratamiento es Bikain OU, sociedad de responsabilidad limitada constituida bajo las leyes de Estonia, con domicilio social en Harju maakond, Tallinn, Kristiine linnaosa, Kotkapoja tn 2a-10, 10615 (codigo de registro: 16315409, IVA: EE102419777).
 
-Biblia Chat se proporciona "tal cual" y existe unicamente con fines informativos y devocionales. La app no proporciona asesoramiento medico, psicologico, legal ni pastoral. Los usuarios que experimenten angustia emocional o problemas de salud mental deben buscar apoyo personalizado de un profesional cualificado. En situaciones de emergencia, los usuarios deben llamar a los servicios de emergencia locales (por ejemplo, 911 en EE.UU. o 112 en Europa).
+Esta Politica establece tus derechos y recursos en virtud de la Ley, por lo que te rogamos que la leas detenidamente.
 
-Para preguntas o solicitudes relacionadas con esta Politica, puedes contactarnos en info@releasemvps.com.''',
+Biblia Chat Cristiano se proporciona "tal cual" y existe unicamente con fines informativos y devocionales. La App no proporciona asesoramiento medico, psicologico, legal ni pastoral. En situaciones de emergencia, contacta a los servicios de emergencia locales (911 en EE.UU. o 112 en Europa).
+
+Para cualquier consulta relacionada con esta Politica, puedes contactarnos en info@releasemvps.com.''',
     ),
 
     // 2. Información que recopilamos
     PrivacyPolicySection(
       title: 'Informacion que recopilamos',
-      body: '''Datos de perfil proporcionados por ti:
+      body: '''Datos de perfil:
 - Correo electronico (opcional, solo si vinculas tu cuenta)
 - Nombre (opcional)
-- Genero
-- Denominacion religiosa
-- Pais de origen y grupo cultural
-- Grupo de edad
-- Motivo principal de uso
-- Preferencias de recordatorio (habilitado/deshabilitado, hora)
-- Zona horaria (detectada automaticamente)
+- Genero, denominacion religiosa, pais de origen, grupo de edad
+- Preferencias de recordatorio y zona horaria
 
-Datos del chat con IA:
+Datos del chat:
 - Mensajes enviados y recibidos en conversaciones con la IA
-- Memoria de la IA (hechos que la IA recuerda sobre ti para personalizar respuestas)
-- Resumenes de conversaciones
 - Mensajes guardados como favoritos
 
 Datos de actividad:
-- Actividad diaria (racha de dias consecutivos, stories visualizadas)
-- Progreso en planes de estudio
-- Contador de mensajes enviados por dia
+- Racha de dias consecutivos y progreso en planes de estudio
 
 Datos del dispositivo:
-- Tokens de dispositivo para notificaciones push (Firebase Cloud Messaging)
-- Tipo de dispositivo y sistema operativo
+- Informacion basica del dispositivo para notificaciones push
 
 Datos de pago:
-- Gestionados por RevenueCat. Almacenamos tu identificador de usuario de RevenueCat y estado de suscripcion, pero NO almacenamos datos de tarjetas de credito ni informacion financiera.
+- Gestionados por terceros (RevenueCat, Apple, Google). NO almacenamos datos de tarjetas de credito ni informacion financiera.
 
-Datos de uso y analiticas:
-- Firebase Analytics y Mixpanel recopilan patrones de uso agregados, vistas de pantalla y eventos de interaccion.''',
+Datos de analiticas:
+- Patrones de uso agregados y eventos de interaccion, recopilados mediante servicios de analiticas de terceros.''',
     ),
 
     // 3. Cómo usamos tu información
     PrivacyPolicySection(
       title: 'Como usamos tu informacion',
-      body: '''Utilizamos tu informacion personal para los siguientes propositos:
+      body: '''Utilizamos tu informacion para:
 
-- Proporcionar respuestas de IA personalizadas adaptadas a tu denominacion religiosa, origen cultural y grupo de edad.
-- Mantener el contexto y la memoria de las conversaciones para una mejor experiencia de chat.
-- Entregar lecturas biblicas diarias y contenido de Stories.
-- Registrar tu racha de dias consecutivos y progreso en planes de estudio.
+- Proporcionar respuestas personalizadas adaptadas a tu perfil.
+- Mantener el contexto de las conversaciones para una mejor experiencia.
+- Entregar lecturas biblicas diarias y contenido devocional.
+- Registrar tu progreso y actividad en la App.
 - Enviar notificaciones push (si las has habilitado).
-- Procesar suscripciones a traves de RevenueCat.
-- Mejorar la app, su contenido y funcionalidades.
-- Prevenir fraude y uso indebido de los servicios.
-- Cumplir con obligaciones legales aplicables.''',
+- Procesar suscripciones.
+- Mejorar la App y sus funcionalidades.
+- Prevenir fraude y uso indebido.
+- Cumplir con obligaciones legales.''',
     ),
 
     // 4. Base legal del tratamiento (GDPR)
     PrivacyPolicySection(
-      title: 'Base legal del tratamiento (RGPD)',
-      body: '''Cuando el RGPD es aplicable, procesamos tu informacion personal basandonos en las siguientes bases legales:
+      title: 'Base legal del tratamiento',
+      body: '''Procesamos tu informacion basandonos en: tu consentimiento, la ejecucion del contrato de servicio, nuestro interes legitimo (analiticas, mejora y prevencion de fraude) y obligaciones legales aplicables.
 
-Consentimiento: Para datos opcionales como la vinculacion de correo electronico, activacion de notificaciones push y preferencias de recordatorio. Puedes retirar tu consentimiento en cualquier momento contactandonos en info@releasemvps.com.
-
-Ejecucion del contrato: Para proporcionar el servicio de chat con IA, planes de estudio y contenido diario que forman parte de los Servicios que te ofrecemos.
-
-Interes legitimo: Para analiticas, mejora de la app y prevencion de fraude. Nuestro interes legitimo no prevalece sobre tus derechos y libertades fundamentales.
-
-Obligacion legal: Para cumplir con las regulaciones de la Union Europea y otras leyes aplicables.
-
-Ten en cuenta que algunos datos que proporcionas pueden considerarse datos sensibles (creencias religiosas). Solo procesamos estos datos con tu consentimiento expreso, que otorgas al utilizar la App y proporcionar dicha informacion voluntariamente.''',
+Algunos datos que proporcionas pueden considerarse datos sensibles (creencias religiosas). Solo procesamos estos datos con tu consentimiento expreso, que otorgas al utilizar la App y proporcionar dicha informacion voluntariamente. Puedes retirar tu consentimiento en cualquier momento contactandonos en info@releasemvps.com.''',
     ),
 
     // 5. Inteligencia Artificial y tus datos
     PrivacyPolicySection(
       title: 'Inteligencia Artificial y tus datos',
-      body: '''Biblia Chat utiliza inteligencia artificial para generar respuestas personalizadas. Es importante que entiendas como se procesan tus datos en este contexto:
+      body: '''Biblia Chat Cristiano utiliza servicios de inteligencia artificial de terceros para generar respuestas personalizadas. Tus mensajes se procesan en nuestros servidores y se envian a estos servicios para generar las respuestas.
 
-- Tus mensajes son procesados por modelos de OpenAI (GPT-4o y GPT-5.2) a traves de funciones del servidor (Supabase Edge Functions). Las claves de la API de IA nunca se exponen en la app del cliente.
+La App puede recordar informacion relevante de tus conversaciones para personalizar futuras respuestas. Puedes eliminar mensajes individuales o conversaciones completas desde la App, y puedes solicitar la eliminacion de cualquier dato almacenado contactandonos.
 
-- Segun la politica de uso de datos de la API de OpenAI, los datos enviados a traves de su API no se utilizan para entrenar sus modelos.
-
-- La App mantiene una "memoria de IA" (ai_memory) que almacena hechos relevantes sobre ti para personalizar las respuestas (por ejemplo, tu situacion familiar o temas recurrentes). Puedes solicitar la eliminacion de esta memoria contactandonos.
-
-- Cada 20 mensajes, se genera automaticamente un resumen de la conversacion para mantener el contexto sin necesidad de enviar todo el historial.
-
-- Puedes eliminar mensajes individuales o conversaciones completas desde la App.
-
-- El contenido generado por la IA es orientativo y no sustituye el consejo pastoral, medico o profesional.''',
+El contenido generado por la IA es orientativo y no sustituye el consejo pastoral, medico o profesional.''',
     ),
 
     // 6. Con quién compartimos tu información
     PrivacyPolicySection(
       title: 'Con quien compartimos tu informacion',
-      body: '''Compartimos tu informacion personal con los siguientes terceros, unicamente para los fines descritos en esta Politica:
+      body: '''Para ofrecer nuestros Servicios, trabajamos con los siguientes proveedores externos:
 
-Supabase: Alojamiento de base de datos, autenticacion y funciones del servidor.
+- Supabase: Alojamiento y gestion de datos.
+- OpenAI: Servicios de inteligencia artificial.
+- RevenueCat: Gestion de suscripciones.
+- Firebase (Google): Notificaciones y analiticas.
+- Apple y Google: Distribucion de la App y compras.
 
-OpenAI: Procesamiento de mensajes de chat mediante inteligencia artificial. OpenAI esta establecida en EE.UU. y opera bajo su acuerdo de procesamiento de datos.
-
-RevenueCat: Procesamiento de suscripciones y pagos.
-
-Firebase (Google): Notificaciones push y analiticas.
-
-Mixpanel: Analiticas de producto.
-
-Apple y Google: Distribucion de la app y procesamiento de compras dentro de la app.
-
-Autoridades legales: Cuando sea requerido por ley o necesario para proteger nuestros derechos legales.
+Tambien podemos compartir informacion con autoridades legales cuando sea requerido por ley.
 
 NO vendemos tu informacion personal a terceros.
-NO compartimos tu informacion personal con fines de publicidad dirigida.''',
+NO compartimos tu informacion con fines de publicidad dirigida.''',
     ),
 
     // 7. Seguridad de los datos
     PrivacyPolicySection(
       title: 'Seguridad de los datos',
-      body: '''Hemos implementado medidas tecnicas y organizativas razonables y apropiadas para proteger tu informacion personal:
+      body: '''Hemos implementado medidas tecnicas y organizativas para proteger tu informacion personal, incluyendo conexiones cifradas, controles de acceso a nivel de base de datos y procesamiento seguro en el servidor.
 
-- Seguridad a nivel de base de datos (Row Level Security) que garantiza que cada usuario solo puede acceder a sus propios datos.
-- Conexiones cifradas (HTTPS/TLS) en todas las comunicaciones.
-- Procesamiento de IA del lado del servidor (las claves de API nunca estan en la app del cliente).
-- Autenticacion anonima por defecto, con opcion voluntaria de vincular correo electronico.
-- Alojamiento en Supabase con cifrado en reposo.
-
-Ningun sistema es completamente seguro. Si descubres una vulnerabilidad de seguridad, por favor contactanos inmediatamente en info@releasemvps.com.''',
+Ningun sistema es completamente seguro. Si descubres una vulnerabilidad, contactanos en info@releasemvps.com.''',
     ),
 
     // 8. Retención de datos
     PrivacyPolicySection(
       title: 'Retencion de datos',
-      body: '''Cuenta activa: Tu informacion personal se conserva mientras tu cuenta exista y utilices los Servicios.
+      body: '''Tu informacion se conserva mientras tu cuenta exista y utilices los Servicios.
 
-Eliminacion de cuenta: Cuando solicitas la eliminacion de tu cuenta (disponible en Ajustes > Zona de peligro > Borrar mi cuenta):
-- Tu informacion personal identificable (nombre, correo electronico, tokens de dispositivo, identificador de RevenueCat) se elimina inmediatamente.
-- Se crea un archivo pseudonimizado con fines de defensa legal, conforme al Articulo 17(3) del RGPD. Este archivo utiliza un hash SHA256 de tu identificador de usuario (no reversible) y contiene: datos demograficos sin informacion identificable, mensajes de chat sin identificacion de usuario y metricas agregadas.
-- El archivo pseudonimizado se conserva durante 3 anos desde la fecha de archivo y se elimina automaticamente despues.
+Al eliminar tu cuenta (disponible en Ajustes), tu informacion personal identificable se elimina inmediatamente. Por motivos legales, podemos conservar un archivo anonimizado durante un periodo maximo de 3 anos.
 
-Si deseas que eliminemos tus datos antes del periodo de retencion, puedes contactarnos en info@releasemvps.com.''',
+Si deseas que eliminemos tus datos antes de ese periodo, contactanos en info@releasemvps.com.''',
     ),
 
-    // 9. Tus derechos (GDPR)
+    // 9. Tus derechos
     PrivacyPolicySection(
-      title: 'Tus derechos (RGPD)',
-      body: '''Si resides en la Union Europea o el Espacio Economico Europeo, tienes los siguientes derechos:
+      title: 'Tus derechos',
+      body: '''Si resides en la Union Europea o el Espacio Economico Europeo, tienes todos los derechos contemplados por el Reglamento General de Proteccion de Datos (RGPD), incluyendo el acceso, rectificacion, supresion, portabilidad y oposicion al tratamiento de tus datos personales. Puedes presentar una reclamacion ante la autoridad de proteccion de datos de tu pais de residencia.
 
-Derecho de acceso: Puedes solicitar una copia de la informacion personal que tenemos sobre ti.
+Si resides en los Estados Unidos, tienes los derechos contemplados por las leyes de privacidad estatales aplicables (CCPA, CPRA, VCDPA, entre otras), incluyendo el derecho a conocer, acceder, corregir y eliminar tu informacion personal.
 
-Derecho de rectificacion: Puedes corregir tu informacion personal desde la pantalla "Editar Perfil" en la App, o contactandonos.
+NO vendemos tu informacion personal. NO realizamos perfilado con efectos legales. No te discriminaremos por ejercer tus derechos de privacidad.
 
-Derecho de supresion: Puedes eliminar tu cuenta y todos tus datos desde Ajustes > Zona de peligro > Borrar mi cuenta.
-
-Derecho a la limitacion del tratamiento: Puedes solicitar que limitemos el procesamiento de tu informacion en determinadas circunstancias.
-
-Derecho a la portabilidad: Puedes solicitar una copia de tus datos en un formato estructurado y de uso comun.
-
-Derecho de oposicion: Puedes oponerte al procesamiento de tu informacion personal en determinadas circunstancias, incluido el marketing directo.
-
-Derecho a retirar el consentimiento: Puedes retirar tu consentimiento en cualquier momento, sin que ello afecte a la licitud del tratamiento basado en el consentimiento previo a su retirada.
-
-Derecho a presentar una reclamacion: Puedes presentar una reclamacion ante la Inspeccion de Proteccion de Datos de Estonia (Andmekaitse Inspektsioon) o ante la autoridad de proteccion de datos de tu pais de residencia.
-
-Para ejercer cualquiera de estos derechos, contactanos en info@releasemvps.com. Responderemos a tu solicitud en un plazo maximo de 30 dias.''',
+Para ejercer cualquiera de tus derechos, contactanos en info@releasemvps.com.''',
     ),
 
-    // 10. Derechos de privacidad en EE.UU.
-    PrivacyPolicySection(
-      title: 'Derechos de privacidad en EE.UU.',
-      body: '''Si resides en los Estados Unidos, puedes tener derechos adicionales segun las leyes de privacidad estatales, incluyendo la Ley de Privacidad del Consumidor de California (CCPA/CPRA) y la Ley de Proteccion de Datos del Consumidor de Virginia (VCDPA), entre otras.
-
-Tus derechos como consumidor incluyen:
-- Derecho a conocer que informacion personal recopilamos y como la usamos.
-- Derecho a acceder a tu informacion personal.
-- Derecho a corregir inexactitudes en tu informacion personal.
-- Derecho a eliminar tu informacion personal.
-- Derecho a obtener una copia de tu informacion personal.
-- Derecho a optar por no participar en la venta de datos personales.
-
-Declaracion importante: NO vendemos tu informacion personal. NO compartimos tu informacion personal con fines de publicidad dirigida. NO realizamos perfilado con efectos legales o similarmente significativos.
-
-No discriminacion: No te discriminaremos por ejercer tus derechos de privacidad.
-
-Para ejercer tus derechos, contactanos en info@releasemvps.com. Responderemos en un plazo de 45 dias, ampliable por otros 45 dias si fuera necesario, notificandote la extension.''',
-    ),
-
-    // 11. Menores de edad
+    // 10. Menores de edad
     PrivacyPolicySection(
       title: 'Menores de edad',
-      body: '''Los Servicios estan destinados a personas mayores de 18 anos. No recopilamos intencionadamente informacion personal de menores de 18 anos.
+      body: '''Los Servicios estan destinados a personas mayores de 18 anos. No recopilamos intencionadamente informacion personal de menores de 18 anos. Si descubrimos que lo hemos hecho, la eliminaremos de inmediato.
 
-Si descubrimos que hemos recopilado informacion personal de un menor de 18 anos, la eliminaremos de inmediato.
-
-Si eres padre o tutor y crees que tu hijo nos ha proporcionado informacion personal, contactanos en info@releasemvps.com para que podamos tomar las medidas necesarias.''',
+Si eres padre o tutor y crees que tu hijo nos ha proporcionado informacion personal, contactanos en info@releasemvps.com.''',
     ),
 
-    // 12. Transferencias internacionales
+    // 11. Transferencias internacionales
     PrivacyPolicySection(
       title: 'Transferencias internacionales',
-      body: '''Bikain OU esta establecida en Estonia, miembro de la Union Europea. Sin embargo, algunos de nuestros proveedores de servicios externos estan establecidos fuera de la UE, principalmente en los Estados Unidos.
+      body: '''Bikain OU esta establecida en Estonia (Union Europea). Algunos de nuestros proveedores de servicios estan establecidos fuera de la UE, principalmente en los Estados Unidos.
 
-Cuando transferimos tu informacion personal fuera de la UE, nos aseguramos de que se aplique una de las siguientes garantias:
-
-- Solo transferimos datos a paises que la Comision Europea ha considerado que proporcionan un nivel adecuado de proteccion de datos personales.
-
-- Cuando utilizamos determinados proveedores de servicios, empleamos Clausulas Contractuales Tipo (CCT) aprobadas por la Comision Europea, que proporcionan la misma proteccion para los datos personales que en la UE.
-
-- Cuando sea aplicable, nos amparamos en el Marco de Privacidad de Datos UE-EE.UU. (EU-US Data Privacy Framework).
-
-Para mas informacion sobre las garantias aplicadas, contactanos en info@releasemvps.com.''',
+Cuando transferimos datos fuera de la UE, aplicamos las garantias legales correspondientes, como las Clausulas Contractuales Tipo o el Marco de Privacidad de Datos UE-EE.UU., segun corresponda.''',
     ),
 
-    // 13. Cambios a esta política
+    // 12. Cambios a esta politica
     PrivacyPolicySection(
       title: 'Cambios a esta politica',
-      body: '''Podemos actualizar esta Politica periodicamente. Si realizamos cambios materiales en la forma en que recopilamos o utilizamos tu informacion, haremos esfuerzos razonables para notificarte (por ejemplo, mediante un aviso en la App o por correo electronico si lo has proporcionado).
-
-El uso continuado de los Servicios despues de la actualizacion de esta Politica indica tu aceptacion de los cambios realizados. En algunos casos, se te dara la opcion de aceptar los cambios expresamente.
-
-Si no aceptas los terminos de la Politica actualizada, debes dejar de utilizar los Servicios.''',
+      body: '''Podemos actualizar esta Politica periodicamente. Si realizamos cambios significativos, te notificaremos a traves de la App. El uso continuado de los Servicios tras la actualizacion indica tu aceptacion de los cambios.''',
     ),
 
-    // 14. Contacto
+    // 13. Contacto
     PrivacyPolicySection(
       title: 'Contacto',
-      body: '''Si tienes preguntas, comentarios o solicitudes relacionadas con esta Politica de Privacidad o el ejercicio de tus derechos, puedes contactarnos en:
+      body: '''Para cualquier consulta relacionada con esta Politica de Privacidad, puedes contactarnos en:
 
 Bikain OU
 Harju maakond, Tallinn, Kristiine linnaosa
-Kotkapoja tn 2a-10, 10615
-Estonia
-
-Codigo de registro: 16315409
-Numero de IVA: EE102419777
+Kotkapoja tn 2a-10, 10615, Estonia
 
 Correo electronico: info@releasemvps.com''',
     ),

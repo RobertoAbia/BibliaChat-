@@ -44,6 +44,7 @@ BibliaChat/
 │   └── back-button-intentos.md  # Historial de intentos para arreglar botón atrás Android
 ├── .env.example
 ├── .gitignore
+├── privacy-policy.html  # HTML para web (Hostinger)
 └── README.md
 ```
 
@@ -1162,6 +1163,26 @@ BibliaChat/
   - **Solución:** Añadir `clipBehavior: Clip.antiAlias` y `shape: RoundedRectangleBorder` al Dialog
   - **Archivo modificado:**
     - `lib/features/study/presentation/screens/plan_day_screen.dart` - Dialog con clip
+
+- [x] Feature: Política de Privacidad (GDPR/CCPA compliant)
+  - **Pantalla Flutter:**
+    - 13 secciones: Introducción, Datos recopilados, Uso, Base legal, IA, Terceros, Seguridad, Retención, Derechos, Menores, Transferencias, Cambios, Contacto
+    - UI glassmorphism con barras doradas en títulos
+    - Acceso desde Settings → "Política de privacidad"
+  - **Página web (HTML):**
+    - Archivo `privacy-policy.html` en raíz del proyecto
+    - Diseño responsive con tema oscuro (mismo estilo que la app)
+    - Para subir a Hostinger: copiar contenido a public_html
+  - **Empresa responsable:** Bikain OÜ (Estonia)
+  - **Contacto:** info@releasemvps.com
+  - **Archivos creados:**
+    - `lib/features/legal/data/privacy_policy_content.dart` - Contenido estructurado
+    - `lib/features/legal/presentation/screens/privacy_policy_screen.dart` - Pantalla Flutter
+    - `privacy-policy.html` - Versión web standalone
+  - **Archivos modificados:**
+    - `lib/core/constants/route_constants.dart` - Ruta `/privacy-policy`
+    - `lib/core/router/app_router.dart` - GoRoute fuera de ShellRoute
+    - `lib/features/settings/presentation/screens/settings_screen.dart` - onTap conectado
 
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)

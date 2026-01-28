@@ -171,7 +171,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
       padding: const EdgeInsets.only(top: 24, bottom: 16),
       child: Center(
         child: Text(
-          'Biblia Chat v1.0.0 - Bikain OU',
+          'Biblia Chat Cristiano - Bikain OU',
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: AppTheme.textTertiary,
               ),
