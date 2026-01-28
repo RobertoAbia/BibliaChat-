@@ -13,7 +13,7 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 | IA | OpenAI GPT-4o (chat) + GPT-4o-mini (memorias) + GPT-5.2 (Stories) |
 | Pagos | RevenueCat + In-App Purchases |
 | Notificaciones | Firebase Cloud Messaging |
-| Analytics | Firebase Analytics + Mixpanel |
+| Analytics | Firebase Analytics (integrado y verificado) |
 
 ## Modelo de Negocio
 
@@ -221,6 +221,41 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - `study_provider`: Planes de estudio activos/completados
   - `daily_progress_provider`: Racha y progreso diario
 - **SharedPreferences**: Las claves incluyen el user ID (`story_viewed_{userId}_{date}`)
+
+### Firebase Analytics
+- **Servicio singleton**: `AnalyticsService` en `lib/core/services/analytics_service.dart`
+- **Configuración**:
+  - `google-services.json` (Android) en `android/app/`
+  - `GoogleService-Info.plist` (iOS) en `ios/Runner/`
+  - `firebase_options.dart` con configuración por plataforma
+- **Inicialización**: En `main.dart` antes de Supabase
+- **Screen tracking automático**: `FirebaseAnalyticsObserver` en GoRouter
+- **18 eventos personalizados**:
+
+| Evento | Cuándo se dispara |
+|--------|-------------------|
+| `onboarding_complete` | Usuario completa onboarding |
+| `chat_message_sent` | Usuario envía mensaje en chat |
+| `chat_created` | Usuario crea nueva conversación |
+| `story_viewed` | Usuario ve slide de Stories |
+| `story_completed` | Usuario completa las 3 Stories |
+| `share_image` | Usuario comparte imagen desde Stories |
+| `plan_started` | Usuario inicia plan de estudio |
+| `plan_day_completed` | Usuario completa día del plan |
+| `plan_completed` | Usuario completa plan de 7 días |
+| `plan_abandoned` | Usuario abandona plan |
+| `message_saved` | Usuario guarda mensaje ❤️ |
+| `message_unsaved` | Usuario elimina mensaje guardado |
+| `paywall_viewed` | Usuario ve el paywall |
+| `subscription_started` | Usuario inicia suscripción |
+| `purchase_restored` | Usuario restaura compras |
+| `email_linked` | Usuario vincula email |
+| `login` | Usuario hace login |
+| `account_deleted` | Usuario borra cuenta |
+| `message_limit_reached` | Usuario alcanza límite diario |
+
+- **User properties**: denomination, origin, age_group, gender, is_premium
+- **DebugView**: Habilitar con `adb shell setprop debug.firebase.analytics.app ee.bikain.bibliachat`
 
 ## Estructura del Proyecto
 

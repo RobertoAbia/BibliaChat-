@@ -1271,12 +1271,17 @@ BibliaChat/
     - `lib/features/auth/presentation/providers/auth_provider.dart` - Log auth events
     - `lib/features/auth/presentation/screens/splash_screen.dart` - Set user ID
     - `lib/features/chat/presentation/providers/message_limit_provider.dart` - Log límite
-    - `android/settings.gradle` - Plugin Google Services
+    - `android/settings.gradle` - Plugin Google Services + Kotlin 2.1.0
     - `android/app/build.gradle` - Apply plugin
+  - **Verificación con DebugView:**
+    - Habilitar debug mode: `adb shell setprop debug.firebase.analytics.app ee.bikain.bibliachat`
+    - Ver eventos en: Firebase Console → Analytics → DebugView
+    - Eventos aparecen en tiempo real (~30 segundos de delay)
+    - Dashboard principal tiene delay de ~24 horas
 
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
-- **Kotlin:** 2.0.21 (estable, no 2.1.0 que es muy nueva)
+- **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
 - **Gradle:** 8.9
 - **Fix para plugins sin namespace:** `plugins.withId("com.android.library")` en build.gradle
 - **Dependency override:** `app_links: ^7.0.0` para compatibilidad con AGP 8.x
