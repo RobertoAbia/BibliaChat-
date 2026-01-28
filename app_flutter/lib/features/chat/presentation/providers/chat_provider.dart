@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
+import '../../../subscription/presentation/providers/subscription_provider.dart';
 import '../../data/datasources/chat_remote_datasource.dart';
 import '../../data/models/chat_message_model.dart';
 import '../../data/repositories/chat_repository_impl.dart';
@@ -297,6 +299,13 @@ class ChatNotifier extends StateNotifier<ChatState> {
 
       // Notificar a la lista de chats que debe refrescarse
       _notifyChatListRefresh();
+
+      // Log analytics event
+      final isPremium = _ref.read(isPremiumProvider);
+      AnalyticsService().logChatMessageSent(
+        topicKey: topicKey ?? state.topicKey,
+        isPremium: isPremium,
+      );
     } catch (e) {
       state = state.copyWith(
         isSending: false,

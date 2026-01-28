@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "585975354122",
+    "project_id": "biblia-chat-cristiano",
+    "storage_bucket": "biblia-chat-cristiano.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:585975354122:android:203c5e92e9c71b2ceda0f3",
+        "android_client_info": {
+          "package_name": "ee.bikain.bibliachat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAjGfsNtboLQSuH-xX3n2vNoF5mni9KRFQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../app.dart'; // Para currentTabIndexProvider
+import '../services/analytics_service.dart';
 
 import '../../features/auth/presentation/screens/splash_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
@@ -28,6 +29,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: RouteConstants.splash,
     debugLogDiagnostics: true,
+    observers: [AnalyticsService().observer],
     routes: [
       // Splash Screen
       GoRoute(

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/message_limit_service.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
@@ -68,6 +69,11 @@ class MessageLimitNotifier extends StateNotifier<MessageLimitState> {
   Future<void> incrementAndRefresh() async {
     await _service.incrementMessageCount();
     await refresh();
+
+    // Log analytics when user reaches the limit
+    if (state.remainingMessages == 0) {
+      AnalyticsService().logMessageLimitReached();
+    }
   }
 
   /// Verifica si el usuario puede enviar mensaje (considerando si es premium)

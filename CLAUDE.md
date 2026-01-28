@@ -11,7 +11,7 @@
 - **IA:** OpenAI GPT-5.2 (usa `role: "developer"` y `max_completion_tokens`)
 - **Pagos:** RevenueCat + In-App Purchases
 - **Notificaciones:** Firebase Cloud Messaging
-- **Analytics:** Firebase Analytics + Mixpanel
+- **Analytics:** Firebase Analytics (integrado - 18 eventos personalizados)
 
 ## Arquitectura
 - **Supabase-First:** Sin backend dedicado en MVP
@@ -1220,6 +1220,60 @@ BibliaChat/
     - `lib/core/router/app_router.dart` - Rutas movidas dentro de settings
     - `lib/features/settings/presentation/screens/settings_screen.dart` - PageStorageKey
 
+- [x] EPIC 11: Firebase Analytics
+  - **Configuración Firebase:**
+    - Proyecto: "Biblia Chat Cristiano" (ID: `biblia-chat-cristiano`)
+    - Android: `google-services.json` en `android/app/`
+    - iOS: `GoogleService-Info.plist` en `ios/Runner/`
+    - Plugin Google Services añadido a `settings.gradle` y `app/build.gradle`
+  - **Archivos creados:**
+    - `lib/firebase_options.dart` - Configuración multiplataforma
+    - `lib/core/services/analytics_service.dart` - Servicio singleton con métodos de tracking
+  - **Inicialización:**
+    - Firebase se inicializa en `main.dart` con `Firebase.initializeApp()`
+    - User ID se establece en `SplashScreen` después de auth
+    - Observer de navegación añadido al GoRouter para screen_view automático
+  - **Eventos trackeados:**
+    | Evento | Ubicación | Descripción |
+    |--------|-----------|-------------|
+    | `onboarding_complete` | OnboardingScreen | Usuario completa onboarding |
+    | `chat_message_sent` | ChatNotifier | Mensaje enviado en chat |
+    | `story_viewed` | GospelStoriesScreen | Slide de story visto |
+    | `story_completed` | GospelStoriesScreen | 3 stories completadas |
+    | `plan_started` | StudyActionsNotifier | Usuario inicia plan |
+    | `plan_day_completed` | StudyActionsNotifier | Día completado |
+    | `plan_completed` | StudyActionsNotifier | Plan de 7 días completado |
+    | `plan_abandoned` | StudyActionsNotifier | Usuario abandona plan |
+    | `message_saved` | SavedMessageNotifier | Mensaje guardado ❤️ |
+    | `message_unsaved` | SavedMessageNotifier | Mensaje desguar dado |
+    | `share_image` | ShareImageScreen | Imagen compartida |
+    | `paywall_viewed` | PaywallScreen | Usuario ve paywall |
+    | `subscription_started` | SubscriptionNotifier | Suscripción iniciada |
+    | `purchase_restored` | SubscriptionNotifier | Compras restauradas |
+    | `email_linked` | AuthNotifier | Email vinculado a cuenta |
+    | `login` | AuthNotifier | Usuario hace login |
+    | `account_deleted` | AuthNotifier | Cuenta borrada |
+    | `message_limit_reached` | MessageLimitNotifier | Límite diario alcanzado |
+  - **User Properties (segmentación):**
+    - `denomination`, `origin`, `age_group`, `gender`, `is_premium`
+    - Se establecen al completar onboarding
+  - **Archivos modificados:**
+    - `lib/main.dart` - Import Firebase + inicialización
+    - `lib/core/router/app_router.dart` - Analytics observer en GoRouter
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - Log onboarding
+    - `lib/features/chat/presentation/providers/chat_provider.dart` - Log mensajes
+    - `lib/features/daily_gospel/presentation/screens/gospel_stories_screen.dart` - Log stories
+    - `lib/features/study/presentation/providers/study_provider.dart` - Log planes
+    - `lib/features/saved_messages/presentation/providers/saved_message_provider.dart` - Log guardados
+    - `lib/features/daily_gospel/presentation/screens/share_image_screen.dart` - Log share
+    - `lib/features/subscription/presentation/screens/paywall_screen.dart` - Log paywall
+    - `lib/features/subscription/presentation/providers/subscription_provider.dart` - Log suscripciones
+    - `lib/features/auth/presentation/providers/auth_provider.dart` - Log auth events
+    - `lib/features/auth/presentation/screens/splash_screen.dart` - Set user ID
+    - `lib/features/chat/presentation/providers/message_limit_provider.dart` - Log límite
+    - `android/settings.gradle` - Plugin Google Services
+    - `android/app/build.gradle` - Apply plugin
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.0.21 (estable, no 2.1.0 que es muy nueva)
@@ -1249,6 +1303,7 @@ BibliaChat/
 - [x] Feature: Almacenar Biblia en Supabase (reemplaza API.Bible) - COMPLETADO
 - [x] Feature: Almacenar Calendario Litúrgico en Supabase - COMPLETADO
 - [x] Feature: Botón atrás Android en Chat - COMPLETADO
+- [x] **EPIC 11**: Firebase Analytics - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 

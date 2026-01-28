@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 
@@ -110,6 +111,8 @@ class AuthNotifier extends StateNotifier<AuthNotifierState> {
 
     if (result.success) {
       state = AuthNotifierState.success();
+      // Log analytics event
+      AnalyticsService().logEmailLinked();
       return true;
     } else {
       state = AuthNotifierState.error(
@@ -131,6 +134,8 @@ class AuthNotifier extends StateNotifier<AuthNotifierState> {
 
     if (result.success) {
       state = AuthNotifierState.success();
+      // Log analytics event
+      AnalyticsService().logLogin(method: 'email');
       return true;
     } else {
       state = AuthNotifierState.error(
@@ -252,6 +257,9 @@ class AuthNotifier extends StateNotifier<AuthNotifierState> {
   /// Elimina la cuenta del usuario y todos sus datos
   Future<bool> deleteAccount() async {
     state = AuthNotifierState.loading();
+
+    // Log analytics event BEFORE deleting (after delete, user won't exist)
+    AnalyticsService().logAccountDeleted();
 
     final result = await _repository.deleteAccount();
 

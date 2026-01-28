@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
 import '../../../chat/presentation/screens/chat_screen.dart';
@@ -144,6 +145,8 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
 
     // Mark initial slide as viewed
     widget.onSlideViewed?.call(widget.initialSlideIndex);
+    // Log analytics for initial slide
+    AnalyticsService().logStoryViewed(slideNumber: widget.initialSlideIndex);
 
     _startProgress();
   }
@@ -163,9 +166,12 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
       );
       // Mark new slide as viewed
       widget.onSlideViewed?.call(_currentPage);
+      // Log analytics
+      AnalyticsService().logStoryViewed(slideNumber: _currentPage);
       _startProgress();
     } else {
-      // Último slide - cerrar (usando rootNavigator)
+      // Último slide - log completion and close
+      AnalyticsService().logStoryCompleted();
       Navigator.of(context, rootNavigator: true).pop();
     }
   }

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../data/datasources/saved_message_remote_datasource.dart';
 import '../../data/repositories/saved_message_repository_impl.dart';
@@ -79,8 +80,12 @@ class SavedMessageNotifier extends StateNotifier<SavedMessageState> {
 
       if (isSaved) {
         await _repository.unsaveMessage(chatMessageId);
+        // Log analytics event
+        AnalyticsService().logMessageUnsaved();
       } else {
         await _repository.saveMessage(chatMessageId);
+        // Log analytics event
+        AnalyticsService().logMessageSaved();
       }
 
       // Refresh the saved messages list
@@ -108,6 +113,9 @@ class SavedMessageNotifier extends StateNotifier<SavedMessageState> {
 
       // Refresh the saved messages list
       _ref.read(savedMessagesRefreshProvider.notifier).state++;
+
+      // Log analytics event
+      AnalyticsService().logMessageUnsaved();
 
       state = state.copyWith(isLoading: false);
       return true;

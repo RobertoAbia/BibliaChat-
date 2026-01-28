@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/revenue_cat_service.dart';
 
 // Estado de la suscripción
@@ -87,6 +88,10 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
 
     if (success) {
       await _checkPremiumStatus();
+      // Log analytics event
+      final planType = package.packageType == PackageType.annual ? 'annual' : 'monthly';
+      AnalyticsService().logSubscriptionStarted(planType: planType);
+      AnalyticsService().setUserProperties(isPremium: true);
     } else {
       state = state.copyWith(
         isPurchasing: false,
@@ -105,6 +110,11 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
 
     if (success) {
       await _checkPremiumStatus();
+      // Log analytics event
+      AnalyticsService().logPurchaseRestored();
+      if (state.isPremium) {
+        AnalyticsService().setUserProperties(isPremium: true);
+      }
     } else {
       state = state.copyWith(
         isLoading: false,

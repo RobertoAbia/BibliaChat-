@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../../../../core/constants/route_constants.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
 import '../providers/subscription_provider.dart';
@@ -18,6 +19,13 @@ class PaywallScreen extends ConsumerStatefulWidget {
 
 class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   bool _trialEnabled = true; // Toggle para prueba gratis en plan mensual
+
+  @override
+  void initState() {
+    super.initState();
+    // Log analytics event when paywall is viewed
+    AnalyticsService().logPaywallViewed(source: 'onboarding');
+  }
 
   @override
   Widget build(BuildContext context) {

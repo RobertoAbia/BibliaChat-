@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/theme/app_theme.dart';
 
 /// Screen for customizing and sharing a reflection as an image
@@ -244,6 +245,12 @@ class _ShareImageScreenState extends State<ShareImageScreen> {
       await file.writeAsBytes(imageBytes);
 
       await Share.shareXFiles([XFile(imagePath)]);
+
+      // Log analytics event
+      final backgroundType = _customBackgroundImage != null
+          ? 'custom'
+          : _backgrounds[_selectedBackgroundIndex].name;
+      AnalyticsService().logShareImage(backgroundType: backgroundType);
     } catch (e) {
       _showError('Error al compartir: $e');
     } finally {

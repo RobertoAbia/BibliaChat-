@@ -8,6 +8,7 @@ import 'package:lottie/lottie.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/route_constants.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/revenue_cat_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/lottie_helper.dart';
@@ -130,6 +131,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         debugPrint('RevenueCat init error: $e');
       }
 
+      // Set user ID for Firebase Analytics
+      AnalyticsService().setUserId(user.id);
+
       // Verificar si tiene email pendiente de verificación
       if (user.email != null && user.emailConfirmedAt == null) {
         if (mounted) {
@@ -152,6 +156,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           } catch (e) {
             debugPrint('RevenueCat init error: $e');
           }
+
+          // Set user ID for Firebase Analytics
+          AnalyticsService().setUserId(response.user!.id);
         }
 
         if (mounted) {

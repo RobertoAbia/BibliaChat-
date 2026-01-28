@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_constants.dart';
+import '../../../../core/services/analytics_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../widgets/onboarding_welcome_page.dart';
@@ -52,9 +53,24 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Future<void> _completeOnboarding() async {
     final notifier = ref.read(onboardingProvider.notifier);
+    final state = ref.read(onboardingProvider);
     final success = await notifier.completeOnboarding();
 
     if (success && mounted) {
+      // Log analytics event
+      AnalyticsService().logOnboardingComplete(
+        denomination: state.denomination ?? 'unknown',
+        origin: state.origin ?? 'unknown',
+        ageGroup: state.ageGroup ?? 'unknown',
+        gender: state.gender,
+      );
+      // Set user properties for segmentation
+      AnalyticsService().setUserProperties(
+        denomination: state.denomination,
+        origin: state.origin,
+        ageGroup: state.ageGroup,
+        gender: state.gender,
+      );
       // Invalidar el provider de perfil para que se recargue con los nuevos datos
       ref.invalidate(currentUserProfileProvider);
       // Mostrar paywall después del onboarding

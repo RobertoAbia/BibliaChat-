@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../../core/services/analytics_service.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../data/datasources/study_remote_datasource.dart';
 import '../../data/repositories/study_repository_impl.dart';
@@ -148,7 +149,7 @@ class StudyActionsNotifier extends StateNotifier<AsyncValue<void>> {
       : super(const AsyncValue.data(null));
 
   /// Start a new plan - returns the UserPlan if successful, null if failed
-  Future<UserPlan?> startPlan(String planId) async {
+  Future<UserPlan?> startPlan(String planId, {String? planName}) async {
     final user = Supabase.instance.client.auth.currentUser;
     if (user == null) return null;
 
@@ -165,6 +166,13 @@ class StudyActionsNotifier extends StateNotifier<AsyncValue<void>> {
       final userPlan = await _repository.startPlan(user.id, planId);
       _ref.read(activePlanRefreshProvider.notifier).state++;
       state = const AsyncValue.data(null);
+
+      // Log analytics event
+      AnalyticsService().logPlanStarted(
+        planId: planId,
+        planName: planName ?? planId,
+      );
+
       return userPlan;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -173,7 +181,7 @@ class StudyActionsNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   /// Complete current day and advance
-  Future<bool> completeDay(String userPlanId, int currentDay, int totalDays) async {
+  Future<bool> completeDay(String userPlanId, int currentDay, int totalDays, {String? planId}) async {
     state = const AsyncValue.loading();
 
     try {
@@ -187,6 +195,16 @@ class StudyActionsNotifier extends StateNotifier<AsyncValue<void>> {
       _ref.read(activePlanRefreshProvider.notifier).state++;
       _ref.read(userPlansRefreshProvider.notifier).state++;
       state = const AsyncValue.data(null);
+
+      // Log analytics events
+      AnalyticsService().logPlanDayCompleted(
+        planId: planId ?? userPlanId,
+        dayNumber: currentDay,
+      );
+      if (isLastDay) {
+        AnalyticsService().logPlanCompleted(planId: planId ?? userPlanId);
+      }
+
       return true;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
@@ -195,13 +213,20 @@ class StudyActionsNotifier extends StateNotifier<AsyncValue<void>> {
   }
 
   /// Abandon current plan
-  Future<bool> abandonPlan(String userPlanId) async {
+  Future<bool> abandonPlan(String userPlanId, {String? planId, int? dayNumber}) async {
     state = const AsyncValue.loading();
 
     try {
       await _repository.abandonPlan(userPlanId);
       _ref.read(activePlanRefreshProvider.notifier).state++;
       state = const AsyncValue.data(null);
+
+      // Log analytics event
+      AnalyticsService().logPlanAbandoned(
+        planId: planId ?? userPlanId,
+        dayNumber: dayNumber ?? 0,
+      );
+
       return true;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
