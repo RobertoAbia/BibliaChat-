@@ -75,25 +75,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const PaywallScreen(),
       ),
 
-      // Saved Messages / Mis Reflexiones (sin bottom navigation)
-      GoRoute(
-        path: RouteConstants.savedMessages,
-        name: 'savedMessages',
-        builder: (context, state) => const SavedMessagesScreen(),
-      ),
-
-      // Privacy Policy (sin bottom navigation)
-      GoRoute(
-        path: RouteConstants.privacyPolicy,
-        name: 'privacyPolicy',
-        builder: (context, state) => const PrivacyPolicyScreen(),
-      ),
-      GoRoute(
-        path: RouteConstants.termsConditions,
-        name: 'termsConditions',
-        builder: (context, state) => const TermsConditionsScreen(),
-      ),
-
       // Main App with Bottom Navigation
       ShellRoute(
         builder: (context, state, child) {
@@ -179,6 +160,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: 'edit',
                 name: 'profileEdit',
                 builder: (context, state) => const ProfileEditScreen(),
+              ),
+              GoRoute(
+                path: 'saved-messages',
+                name: 'savedMessages',
+                builder: (context, state) => const SavedMessagesScreen(),
+              ),
+              GoRoute(
+                path: 'privacy-policy',
+                name: 'privacyPolicy',
+                builder: (context, state) => const PrivacyPolicyScreen(),
+              ),
+              GoRoute(
+                path: 'terms-conditions',
+                name: 'termsConditions',
+                builder: (context, state) => const TermsConditionsScreen(),
               ),
             ],
           ),

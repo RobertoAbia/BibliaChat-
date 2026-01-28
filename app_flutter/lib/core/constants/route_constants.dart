@@ -19,7 +19,9 @@ class RouteConstants {
   static const String study = '/study';
   static const String settings = '/settings';
   static const String profileEdit = '/settings/edit';
-  static const String savedMessages = '/saved-messages';
+  static const String savedMessages = '/settings/saved-messages';
+  static const String privacyPolicy = '/settings/privacy-policy';
+  static const String termsConditions = '/settings/terms-conditions';
 
   // Study Plans
   static const String planDetail = '/study/plan/:planId';
@@ -27,8 +29,4 @@ class RouteConstants {
 
   // Subscription
   static const String paywall = '/paywall';
-
-  // Legal
-  static const String privacyPolicy = '/privacy-policy';
-  static const String termsConditions = '/terms-conditions';
 }
