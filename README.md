@@ -170,8 +170,11 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 - **Swipe entre tabs**: PageView con `PageScrollPhysics` para deslizar entre Home, Chat, Estudiar y Perfil
   - La pantalla sigue el dedo y encaja naturalmente al soltar
   - Animación de NavigationBar: 300ms con `easeOutCubic`
-- **Bottom nav oculto en chat**: Se oculta condicionalmente cuando `location.startsWith('/chat/')` (experiencia inmersiva)
+- **Bottom nav oculto**: Se oculta condicionalmente para experiencia fullscreen:
+  - En chat: `location.startsWith('/chat/')`
+  - En Stories: `location == '/home/stories'`
 - **Botón atrás Android** con comportamiento correcto:
+  - En Stories (`/home/stories`) → Vuelve a Home
   - Dentro de un chat → Vuelve a lista de chats
   - En lista de chats → Va a Home
   - En Home → Cierra la app
@@ -179,8 +182,9 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - Al navegar a rutas anidadas (ej: `/study/plan/xxx`), las pantallas principales no se desmontan
   - El scroll se preserva al volver de cualquier ruta anidada
 - **Implementación**: `BackButtonInterceptor` + GoRouter con `context.push()`
-- **Importante**: NUNCA usar `Navigator.push()` para rutas en GoRouter (bypasea el router)
-- **Documentación técnica**: `docs/back-button-intentos.md` (8 intentos + solución final)
+- **Rutas fullscreen DENTRO del ShellRoute**: Para que el back button funcione, las rutas fullscreen deben estar DENTRO del ShellRoute (para que `currentLocationProvider` se actualice)
+- **Importante**: NUNCA usar `Navigator.push()` para rutas en GoRouter (bypasea el router y el back button no funciona)
+- **Documentación técnica**: `docs/back-button-intentos.md` (historial completo de intentos + solución final)
 
 ### Pantalla de Perfil
 - **Stats en tiempo real:**

@@ -588,40 +588,134 @@ La causa raíz era usar `Navigator.push()` que bypasea GoRouter. Al usar `contex
 
 **Causa:** El mismo problema que con Chat - Stories usaba `Navigator.of(context, rootNavigator: true).push()` que bypasea GoRouter. El `BackButtonInterceptor` veía `/home` como ubicación y cerraba la app.
 
-**Intento fallido: PopScope + fullscreenRouteOpenProvider**
+---
+
+### Intento fallido A: PopScope + fullscreenRouteOpenProvider
 
 Se intentó usar un provider para trackear cuando Stories estaba abierta y que el interceptor retornara `false` para "dejar que PopScope maneje". Esto falló por dos razones:
 
 1. **Error de concepto documentado:** `return false` en `BackButtonInterceptor` NO pasa el evento a Flutter Navigator - solo permite que otros interceptores lo manejen
 2. **Error de ref en dispose:** `ref.read()` en `dispose()` falla con "Cannot use ref after widget was disposed"
 
-**Solución aplicada (29/01/2026):**
+---
 
-Igual que con Chat, convertir Stories en una ruta de GoRouter:
+### Intento fallido B: Ruta `/stories` FUERA del ShellRoute
 
-1. **Nueva ruta `/stories`** añadida en `app_router.dart` (FUERA del ShellRoute para ser fullscreen)
-2. **Navegación cambiada** de `Navigator.push()` a `context.push('/stories', extra: {...})`
-3. **GospelStoriesScreen simplificado:**
-   - Revertido de `ConsumerStatefulWidget` a `StatefulWidget`
-   - Eliminado código de `fullscreenRouteOpenProvider`
-   - Eliminado `PopScope` wrapper
-   - Cambiado `Navigator.pop()` a `context.pop()`
-4. **Eliminado** `fullscreenRouteOpenProvider` de `app.dart`
+Se intentó crear una ruta `/stories` fuera del ShellRoute (igual que las rutas de auth):
+
+```dart
+// FUERA del ShellRoute
+GoRoute(
+  path: RouteConstants.stories,  // '/stories'
+  name: 'stories',
+  builder: (context, state) {
+    final extra = state.extra as Map<String, dynamic>;
+    return GospelStoriesScreen(...);
+  },
+),
+
+// Main App with Bottom Navigation
+ShellRoute(
+  builder: ...
+  routes: [...],
+),
+```
+
+**Por qué falló:**
+- Cuando la ruta está FUERA del ShellRoute, `MainShell.build()` NO se ejecuta
+- Por lo tanto, `currentLocationProvider` NO se actualiza (sigue siendo `/home`)
+- El `BackButtonInterceptor` lee `/home` desde el provider y cierra la app
+
+---
+
+### ✅ SOLUCIÓN FINAL: Ruta `/home/stories` DENTRO del ShellRoute
+
+La clave fue observar que `/study/day/:userPlanId` (que funciona perfectamente) está DENTRO del ShellRoute. La solución es hacer lo mismo con Stories.
+
+**Cambios realizados:**
+
+1. **Mover ruta dentro del ShellRoute** (`app_router.dart`):
+```dart
+GoRoute(
+  path: RouteConstants.home,  // '/home'
+  name: 'home',
+  builder: (context, state) => const HomeScreen(),
+  routes: [
+    // Stories como ruta anidada de /home
+    GoRoute(
+      path: 'stories',  // -> '/home/stories'
+      name: 'stories',
+      builder: (context, state) {
+        final extra = state.extra as Map<String, dynamic>;
+        return GospelStoriesScreen(
+          gospel: extra['gospel'] as DailyGospel,
+          initialSlideIndex: extra['initialSlideIndex'] as int? ?? 0,
+          onSlideViewed: extra['onSlideViewed'] as void Function(int)?,
+          topicKey: extra['topicKey'] as String?,
+        );
+      },
+    ),
+  ],
+),
+```
+
+2. **Actualizar constante** (`route_constants.dart`):
+```dart
+// Fullscreen overlays (inside ShellRoute but with hidden bottom nav)
+static const String stories = '/home/stories';
+```
+
+3. **Ocultar bottom nav condicionalmente** (`app_router.dart` - MainShell):
+```dart
+final shouldHideBottomNav =
+    (location.startsWith('/chat/') && location != '/chat') ||
+    location == '/home/stories';
+
+return Scaffold(
+  body: ...,
+  bottomNavigationBar: shouldHideBottomNav ? null : NavigationBar(...),
+);
+```
+
+4. **Actualizar navegación** (`home_screen.dart`):
+```dart
+await context.push('/home/stories', extra: {...});
+```
+
+**Por qué funciona:**
+- Al estar DENTRO del ShellRoute, `MainShell.build()` se ejecuta con `location = '/home/stories'`
+- `currentLocationProvider` se actualiza a `/home/stories`
+- `isMainRoute('/home/stories')` retorna `false` (no es ruta principal)
+- `BackButtonInterceptor` ve `/home/stories`, detecta que no es ruta principal, hace `router.pop()`
+- `router.pop()` navega de vuelta a `/home`
 
 **Archivos modificados:**
-- `lib/core/constants/route_constants.dart` - Nueva constante `stories`
-- `lib/core/router/app_router.dart` - Nueva ruta GoRoute
-- `lib/features/home/presentation/screens/home_screen.dart` - `context.push()` para Stories
-- `lib/features/daily_gospel/presentation/screens/gospel_stories_screen.dart` - Simplificado
-- `lib/app.dart` - Eliminado provider y código
+- `lib/core/constants/route_constants.dart` - Path actualizado a `/home/stories`
+- `lib/core/router/app_router.dart` - Ruta movida dentro de home + bottom nav condicional
+- `lib/features/home/presentation/screens/home_screen.dart` - Navegación actualizada
 
 **Comportamiento final actualizado:**
 
 | Ubicación | Back Button |
 |-----------|-------------|
-| Stories (`/stories`) | → Home (`/home`) |
+| Stories (`/home/stories`) | → Home (`/home`) ✅ |
 | Dentro de un chat (`/chat/id/xxx`) | → Lista de chats (`/chat`) |
 | Lista de chats (`/chat`) | → Home (`/home`) |
 | Estudiar (`/study`) | → Home (`/home`) |
 | Perfil (`/settings`) | → Home (`/home`) |
 | Home (`/home`) | → Cierra la app |
+
+---
+
+## Lección General: Rutas Fullscreen con GoRouter + ShellRoute
+
+Para crear una ruta fullscreen (sin bottom navigation) que funcione correctamente con el back button:
+
+1. **NUNCA** poner la ruta FUERA del ShellRoute
+2. **SIEMPRE** ponerla DENTRO del ShellRoute como ruta anidada
+3. **Ocultar** el bottom nav condicionalmente en `MainShell.build()`
+
+Esto garantiza que:
+- `MainShell.build()` se ejecuta y actualiza `currentLocationProvider`
+- El `BackButtonInterceptor` puede leer la ruta correcta
+- El back button navega a la ruta padre en lugar de cerrar la app

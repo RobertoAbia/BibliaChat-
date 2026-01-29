@@ -1120,21 +1120,25 @@ BibliaChat/
 
 - [x] Feature: Botón atrás Android funciona correctamente en Stories
   - **Problema:** Al presionar back dentro de GospelStoriesScreen, la app se cerraba en lugar de volver a Home
-  - **Causa raíz:** Stories usaba `Navigator.of(context, rootNavigator: true).push()` que bypasea GoRouter
-  - **Intento fallido:** `PopScope` + `fullscreenRouteOpenProvider` - No funcionó porque `return false` en `BackButtonInterceptor` NO pasa el evento a Flutter Navigator
-  - **Solución implementada (misma que Chat):**
-    - Nueva ruta `/stories` añadida FUERA del ShellRoute (fullscreen sin bottom nav)
-    - Navegación cambiada de `Navigator.push()` a `context.push('/stories', extra: {...})`
-    - GospelStoriesScreen simplificado: revertido a `StatefulWidget`, eliminado `PopScope` y providers
-    - Eliminado `fullscreenRouteOpenProvider` de `app.dart`
+  - **Causa raíz:** La ruta `/stories` estaba FUERA del ShellRoute, por lo que `MainShell.build()` no se ejecutaba y `currentLocationProvider` nunca se actualizaba (seguía siendo `/home`)
+  - **Intentos fallidos:**
+    1. Poner ruta FUERA del ShellRoute - No funciona porque `currentLocationProvider` no se actualiza
+    2. `PopScope` + `fullscreenRouteOpenProvider` - No funciona porque `return false` en `BackButtonInterceptor` NO pasa el evento a Flutter Navigator
+  - **Solución implementada (igual que `/study/day` que sí funciona):**
+    - Mover ruta `/stories` DENTRO del ShellRoute como ruta anidada de `/home` → `/home/stories`
+    - Ocultar bottom nav condicionalmente cuando `location == '/home/stories'`
+    - Navegación con `context.push('/home/stories', extra: {...})`
+  - **Por qué funciona:**
+    - `MainShell.build()` se ejecuta con `location = '/home/stories'`
+    - `currentLocationProvider` se actualiza a `/home/stories`
+    - `isMainRoute('/home/stories')` retorna `false`
+    - `BackButtonInterceptor` hace `router.pop()` → vuelve a `/home`
   - **Comportamiento final:**
-    - Stories → Home
+    - Stories → Home (con bottom nav oculto durante Stories)
   - **Archivos modificados:**
-    - `lib/core/constants/route_constants.dart` - Nueva constante `stories`
-    - `lib/core/router/app_router.dart` - Nueva ruta GoRoute
-    - `lib/features/home/presentation/screens/home_screen.dart` - `context.push()` para Stories
-    - `lib/features/daily_gospel/presentation/screens/gospel_stories_screen.dart` - Simplificado
-    - `lib/app.dart` - Eliminado provider y código
+    - `lib/core/constants/route_constants.dart` - Ruta actualizada a `/home/stories`
+    - `lib/core/router/app_router.dart` - Ruta movida dentro del ShellRoute + condición para ocultar bottom nav
+    - `lib/features/home/presentation/screens/home_screen.dart` - Ruta actualizada
   - **Documentación:** `docs/back-button-intentos.md` - Añadido Problema Adicional 5
 
 - [x] Fix: Racha no se incrementa al ver 3 Stories
@@ -1491,12 +1495,14 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
 - Los widgets glass usan `ImageFilter.blur(sigmaX: 8-12, sigmaY: 8-12)`
 - Paquetes UI instalados: `shimmer`, `lottie`, `flutter_animate`, `share_plus`
 - Paquete timezone: `flutter_timezone` - para auto-detectar zona horaria del dispositivo
-- **Navegación fullscreen (ocultar bottom nav):**
-  - **CORRECTO:** Definir ruta FUERA del ShellRoute en GoRouter y usar `context.push('/ruta')`
-  - La ruta fuera del ShellRoute es automáticamente fullscreen (sin bottom nav)
-  - El back button funciona correctamente porque GoRouter conoce la ruta
-  - **INCORRECTO:** `Navigator.of(context, rootNavigator: true).push()` - bypasea GoRouter, el back button no funciona
-  - Ejemplo: `/stories` está fuera del ShellRoute → fullscreen + back button funcional
+- **Navegación fullscreen (ocultar bottom nav) con back button funcional:**
+  - **CORRECTO:** Definir ruta DENTRO del ShellRoute y ocultar bottom nav condicionalmente
+  - La ruta DENTRO del ShellRoute permite que `MainShell.build()` actualice `currentLocationProvider`
+  - El `BackButtonInterceptor` lee la ubicación correcta y hace `router.pop()`
+  - Ocultar bottom nav: `shouldHideBottomNav = location == '/home/stories' || location.startsWith('/chat/')`
+  - **INCORRECTO:** Definir ruta FUERA del ShellRoute - `currentLocationProvider` no se actualiza, back button cierra la app
+  - **INCORRECTO:** `Navigator.of(context, rootNavigator: true).push()` - bypasea GoRouter completamente
+  - Ejemplo: `/home/stories` está dentro del ShellRoute con bottom nav oculto → fullscreen + back button funcional
 - **Swipe entre tabs + GoRouter ShellRoute:**
   - MainShell usa PageView para swipe entre tabs principales (Home, Chat, Study, Settings)
   - **Problema:** ShellRoute pasa `child` pero si usas PageView con pantallas hardcodeadas, ignoras el child y las rutas anidadas no funcionan
