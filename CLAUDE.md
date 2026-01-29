@@ -1332,6 +1332,7 @@ BibliaChat/
 - [x] Feature: Almacenar Calendario Litúrgico en Supabase - COMPLETADO
 - [x] Feature: Botón atrás Android en Chat - COMPLETADO
 - [x] **EPIC 11**: Firebase Analytics - COMPLETADO
+- [x] Fix: Botones con texto cortado en Estudiar - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 
@@ -1590,6 +1591,27 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
       ],
     )
     ```
+- **Botones en Containers de altura fija:**
+  - Si envuelves un `ElevatedButton` en un `Container(height: X)` con gradiente/decoración, el texto puede cortarse
+  - **Causa:** `ElevatedButton` tiene `minimumSize` (~64dp) y `padding` (~24px) por defecto
+  - Estos valores internos comprimen el contenido dentro del Container fijo
+  - **Solución:** Añadir ambos al style:
+    ```dart
+    Container(
+      height: 50,
+      decoration: BoxDecoration(gradient: ...),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          minimumSize: Size.zero,    // ← Quita tamaño mínimo
+          padding: EdgeInsets.zero,  // ← Quita padding interno
+          shape: RoundedRectangleBorder(...),
+        ),
+        child: Text('Botón largo'),
+      ),
+    )
+    ```
+  - Archivos afectados: `study_screen.dart`, `plan_day_screen.dart`, `plan_detail_screen.dart`
 - **Deep Links (Supabase Auth):**
   - Custom URL schemes (`com.bibliachats://`) solo funcionan en móvil (iOS/Android)
   - En web/desktop, el navegador no sabe manejar estos schemes → página en blanco

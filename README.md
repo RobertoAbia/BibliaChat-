@@ -264,6 +264,12 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 - **User properties**: denomination, origin, age_group, gender, is_premium
 - **DebugView**: Habilitar con `adb shell setprop debug.firebase.analytics.app ee.bikain.bibliachat`
 
+### Correcciones UI
+- **Botones con texto cortado**: Los botones "Continuar estudio", "Completar día" y "Comenzar plan" tenían texto comprimido
+  - **Causa**: `ElevatedButton` dentro de `Container(height: 50-56)` sin quitar el padding/minimumSize por defecto
+  - **Solución**: Añadir `minimumSize: Size.zero` y `padding: EdgeInsets.zero` al `ElevatedButton.styleFrom()`
+  - **Archivos**: `study_screen.dart`, `plan_day_screen.dart`, `plan_detail_screen.dart`
+
 ## Estructura del Proyecto
 
 ```
