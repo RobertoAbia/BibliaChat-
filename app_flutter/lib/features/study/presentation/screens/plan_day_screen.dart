@@ -824,17 +824,18 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
                     disabledBackgroundColor: Colors.transparent,
+                    minimumSize: Size.zero,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   child: actionsState.isLoading
                       ? const SizedBox(
-                          width: 24,
-                          height: 24,
+                          width: 28,
+                          height: 28,
                           child: CircularProgressIndicator(
                             color: AppTheme.textOnPrimary,
-                            strokeWidth: 2,
+                            strokeWidth: 2.5,
                           ),
                         )
                       : Row(
