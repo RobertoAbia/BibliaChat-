@@ -175,6 +175,9 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - Dentro de un chat → Vuelve a lista de chats
   - En lista de chats → Va a Home
   - En Home → Cierra la app
+- **Preservación de scroll**: PageView usa `Offstage` para mantenerse siempre montado
+  - Al navegar a rutas anidadas (ej: `/study/plan/xxx`), las pantallas principales no se desmontan
+  - El scroll se preserva al volver de cualquier ruta anidada
 - **Implementación**: `BackButtonInterceptor` + GoRouter con `context.push()`
 - **Importante**: NUNCA usar `Navigator.push()` para rutas en GoRouter (bypasea el router)
 - **Documentación técnica**: `docs/back-button-intentos.md` (8 intentos + solución final)

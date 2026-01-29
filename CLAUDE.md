@@ -1664,3 +1664,26 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
     ```
   - Funciona con `ListView`, `SingleChildScrollView`, `CustomScrollView`, etc.
   - La key debe ser única por pantalla
+- **Preservar estado de scroll en ShellRoute con PageView (Offstage):**
+  - `PageStorageKey` NO funciona bien cuando el `PageView` se desmonta al navegar a rutas anidadas
+  - **Problema:** Al ir de `/study` a `/study/plan/xxx` y volver, el scroll se perdía
+  - **Causa:** El código recreaba el `PageController` al volver de rutas anidadas, desmontando los widgets hijos
+  - **Solución:** Usar `Stack` con `Offstage` para mantener el `PageView` siempre montado:
+    ```dart
+    body: Stack(
+      children: [
+        // PageView siempre presente (oculto pero montado)
+        Offstage(
+          offstage: !isMainRoute,
+          child: PageView(
+            controller: _pageController,
+            children: _screens,
+          ),
+        ),
+        // Child encima cuando es ruta anidada
+        if (!isMainRoute) widget.child,
+      ],
+    ),
+    ```
+  - **Clave:** NUNCA recrear el `PageController` → `_pageController ??= PageController(...)`
+  - Con esto, las pantallas mantienen su estado de scroll incluso después de múltiples navegaciones

@@ -199,7 +199,6 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   PageController? _pageController;
-  String? _lastLocation;
   bool _isSyncing = false; // Flag para evitar cascada de navegaciones
 
   // Rutas principales (tabs)
@@ -278,50 +277,48 @@ class _MainShellState extends ConsumerState<MainShell> {
       ref.read(currentLocationProvider.notifier).state = location;
     });
 
-    // Detectar si venimos de una ruta anidada
-    final wasOnNestedRoute = _lastLocation != null && !_isMainRoute(_lastLocation!);
+    // Crear PageController solo si no existe (NUNCA recrearlo para mantener estado)
+    _pageController ??= PageController(initialPage: selectedIndex);
 
-    // Crear PageController o recrearlo si volvemos de ruta anidada
-    if (isMainRoute) {
-      if (_pageController == null || wasOnNestedRoute) {
-        _pageController?.dispose();
-        _pageController = PageController(initialPage: selectedIndex);
-      } else {
-        // Sincronizar PageController si la ruta cambió (ej: back button)
-        final currentPage = _pageController!.hasClients
-            ? _pageController!.page?.round() ?? 0
-            : 0;
-        if (currentPage != selectedIndex) {
-          // Usar addPostFrameCallback para animar después del build
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (_pageController!.hasClients) {
-              _isSyncing = true; // Evitar que onPageChanged haga go()
-              _pageController!.animateToPage(
-                selectedIndex,
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOut,
-              ).then((_) {
-                _isSyncing = false; // Restaurar después de animar
-              });
-            }
-          });
-        }
+    // Sincronizar PageController si la ruta cambió y estamos en ruta principal
+    if (isMainRoute && _pageController!.hasClients) {
+      final currentPage = _pageController!.page?.round() ?? 0;
+      if (currentPage != selectedIndex) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_pageController!.hasClients) {
+            _isSyncing = true;
+            _pageController!.animateToPage(
+              selectedIndex,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeInOut,
+            ).then((_) {
+              _isSyncing = false;
+            });
+          }
+        });
       }
     }
-    _lastLocation = location;
 
     // Ocultar bottom nav en pantallas de chat (excepto la lista)
     final shouldHideBottomNav = location.startsWith('/chat/') && location != '/chat';
 
     return Scaffold(
-      // Si es ruta principal → PageView (swipe), si es anidada → child
-      body: isMainRoute
-          ? PageView(
+      // Stack mantiene PageView siempre montado para preservar estado de scroll
+      body: Stack(
+        children: [
+          // PageView siempre presente (mantiene estado de las pantallas)
+          Offstage(
+            offstage: !isMainRoute, // Oculto pero montado cuando hay ruta anidada
+            child: PageView(
               controller: _pageController,
               onPageChanged: _onPageChanged,
               children: _screens,
-            )
-          : widget.child,
+            ),
+          ),
+          // Child encima cuando es ruta anidada
+          if (!isMainRoute) widget.child,
+        ],
+      ),
       bottomNavigationBar: shouldHideBottomNav ? null : NavigationBar(
         selectedIndex: selectedIndex,
         onDestinationSelected: (index) => _onItemTapped(index, location),
