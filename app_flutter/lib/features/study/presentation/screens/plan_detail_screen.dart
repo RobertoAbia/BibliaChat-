@@ -431,6 +431,7 @@ class PlanDetailScreen extends ConsumerWidget {
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
                   minimumSize: Size.zero,
+                  padding: EdgeInsets.zero,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),

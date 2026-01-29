@@ -650,6 +650,7 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
                     minimumSize: Size.zero,
+                    padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(14),
                     ),

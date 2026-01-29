@@ -825,6 +825,7 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
                     shadowColor: Colors.transparent,
                     disabledBackgroundColor: Colors.transparent,
                     minimumSize: Size.zero,
+                    padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
                     ),
