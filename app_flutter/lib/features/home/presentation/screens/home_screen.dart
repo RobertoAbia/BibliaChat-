@@ -11,7 +11,6 @@ import '../../../../core/widgets/glass_container.dart';
 import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../chat/presentation/screens/chat_screen.dart';
 import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart';
-import '../../../daily_gospel/presentation/screens/gospel_stories_screen.dart';
 import '../../../profile/domain/entities/user_profile.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../../study/presentation/providers/study_provider.dart';
@@ -388,20 +387,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final isCatholic = profileAsync.valueOrNull?.denomination == Denomination.catolica;
     final topicKey = isCatholic ? 'evangelio_del_dia' : 'lectura_del_dia';
 
-    // Open Stories at the specified slide
-    final result = await Navigator.of(context, rootNavigator: true).push<Map<String, dynamic>>(
-      MaterialPageRoute(
-        builder: (context) => GospelStoriesScreen(
-          gospel: gospel,
-          initialSlideIndex: slideIndex,
-          topicKey: topicKey,
-          onSlideViewed: (index) async {
-            // Mark slide as viewed (with user ID)
-            await service.markSlideAsViewed(userId, gospel.date, index);
-          },
-        ),
-        fullscreenDialog: true,
-      ),
+    // Open Stories at the specified slide using GoRouter
+    await context.push(
+      '/stories',
+      extra: {
+        'gospel': gospel,
+        'initialSlideIndex': slideIndex,
+        'topicKey': topicKey,
+        'onSlideViewed': (int index) async {
+          // Mark slide as viewed (with user ID)
+          await service.markSlideAsViewed(userId, gospel.date, index);
+        },
+      },
     );
 
     // Refresh the viewed slides state for UI
@@ -443,21 +440,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       }
     } else {
       debugPrint('Not all slides viewed yet: ${viewedSlides.length}/3');
-    }
-
-    // Handle chat action from Stories
-    if (result != null && result['action'] == 'openChat' && context.mounted) {
-      Navigator.of(context, rootNavigator: true).push(
-        MaterialPageRoute(
-          builder: (context) => ChatScreen(
-            topicKey: topicKey,
-            initialGospelText: result['text'] ?? gospel.text,
-            initialGospelReference: result['reference'] ?? gospel.reference,
-            initialUserMessage: result['userMessage'],
-          ),
-          fullscreenDialog: true,
-        ),
-      );
     }
   }
 
@@ -601,19 +583,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           onTap: () async {
             // Si tiene contenido de Stories, abrir Stories primero
             if (gospel.hasStoriesContent) {
-              // Usar rootNavigator para que cubra toda la pantalla incluyendo bottom nav
-              final result = await Navigator.of(context, rootNavigator: true).push<Map<String, dynamic>>(
-                MaterialPageRoute(
-                  builder: (context) => GospelStoriesScreen(
-                    gospel: gospel,
-                    initialSlideIndex: 0,
-                    topicKey: topicKey,
-                    onSlideViewed: (index) async {
-                      await service.markSlideAsViewed(userId, gospel.date, index);
-                    },
-                  ),
-                  fullscreenDialog: true,
-                ),
+              // Usar GoRouter para navegar (fullscreen, fuera del ShellRoute)
+              await context.push(
+                '/stories',
+                extra: {
+                  'gospel': gospel,
+                  'initialSlideIndex': 0,
+                  'topicKey': topicKey,
+                  'onSlideViewed': (int index) async {
+                    await service.markSlideAsViewed(userId, gospel.date, index);
+                  },
+                },
               );
 
               // Refresh the viewed slides state
@@ -653,22 +633,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 }
               } else {
                 debugPrint('Not all slides viewed yet: ${viewedSlidesNow.length}/3');
-              }
-
-              // Si el usuario quiere abrir el chat desde Stories
-              if (result != null && result['action'] == 'openChat' && context.mounted) {
-                // Usar rootNavigator para ocultar el bottom nav
-                Navigator.of(context, rootNavigator: true).push(
-                  MaterialPageRoute(
-                    builder: (context) => ChatScreen(
-                      topicKey: topicKey,
-                      initialGospelText: result['text'] ?? gospel.text,
-                      initialGospelReference: result['reference'] ?? gospel.reference,
-                      initialUserMessage: result['userMessage'],
-                    ),
-                    fullscreenDialog: true,
-                  ),
-                );
               }
             } else {
               // Si no, ir directo al chat

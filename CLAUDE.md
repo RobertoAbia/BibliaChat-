@@ -1118,6 +1118,25 @@ BibliaChat/
     - `lib/features/chat/presentation/screens/chat_list_screen.dart` - Usa `context.push()` + import go_router
   - **Documentación:** `docs/back-button-intentos.md` - Historial completo de 8 intentos fallidos y solución final
 
+- [x] Feature: Botón atrás Android funciona correctamente en Stories
+  - **Problema:** Al presionar back dentro de GospelStoriesScreen, la app se cerraba en lugar de volver a Home
+  - **Causa raíz:** Stories usaba `Navigator.of(context, rootNavigator: true).push()` que bypasea GoRouter
+  - **Intento fallido:** `PopScope` + `fullscreenRouteOpenProvider` - No funcionó porque `return false` en `BackButtonInterceptor` NO pasa el evento a Flutter Navigator
+  - **Solución implementada (misma que Chat):**
+    - Nueva ruta `/stories` añadida FUERA del ShellRoute (fullscreen sin bottom nav)
+    - Navegación cambiada de `Navigator.push()` a `context.push('/stories', extra: {...})`
+    - GospelStoriesScreen simplificado: revertido a `StatefulWidget`, eliminado `PopScope` y providers
+    - Eliminado `fullscreenRouteOpenProvider` de `app.dart`
+  - **Comportamiento final:**
+    - Stories → Home
+  - **Archivos modificados:**
+    - `lib/core/constants/route_constants.dart` - Nueva constante `stories`
+    - `lib/core/router/app_router.dart` - Nueva ruta GoRoute
+    - `lib/features/home/presentation/screens/home_screen.dart` - `context.push()` para Stories
+    - `lib/features/daily_gospel/presentation/screens/gospel_stories_screen.dart` - Simplificado
+    - `lib/app.dart` - Eliminado provider y código
+  - **Documentación:** `docs/back-button-intentos.md` - Añadido Problema Adicional 5
+
 - [x] Fix: Racha no se incrementa al ver 3 Stories
   - **Problema:** Después de ver las 3 stories, la racha mostraba 0 en lugar de 1
   - **Causa raíz:** Race condition en el sistema de "Optimistic UI" para la racha
@@ -1473,8 +1492,11 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
 - Paquetes UI instalados: `shimmer`, `lottie`, `flutter_animate`, `share_plus`
 - Paquete timezone: `flutter_timezone` - para auto-detectar zona horaria del dispositivo
 - **Navegación fullscreen (ocultar bottom nav):**
-  - Usar `Navigator.of(context, rootNavigator: true).push()` + `fullscreenDialog: true`
-  - El `pop()` también debe usar `rootNavigator: true`
+  - **CORRECTO:** Definir ruta FUERA del ShellRoute en GoRouter y usar `context.push('/ruta')`
+  - La ruta fuera del ShellRoute es automáticamente fullscreen (sin bottom nav)
+  - El back button funciona correctamente porque GoRouter conoce la ruta
+  - **INCORRECTO:** `Navigator.of(context, rootNavigator: true).push()` - bypasea GoRouter, el back button no funciona
+  - Ejemplo: `/stories` está fuera del ShellRoute → fullscreen + back button funcional
 - **Swipe entre tabs + GoRouter ShellRoute:**
   - MainShell usa PageView para swipe entre tabs principales (Home, Chat, Study, Settings)
   - **Problema:** ShellRoute pasa `child` pero si usas PageView con pantallas hardcodeadas, ignoras el child y las rutas anidadas no funcionan

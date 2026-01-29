@@ -29,4 +29,7 @@ class RouteConstants {
 
   // Subscription
   static const String paywall = '/paywall';
+
+  // Fullscreen overlays (outside ShellRoute)
+  static const String stories = '/stories';
 }

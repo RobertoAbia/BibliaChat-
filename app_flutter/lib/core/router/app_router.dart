@@ -6,6 +6,8 @@ import '../../app.dart'; // Para currentTabIndexProvider
 import '../services/analytics_service.dart';
 
 import '../../features/auth/presentation/screens/splash_screen.dart';
+import '../../features/daily_gospel/domain/entities/daily_gospel.dart';
+import '../../features/daily_gospel/presentation/screens/gospel_stories_screen.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/link_email_screen.dart';
 import '../../features/auth/presentation/screens/verify_email_screen.dart';
@@ -75,6 +77,21 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RouteConstants.paywall,
         name: 'paywall',
         builder: (context, state) => const PaywallScreen(),
+      ),
+
+      // Stories (fullscreen, sin bottom navigation)
+      GoRoute(
+        path: RouteConstants.stories,
+        name: 'stories',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return GospelStoriesScreen(
+            gospel: extra['gospel'] as DailyGospel,
+            initialSlideIndex: extra['initialSlideIndex'] as int? ?? 0,
+            onSlideViewed: extra['onSlideViewed'] as void Function(int)?,
+            topicKey: extra['topicKey'] as String?,
+          );
+        },
       ),
 
       // Main App with Bottom Navigation

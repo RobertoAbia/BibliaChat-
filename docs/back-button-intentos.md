@@ -579,3 +579,49 @@ BackButtonInterceptor: On Home, closing app  ← ✅ Cierra la app
 
 **Lección aprendida:**
 La causa raíz era usar `Navigator.push()` que bypasea GoRouter. Al usar `context.push()` de GoRouter, el router conoce la ruta real y el `BackButtonInterceptor` puede leer la ubicación correcta desde `router.routerDelegate.currentConfiguration.uri.path`.
+
+---
+
+## Problema Adicional 5: Stories usa Navigator.push() (29/01/2026)
+
+**Síntoma:** Al presionar back dentro de GospelStoriesScreen, la app se cierra en lugar de volver a Home.
+
+**Causa:** El mismo problema que con Chat - Stories usaba `Navigator.of(context, rootNavigator: true).push()` que bypasea GoRouter. El `BackButtonInterceptor` veía `/home` como ubicación y cerraba la app.
+
+**Intento fallido: PopScope + fullscreenRouteOpenProvider**
+
+Se intentó usar un provider para trackear cuando Stories estaba abierta y que el interceptor retornara `false` para "dejar que PopScope maneje". Esto falló por dos razones:
+
+1. **Error de concepto documentado:** `return false` en `BackButtonInterceptor` NO pasa el evento a Flutter Navigator - solo permite que otros interceptores lo manejen
+2. **Error de ref en dispose:** `ref.read()` en `dispose()` falla con "Cannot use ref after widget was disposed"
+
+**Solución aplicada (29/01/2026):**
+
+Igual que con Chat, convertir Stories en una ruta de GoRouter:
+
+1. **Nueva ruta `/stories`** añadida en `app_router.dart` (FUERA del ShellRoute para ser fullscreen)
+2. **Navegación cambiada** de `Navigator.push()` a `context.push('/stories', extra: {...})`
+3. **GospelStoriesScreen simplificado:**
+   - Revertido de `ConsumerStatefulWidget` a `StatefulWidget`
+   - Eliminado código de `fullscreenRouteOpenProvider`
+   - Eliminado `PopScope` wrapper
+   - Cambiado `Navigator.pop()` a `context.pop()`
+4. **Eliminado** `fullscreenRouteOpenProvider` de `app.dart`
+
+**Archivos modificados:**
+- `lib/core/constants/route_constants.dart` - Nueva constante `stories`
+- `lib/core/router/app_router.dart` - Nueva ruta GoRoute
+- `lib/features/home/presentation/screens/home_screen.dart` - `context.push()` para Stories
+- `lib/features/daily_gospel/presentation/screens/gospel_stories_screen.dart` - Simplificado
+- `lib/app.dart` - Eliminado provider y código
+
+**Comportamiento final actualizado:**
+
+| Ubicación | Back Button |
+|-----------|-------------|
+| Stories (`/stories`) | → Home (`/home`) |
+| Dentro de un chat (`/chat/id/xxx`) | → Lista de chats (`/chat`) |
+| Lista de chats (`/chat`) | → Home (`/home`) |
+| Estudiar (`/study`) | → Home (`/home`) |
+| Perfil (`/settings`) | → Home (`/home`) |
+| Home (`/home`) | → Cierra la app |

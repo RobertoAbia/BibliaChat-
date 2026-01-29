@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -172,7 +173,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
     } else {
       // Último slide - log completion and close
       AnalyticsService().logStoryCompleted();
-      Navigator.of(context, rootNavigator: true).pop();
+      context.pop();
     }
   }
 
@@ -569,7 +570,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
                 borderRadius: 24,
                 blur: 8,
                 backgroundOpacity: 0.4,
-                onTap: () => Navigator.of(context, rootNavigator: true).pop(),
+                onTap: () => context.pop(),
                 child: const Icon(
                   Icons.close_rounded,
                   color: AppTheme.textPrimary,
