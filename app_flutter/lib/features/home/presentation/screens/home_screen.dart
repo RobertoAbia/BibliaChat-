@@ -389,7 +389,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     // Open Stories at the specified slide using GoRouter
     await context.push(
-      '/stories',
+      '/home/stories',
       extra: {
         'gospel': gospel,
         'initialSlideIndex': slideIndex,
@@ -585,7 +585,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             if (gospel.hasStoriesContent) {
               // Usar GoRouter para navegar (fullscreen, fuera del ShellRoute)
               await context.push(
-                '/stories',
+                '/home/stories',
                 extra: {
                   'gospel': gospel,
                   'initialSlideIndex': 0,

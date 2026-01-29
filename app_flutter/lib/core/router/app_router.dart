@@ -79,21 +79,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const PaywallScreen(),
       ),
 
-      // Stories (fullscreen, sin bottom navigation)
-      GoRoute(
-        path: RouteConstants.stories,
-        name: 'stories',
-        builder: (context, state) {
-          final extra = state.extra as Map<String, dynamic>;
-          return GospelStoriesScreen(
-            gospel: extra['gospel'] as DailyGospel,
-            initialSlideIndex: extra['initialSlideIndex'] as int? ?? 0,
-            onSlideViewed: extra['onSlideViewed'] as void Function(int)?,
-            topicKey: extra['topicKey'] as String?,
-          );
-        },
-      ),
-
       // Main App with Bottom Navigation
       ShellRoute(
         builder: (context, state, child) {
@@ -105,6 +90,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             path: RouteConstants.home,
             name: 'home',
             builder: (context, state) => const HomeScreen(),
+            routes: [
+              // Stories (fullscreen, bottom nav oculto)
+              GoRoute(
+                path: 'stories',
+                name: 'stories',
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>;
+                  return GospelStoriesScreen(
+                    gospel: extra['gospel'] as DailyGospel,
+                    initialSlideIndex: extra['initialSlideIndex'] as int? ?? 0,
+                    onSlideViewed: extra['onSlideViewed'] as void Function(int)?,
+                    topicKey: extra['topicKey'] as String?,
+                  );
+                },
+              ),
+            ],
           ),
           GoRoute(
             path: RouteConstants.chatList,
@@ -316,8 +317,10 @@ class _MainShellState extends ConsumerState<MainShell> {
       }
     }
 
-    // Ocultar bottom nav en pantallas de chat (excepto la lista)
-    final shouldHideBottomNav = location.startsWith('/chat/') && location != '/chat';
+    // Ocultar bottom nav en pantallas de chat y Stories
+    final shouldHideBottomNav =
+        (location.startsWith('/chat/') && location != '/chat') ||
+        location == '/home/stories';
 
     return Scaffold(
       // Stack mantiene PageView siempre montado para preservar estado de scroll

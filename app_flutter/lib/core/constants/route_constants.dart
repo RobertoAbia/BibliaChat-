@@ -30,6 +30,6 @@ class RouteConstants {
   // Subscription
   static const String paywall = '/paywall';
 
-  // Fullscreen overlays (outside ShellRoute)
-  static const String stories = '/stories';
+  // Fullscreen overlays (inside ShellRoute but with hidden bottom nav)
+  static const String stories = '/home/stories';
 }
