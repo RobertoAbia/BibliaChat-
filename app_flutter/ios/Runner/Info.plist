@@ -48,6 +48,12 @@
 	<!-- Photo Library Access for sharing images -->
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Necesitamos acceso a tu galería para usar una foto como fondo de tu reflexión</string>
+	<!-- Background Modes for Push Notifications -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
 	<!-- Deep Links for Supabase Auth -->
 	<key>CFBundleURLTypes</key>
 	<array>

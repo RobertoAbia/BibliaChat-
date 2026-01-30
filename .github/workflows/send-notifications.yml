@@ -1,0 +1,103 @@
+name: Send Push Notifications
+
+on:
+  schedule:
+    # Every hour to cover all timezones
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    inputs:
+      notification_type:
+        description: 'Type of notification to send'
+        required: false
+        type: choice
+        options:
+          - all
+          - stories_missed
+          - daily_reminder
+          - plan_abandoned
+          - streak_lost
+
+env:
+  SUPABASE_URL: https://popqvhrgsokuviwtscid.supabase.co
+
+jobs:
+  send-daily-reminder:
+    runs-on: ubuntu-latest
+    # Daily reminder runs every hour (users set their own time)
+    steps:
+      - name: Send Daily Reminder Notifications
+        if: github.event_name == 'schedule' || github.event.inputs.notification_type == 'all' || github.event.inputs.notification_type == 'daily_reminder'
+        run: |
+          echo "Sending daily_reminder notifications..."
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            '${{ env.SUPABASE_URL }}/functions/v1/send-daily-reminders' \
+            -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \
+            -H 'Content-Type: application/json' \
+            -d '{"type": "daily_reminder"}')
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response: $body"
+          echo "HTTP Code: $http_code"
+
+  send-stories-missed:
+    runs-on: ubuntu-latest
+    # Stories missed: 20:00 local time
+    # UTC times when it's 20:00 somewhere in Americas: 00:00-06:00 UTC
+    steps:
+      - name: Send Stories Missed Notifications
+        if: github.event_name == 'schedule' || github.event.inputs.notification_type == 'all' || github.event.inputs.notification_type == 'stories_missed'
+        run: |
+          echo "Sending stories_missed notifications..."
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            '${{ env.SUPABASE_URL }}/functions/v1/send-daily-reminders' \
+            -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \
+            -H 'Content-Type: application/json' \
+            -d '{"type": "stories_missed"}')
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response: $body"
+          echo "HTTP Code: $http_code"
+
+  send-plan-abandoned:
+    runs-on: ubuntu-latest
+    # Plan abandoned: 18:00 local time
+    steps:
+      - name: Send Plan Abandoned Notifications
+        if: github.event_name == 'schedule' || github.event.inputs.notification_type == 'all' || github.event.inputs.notification_type == 'plan_abandoned'
+        run: |
+          echo "Sending plan_abandoned notifications..."
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            '${{ env.SUPABASE_URL }}/functions/v1/send-daily-reminders' \
+            -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \
+            -H 'Content-Type: application/json' \
+            -d '{"type": "plan_abandoned"}')
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response: $body"
+          echo "HTTP Code: $http_code"
+
+  send-streak-lost:
+    runs-on: ubuntu-latest
+    # Streak lost: 09:00 local time
+    steps:
+      - name: Send Streak Lost Notifications
+        if: github.event_name == 'schedule' || github.event.inputs.notification_type == 'all' || github.event.inputs.notification_type == 'streak_lost'
+        run: |
+          echo "Sending streak_lost notifications..."
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            '${{ env.SUPABASE_URL }}/functions/v1/send-daily-reminders' \
+            -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \
+            -H 'Content-Type: application/json' \
+            -d '{"type": "streak_lost"}')
+
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+
+          echo "Response: $body"
+          echo "HTTP Code: $http_code"

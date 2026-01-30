@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -68,8 +69,33 @@ Future<bool> markDayAsCompleted(WidgetRef ref) async {
 
   // Esperar a que streakDaysProvider termine de cargar antes de limpiar estado optimista
   // Esto evita la race condition donde el timeout fijo de 500ms no era suficiente
-  await ref.read(streakDaysProvider.future);
+  final newStreak = await ref.read(streakDaysProvider.future);
   ref.read(streakDaysStateProvider.notifier).state = null;
 
+  // Enviar notificación especial al completar primera semana
+  if (newStreak == 7) {
+    _sendWeekCompletedNotification();
+  }
+
   return true;
+}
+
+/// Envía notificación push celebrando la primera semana completada
+Future<void> _sendWeekCompletedNotification() async {
+  try {
+    final supabase = Supabase.instance.client;
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) return;
+
+    await supabase.functions.invoke('send-notification', body: {
+      'user_id': userId,
+      'title': '🎉 ¡Una semana seguida!',
+      'body': 'Felicidades, has mantenido tu racha durante 7 días',
+      'data': {'screen': 'home'},
+    });
+
+    debugPrint('Week completed notification sent');
+  } catch (e) {
+    debugPrint('Error sending week completed notification: $e');
+  }
 }

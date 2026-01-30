@@ -221,6 +221,31 @@ class AnalyticsService {
     await _analytics.logEvent(name: 'message_limit_reached');
   }
 
+  // ============ NOTIFICACIONES ============
+
+  /// Usuario acepta permisos de notificaciones
+  Future<void> logNotificationPermissionGranted() async {
+    if (kIsWeb) return;
+    await _analytics.logEvent(name: 'notification_permission_granted');
+  }
+
+  /// Usuario rechaza permisos de notificaciones
+  Future<void> logNotificationPermissionDenied() async {
+    if (kIsWeb) return;
+    await _analytics.logEvent(name: 'notification_permission_denied');
+  }
+
+  /// Usuario abre la app desde una notificación
+  Future<void> logNotificationOpened({required String screen}) async {
+    if (kIsWeb) return;
+    await _analytics.logEvent(
+      name: 'notification_opened',
+      parameters: {
+        'screen': screen,
+      },
+    );
+  }
+
   // ============ USER PROPERTIES ============
 
   /// Establece propiedades del usuario para segmentación
