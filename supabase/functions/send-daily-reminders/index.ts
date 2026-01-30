@@ -254,7 +254,7 @@ async function getUsersWhoLostStreak(
     })
     .map(p => ({
       user_id: p.user_id,
-      title: '💪 Ayer se rompió pero hoy es nuevo día',
+      title: '💪 Tu racha se rompió, ¡pero hoy puedes empezar de nuevo!',
       body: 'Vuelve a empezar tu racha hoy',
       screen: 'home',
     }));

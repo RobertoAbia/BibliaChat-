@@ -12,7 +12,7 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 | Backend/DB/Auth | Supabase (PostgreSQL + Auth + RLS + Edge Functions) |
 | IA | OpenAI GPT-4o (chat) + GPT-4o-mini (memorias) + GPT-5.2 (Stories) |
 | Pagos | RevenueCat + In-App Purchases |
-| Notificaciones | Firebase Cloud Messaging |
+| Notificaciones | Firebase Cloud Messaging (FCM HTTP v1 API) |
 | Analytics | Firebase Analytics (integrado y verificado) |
 
 ## Modelo de Negocio
@@ -264,6 +264,24 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 - **User properties**: denomination, origin, age_group, gender, is_premium
 - **DebugView**: Habilitar con `adb shell setprop debug.firebase.analytics.app ee.bikain.bibliachat`
 
+### Notificaciones Push (FCM)
+- **Arquitectura:**
+  - Flutter: `NotificationService` pide permiso y guarda token FCM en `user_devices`
+  - Edge Functions: `send-notification` (envío individual) + `send-daily-reminders` (lógica de triggers)
+  - GitHub Actions: Cron cada hora para cubrir todos los timezones
+- **5 notificaciones automáticas:**
+
+| Trigger | Hora local | Mensaje | Destino |
+|---------|------------|---------|---------|
+| Stories no vistas | 20:00 | "🔥 No pierdas tu racha de X días" | stories |
+| Recordatorio diario | reminder_time | "🙏 Es tu momento de paz" | home |
+| Plan abandonado 3+ días | 18:00 | "📚 {Plan} te espera" | study |
+| Racha perdida ayer | 09:00 | "💪 Tu racha se rompió, ¡pero hoy puedes empezar de nuevo!" | home |
+| Primera semana | Inmediato | "🎉 ¡Una semana seguida!" | home |
+
+- **Deep links configurables:** `{ "screen": "home" | "stories" | "study" | "chat" }`
+- **Secret requerido:** `FIREBASE_SERVICE_ACCOUNT` (JSON del Service Account de Firebase)
+
 ### Correcciones UI
 - **Botones con texto cortado**: Los botones "Continuar estudio", "Completar día" y "Comenzar plan" tenían texto comprimido
   - **Causa**: `ElevatedButton` dentro de `Container(height: 50-56)` sin quitar el padding/minimumSize por defecto
@@ -302,7 +320,9 @@ BibliaChat/
 │   └── functions/
 │       ├── fetch-daily-gospel/     # Edge Function evangelio (desplegada como clever-worker)
 │       ├── chat-send-message/      # Edge Function chat IA (combined.ts)
-│       └── delete-account/         # Edge Function borrar cuenta (GDPR-compliant)
+│       ├── delete-account/         # Edge Function borrar cuenta (GDPR-compliant)
+│       ├── send-notification/      # Edge Function envío push individual (FCM HTTP v1)
+│       └── send-daily-reminders/   # Edge Function lógica de notificaciones automáticas
 ├── scripts/
 │   ├── import_bible_verses.js      # Genera SQL de importación de Biblia
 │   ├── import_liturgical_readings.js # Importa calendario litúrgico por año
@@ -310,7 +330,8 @@ BibliaChat/
 │   └── split_bible_sql.js          # Divide SQL de Biblia en chunks
 ├── .github/
 │   └── workflows/
-│       └── daily-gospel.yml        # Cron diario (6:00 AM UTC)
+│       ├── daily-gospel.yml        # Cron diario (6:00 AM UTC) para evangelio
+│       └── send-notifications.yml  # Cron horario para notificaciones push
 ├── docs/                           # Documentación completa
 │   ├── 01.Product Requeriments Document (PRD).md
 │   ├── 02.Historias de usuario. Backlog.md

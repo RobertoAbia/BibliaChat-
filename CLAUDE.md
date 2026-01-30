@@ -1302,6 +1302,38 @@ BibliaChat/
     - Eventos aparecen en tiempo real (~30 segundos de delay)
     - Dashboard principal tiene delay de ~24 horas
 
+- [x] EPIC 10: Notificaciones Push (FCM)
+  - **Arquitectura:**
+    - Flutter: `NotificationService` pide permiso y guarda token FCM
+    - Edge Functions: `send-notification` + `send-daily-reminders`
+    - GitHub Actions: Cron cada hora para cubrir timezones
+  - **5 notificaciones automáticas:**
+    | Trigger | Hora local | Mensaje | Destino |
+    |---------|------------|---------|---------|
+    | Stories no vistas | 20:00 | "🔥 No pierdas tu racha de X días" | stories |
+    | Recordatorio diario | reminder_time | "🙏 Es tu momento de paz" | home |
+    | Plan abandonado 3+ días | 18:00 | "📚 {Plan} te espera" | study |
+    | Racha perdida ayer | 09:00 | "💪 Tu racha se rompió, ¡pero hoy puedes empezar de nuevo!" | home |
+    | Primera semana | Inmediato | "🎉 ¡Una semana seguida!" | home |
+  - **Deep links configurables:**
+    - `{ "screen": "home" | "stories" | "study" | "chat" }`
+    - Se pueden añadir nuevas notificaciones sin re-subir la app
+  - **Archivos creados:**
+    - `lib/core/services/notification_service.dart` - Servicio Flutter
+    - `supabase/functions/send-notification/index.ts` - Envío individual
+    - `supabase/functions/send-daily-reminders/index.ts` - Lógica de las 5 notificaciones
+    - `.github/workflows/send-notifications.yml` - Cron horario
+  - **Archivos modificados:**
+    - `lib/features/auth/presentation/screens/splash_screen.dart` - Init servicio
+    - `android/app/src/main/AndroidManifest.xml` - Permiso POST_NOTIFICATIONS + channel
+    - `ios/Runner/Info.plist` - UIBackgroundModes
+    - `lib/features/home/presentation/providers/daily_progress_provider.dart` - Notificación primera semana
+    - `lib/core/services/analytics_service.dart` - Eventos de notificaciones
+    - `pubspec.yaml` - Dependencia flutter_local_notifications
+  - **Secret requerido en Supabase:**
+    - `FIREBASE_SERVICE_ACCOUNT` - JSON del Service Account de Firebase
+    - Obtener: Firebase Console → Project Settings → Service Accounts → Generate new private key
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
@@ -1333,6 +1365,7 @@ BibliaChat/
 - [x] Feature: Botón atrás Android en Chat - COMPLETADO
 - [x] **EPIC 11**: Firebase Analytics - COMPLETADO
 - [x] Fix: Botones con texto cortado en Estudiar - COMPLETADO
+- [x] **EPIC 10**: Notificaciones Push (FCM) - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 
@@ -1477,6 +1510,42 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
 - **Response:** `{ success: true/false, message/error }`
 - **Secrets requeridos:** Ninguno adicional (usa SUPABASE_SERVICE_ROLE_KEY del entorno)
 
+### `send-notification` (DESPLEGADA)
+- **Ubicación:** `supabase/functions/send-notification/index.ts`
+- **Propósito:** Enviar notificación push a un usuario específico via FCM HTTP v1 API
+- **Request:** `{ user_id, title, body, data?: { screen } }`
+  - `screen`: "home" | "stories" | "study" | "chat"
+- **Response:** `{ success, sent, failed, removed_invalid }`
+- **Flujo:**
+  1. Obtiene tokens FCM del usuario desde `user_devices`
+  2. Genera JWT firmado con Service Account de Firebase
+  3. Intercambia JWT por access token de Google
+  4. Envía push a todos los dispositivos del usuario
+  5. Elimina tokens inválidos (UNREGISTERED) de la BD
+- **Configuración por plataforma:**
+  - Android: priority high, channel_id "biblia_chat_channel"
+  - iOS: sound default, badge 1
+- **Secrets requeridos:**
+  - `FIREBASE_SERVICE_ACCOUNT` (JSON completo del Service Account)
+
+### `send-daily-reminders` (DESPLEGADA)
+- **Ubicación:** `supabase/functions/send-daily-reminders/index.ts`
+- **Propósito:** Procesar las 5 notificaciones automáticas
+- **Request:** `{ type: "stories_missed" | "daily_reminder" | "plan_abandoned" | "streak_lost" }`
+- **Tipos de notificación:**
+  | Tipo | Hora local | Título | Destino |
+  |------|------------|--------|---------|
+  | `stories_missed` | 20:00 | "🔥 No pierdas tu racha de X días" | stories |
+  | `daily_reminder` | reminder_time del usuario | "🙏 Es tu momento de paz" | home |
+  | `plan_abandoned` | 18:00 | "📚 {Plan} te espera" | study |
+  | `streak_lost` | 09:00 | "💪 Tu racha se rompió, ¡pero hoy puedes empezar de nuevo!" | home |
+- **Lógica de timezone:**
+  - Cada tipo filtra usuarios según su hora local
+  - Usa `user_profiles.timezone` (default: America/New_York)
+  - El cron de GitHub Actions se ejecuta cada hora
+- **Dependencia:** Llama a `send-notification` para cada usuario
+- **Secrets requeridos:** Ninguno adicional (usa SERVICE_ROLE_KEY)
+
 ## GitHub Actions
 
 ### `daily-gospel.yml`
@@ -1485,6 +1554,18 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
 - **Cron:** `0 6 * * *` (6:00 AM UTC = 7:00 AM España)
 - **Trigger manual:** `workflow_dispatch` permite ejecución manual desde GitHub
 - **Secret requerido:** `SUPABASE_SERVICE_ROLE_KEY` (configurado en GitHub → Settings → Secrets)
+
+### `send-notifications.yml`
+- **Ubicación:** `.github/workflows/send-notifications.yml`
+- **Propósito:** Enviar notificaciones push automáticas
+- **Cron:** `0 * * * *` (cada hora, para cubrir todos los timezones)
+- **Trigger manual:** `workflow_dispatch` con selector de tipo de notificación
+- **Jobs paralelos:**
+  - `send-daily-reminder` - Recordatorio a la hora elegida por usuario
+  - `send-stories-missed` - A las 20:00 hora local
+  - `send-plan-abandoned` - A las 18:00 hora local
+  - `send-streak-lost` - A las 09:00 hora local
+- **Secret requerido:** `SUPABASE_SERVICE_ROLE_KEY`
 
 ## Notas Técnicas Flutter
 - **Flutter version:** 3.35.3 (stable)
