@@ -10,6 +10,7 @@ import '../../../../core/constants/route_constants.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../home/presentation/providers/daily_progress_provider.dart';
 import '../../../study/presentation/providers/study_provider.dart';
+import '../../../subscription/presentation/providers/subscription_provider.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -18,6 +19,7 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isAnonymous = ref.watch(isAnonymousProvider);
     final email = ref.watch(currentEmailProvider);
+    final isPremium = ref.watch(isPremiumProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -127,6 +129,15 @@ class SettingsScreen extends ConsumerWidget {
                     title: 'Cuenta vinculada',
                     subtitle: email,
                     onTap: () {},
+                  ),
+                // Mostrar "Pásate a Premium" si NO es premium
+                if (!isPremium)
+                  SettingsItem(
+                    icon: Icons.workspace_premium,
+                    title: 'Pásate a Premium',
+                    subtitle: 'Chat ilimitado y más',
+                    isHighlighted: true,
+                    onTap: () => context.push(RouteConstants.paywall),
                   ),
               ],
             ),

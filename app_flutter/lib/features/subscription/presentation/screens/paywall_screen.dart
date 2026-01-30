@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
-import '../../../../core/constants/route_constants.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
@@ -93,7 +92,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     size: 20,
                     color: AppTheme.textTertiary.withOpacity(0.5),
                   ),
-                  onPressed: () => context.go(RouteConstants.home),
+                  onPressed: () => context.pop(),
                 ),
               ),
             ],
@@ -368,7 +367,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Future<void> _handlePurchase(Package package) async {
     final success = await ref.read(subscriptionProvider.notifier).purchasePackage(package);
     if (success && mounted) {
-      context.go(RouteConstants.home);
+      context.pop();
     }
   }
 

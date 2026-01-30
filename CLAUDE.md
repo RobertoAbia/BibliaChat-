@@ -1334,6 +1334,20 @@ BibliaChat/
     - `FIREBASE_SERVICE_ACCOUNT` - JSON del Service Account de Firebase
     - Obtener: Firebase Console → Project Settings → Service Accounts → Generate new private key
 
+- [x] Feature: Acceso a Paywall desde Settings
+  - **Problema:** El paywall solo se mostraba después del onboarding o al alcanzar límite de mensajes
+  - **Solución:** Añadir item "Pásate a Premium" en sección Cuenta de SettingsScreen
+  - **Visible solo si:** Usuario NO es premium (`!isPremium`)
+  - **Estilo:** Destacado con color dorado (`isHighlighted: true`)
+  - **Icono:** `Icons.workspace_premium`
+  - **Navegación mejorada:** PaywallScreen ahora usa `context.pop()` en lugar de `context.go(home)`
+    - Si viene de Settings → vuelve a Settings
+    - Si viene de Chat (límite mensajes) → vuelve al Chat
+    - Si viene de Onboarding → continúa flujo normal
+  - **Archivos modificados:**
+    - `lib/features/settings/presentation/screens/settings_screen.dart` - Nuevo item + import subscription_provider
+    - `lib/features/subscription/presentation/screens/paywall_screen.dart` - `pop()` en lugar de `go(home)`
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
@@ -1366,6 +1380,7 @@ BibliaChat/
 - [x] **EPIC 11**: Firebase Analytics - COMPLETADO
 - [x] Fix: Botones con texto cortado en Estudiar - COMPLETADO
 - [x] **EPIC 10**: Notificaciones Push (FCM) - COMPLETADO
+- [x] Feature: Acceso a Paywall desde Settings - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 
