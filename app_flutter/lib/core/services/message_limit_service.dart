@@ -63,19 +63,27 @@ class MessageLimitService {
     final todayStr = _getTodayString();
 
     try {
-      // Primero obtenemos el valor actual
-      final currentCount = await getMessagesSentToday();
+      // Obtener registro actual (si existe) para preservar el valor de completed
+      final response = await _client
+          .from('daily_activity')
+          .select('messages_sent, completed')
+          .eq('user_id', userId)
+          .eq('activity_date', todayStr)
+          .maybeSingle();
+
+      final currentCount = response?['messages_sent'] as int? ?? 0;
+      final currentCompleted = response?['completed'] as bool? ?? false;
       final newCount = currentCount + 1;
 
-      // Upsert con el nuevo valor
+      // Upsert preservando el valor de completed
       await _client.from('daily_activity').upsert({
         'user_id': userId,
         'activity_date': todayStr,
         'messages_sent': newCount,
-        'completed': false, // No marca el día como completado solo por enviar mensaje
+        'completed': currentCompleted, // Preserva el valor existente
       });
 
-      debugPrint('MessageLimitService: Incremented to $newCount messages');
+      debugPrint('MessageLimitService: Incremented to $newCount messages (completed=$currentCompleted)');
     } catch (e) {
       debugPrint('MessageLimitService: Error incrementing - $e');
       rethrow;

@@ -112,11 +112,19 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: 'chatList',
             builder: (context, state) => const ChatListScreen(),
             routes: [
-              // Nueva conversación (chat libre)
+              // Nueva conversación (chat libre o desde Stories con datos extra)
               GoRoute(
                 path: 'new',
                 name: 'chatNew',
-                builder: (context, state) => const ChatScreen(),
+                builder: (context, state) {
+                  final extra = state.extra as Map<String, dynamic>?;
+                  return ChatScreen(
+                    topicKey: extra?['topicKey'] as String?,
+                    initialGospelText: extra?['initialGospelText'] as String?,
+                    initialGospelReference: extra?['initialGospelReference'] as String?,
+                    initialUserMessage: extra?['initialUserMessage'] as String?,
+                  );
+                },
               ),
               // Chat existente por ID
               GoRoute(
@@ -295,23 +303,18 @@ class _MainShellState extends ConsumerState<MainShell> {
       ref.read(currentLocationProvider.notifier).state = location;
     });
 
-    // Crear PageController solo si no existe (NUNCA recrearlo para mantener estado)
+    // Crear PageController solo si no existe
     _pageController ??= PageController(initialPage: selectedIndex);
 
-    // Sincronizar PageController si la ruta cambió y estamos en ruta principal
+    // Sincronizar PageController cuando estamos en ruta principal
     if (isMainRoute && _pageController!.hasClients) {
       final currentPage = _pageController!.page?.round() ?? 0;
       if (currentPage != selectedIndex) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_pageController!.hasClients) {
+          if (_pageController!.hasClients && mounted) {
             _isSyncing = true;
-            _pageController!.animateToPage(
-              selectedIndex,
-              duration: const Duration(milliseconds: 250),
-              curve: Curves.easeInOut,
-            ).then((_) {
-              _isSyncing = false;
-            });
+            _pageController!.jumpToPage(selectedIndex);
+            _isSyncing = false;
           }
         });
       }

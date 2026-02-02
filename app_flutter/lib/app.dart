@@ -15,6 +15,10 @@ final currentTabIndexProvider = StateProvider<int>((ref) => 0);
 /// y GoRouter solo reporta la ruta del ShellRoute padre
 final currentLocationProvider = StateProvider<String>((ref) => '/');
 
+/// Provider para guardar el contexto del diálogo abierto
+/// Cuando hay un diálogo, el botón atrás de Android debe cerrarlo
+final dialogContextProvider = StateProvider<BuildContext?>((ref) => null);
+
 class BibliaChatApp extends ConsumerStatefulWidget {
   const BibliaChatApp({super.key});
 
@@ -23,13 +27,6 @@ class BibliaChatApp extends ConsumerStatefulWidget {
 }
 
 class _BibliaChatAppState extends ConsumerState<BibliaChatApp> {
-  static const _mainRoutes = [
-    RouteConstants.home,
-    RouteConstants.chatList,
-    RouteConstants.study,
-    RouteConstants.settings,
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -42,42 +39,38 @@ class _BibliaChatAppState extends ConsumerState<BibliaChatApp> {
     super.dispose();
   }
 
-  bool _isMainRoute(String location) => _mainRoutes.contains(location);
-
-  // Helper para obtener la ruta padre de una ruta anidada
-  String _getParentRoute(String location) {
-    if (location.startsWith('/chat/')) return RouteConstants.chatList;
-    if (location.startsWith('/study/')) return RouteConstants.study;
-    if (location.startsWith('/settings/')) return RouteConstants.settings;
-    if (location.startsWith('/home/')) return RouteConstants.home;
-    return RouteConstants.home;
-  }
-
   bool _handleBackButton(bool stopDefaultButtonEvent, RouteInfo info) {
+    final dialogContext = ref.read(dialogContextProvider);
+
+    // Si hay un diálogo abierto, cerrarlo manualmente
+    if (dialogContext != null) {
+      debugPrint('BackButtonInterceptor: Dialog open, closing it');
+      Navigator.of(dialogContext).pop();
+      ref.read(dialogContextProvider.notifier).state = null;
+      return true;
+    }
+
     final router = ref.read(appRouterProvider);
-    final location = ref.read(currentLocationProvider);
-    final isMainRoute = _isMainRoute(location);
     final currentTabIndex = ref.read(currentTabIndexProvider);
 
-    debugPrint('BackButtonInterceptor: location=$location, isMainRoute=$isMainRoute, tabIndex=$currentTabIndex');
+    debugPrint('BackButtonInterceptor: canPop=${router.canPop()}, tabIndex=$currentTabIndex');
 
-    // Si NO estamos en una ruta principal, es una ruta GoRouter anidada → pop para volver
-    if (!isMainRoute) {
-      debugPrint('BackButtonInterceptor: Nested GoRouter route, popping');
+    // 1. Si hay historial → pop (volver a ruta anterior)
+    if (router.canPop()) {
+      debugPrint('BackButtonInterceptor: Doing pop()');
       router.pop();
       return true;
     }
 
-    // Si estamos en tab principal
+    // 2. En Home sin historial → cerrar app
     if (currentTabIndex == 0) {
-      // En Home -> cerrar la app
-      debugPrint('BackButtonInterceptor: On Home, closing app');
+      debugPrint('BackButtonInterceptor: Closing app');
       SystemNavigator.pop();
       return true;
     }
 
-    // En otra tab -> ir a Home
-    debugPrint('BackButtonInterceptor: Going to Home from tab $currentTabIndex');
+    // 3. En otro tab sin historial → ir a Home
+    debugPrint('BackButtonInterceptor: Going to Home');
     ref.read(currentTabIndexProvider.notifier).state = 0;
     router.go(RouteConstants.home);
     return true;

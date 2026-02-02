@@ -396,9 +396,16 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       }
     });
 
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundDark,
-      body: Container(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          context.go('/chat'); // Siempre va al tab de chats
+        }
+      },
+      child: Scaffold(
+        backgroundColor: AppTheme.backgroundDark,
+        body: Container(
         decoration: const BoxDecoration(
           gradient: AppTheme.backgroundGradient,
         ),
@@ -467,6 +474,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           ),
         ),
       ),
+    ),
     );
   }
 

@@ -174,10 +174,14 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - En chat: `location.startsWith('/chat/')`
   - En Stories: `location == '/home/stories'`
 - **Botón atrás Android** con comportamiento correcto:
-  - En Stories (`/home/stories`) → Vuelve a Home
-  - Dentro de un chat → Vuelve a lista de chats
-  - En lista de chats → Va a Home
-  - En Home → Cierra la app
+  - **Con diálogo abierto** → Cierra el diálogo (no navega)
+  - Si hay historial (`canPop()`) → Vuelve a la ruta anterior
+  - En Home sin historial → Cierra la app
+  - En otro tab sin historial → Va a Home
+- **Cierre de diálogos con back button**:
+  - Usa `dialogContextProvider` para guardar el contexto del diálogo abierto
+  - `BackButtonInterceptor` cierra el diálogo manualmente con `Navigator.of(dialogContext).pop()`
+  - Diálogos afectados: Cerrar sesión, Borrar cuenta, y cualquier otro que use el patrón
 - **Preservación de scroll**: PageView usa `Offstage` para mantenerse siempre montado
   - Al navegar a rutas anidadas (ej: `/study/plan/xxx`), las pantallas principales no se desmontan
   - El scroll se preserva al volver de cualquier ruta anidada
@@ -197,6 +201,24 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
   - Zona de peligro (cerrar sesión, borrar cuenta)
 - **PageStorageKey**: Preserva posición de scroll al volver de subpantallas
 - **Rutas anidadas bajo `/settings`**: Back button vuelve correctamente al tab de Perfil
+
+### Widget Versículo en Lock Screen (📋 PLANIFICADO)
+> **Estado:** Planificado para después de T-0403 (Purchase flow)
+> **Justificación:** Feature validada por competencia (Bible Chat centra toda su publicidad en esto)
+
+- **iOS Lock Screen** (iOS 16+):
+  - Widget `accessoryRectangular` con versículo del día
+  - Tecnología: WidgetKit + SwiftUI
+- **iOS Home Screen**:
+  - Widget `systemSmall` con versículo del día
+- **Android Home Screen**:
+  - Widget con Jetpack Glance (Kotlin)
+  - **Nota:** Android NO soporta widgets en lock screen (deprecado en Android 5.0)
+- **Sincronización**:
+  - Package `home_widget` v0.9.0 para sincronizar datos Flutter ↔ Widget nativo
+  - Contenido desde `daily_verse_texts` (ya existente)
+  - Actualización diaria automática
+- **Tiempo estimado**: 4-5 días total
 
 ### Páginas Legales (GDPR/CCPA)
 - **Política de Privacidad** (13 secciones):

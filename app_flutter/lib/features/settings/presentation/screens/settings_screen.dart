@@ -5,6 +5,7 @@ import 'package:in_app_review/in_app_review.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
+import '../../../../app.dart' show dialogContextProvider;
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -322,7 +323,12 @@ class SettingsScreen extends ConsumerWidget {
   void _showLogoutDialog(BuildContext context, WidgetRef ref, bool isAnonymous) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) {
+        // Guardar el contexto del diálogo para que BackButtonInterceptor pueda cerrarlo
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(dialogContextProvider.notifier).state = dialogContext;
+        });
+        return AlertDialog(
         backgroundColor: AppTheme.surfaceDark,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -375,14 +381,22 @@ class SettingsScreen extends ConsumerWidget {
             ),
           ),
         ],
-      ),
-    );
+      );
+      },
+    ).then((_) {
+      ref.read(dialogContextProvider.notifier).state = null;
+    });
   }
 
   void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (dialogContext) {
+        // Guardar el contexto del diálogo para que BackButtonInterceptor pueda cerrarlo
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(dialogContextProvider.notifier).state = dialogContext;
+        });
+        return AlertDialog(
         backgroundColor: AppTheme.surfaceDark,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
@@ -436,8 +450,11 @@ class SettingsScreen extends ConsumerWidget {
             child: const Text('Borrar cuenta'),
           ),
         ],
-      ),
-    );
+      );
+      },
+    ).then((_) {
+      ref.read(dialogContextProvider.notifier).state = null;
+    });
   }
 }
 

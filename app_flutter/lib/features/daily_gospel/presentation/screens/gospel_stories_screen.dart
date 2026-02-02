@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
-import '../../../chat/presentation/screens/chat_screen.dart';
 import '../../domain/entities/daily_gospel.dart';
 import 'share_image_screen.dart';
 
@@ -396,17 +395,13 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
 
 📖 ${widget.gospel.reference}''';
 
-    // Navegar directo al chat (reemplazando Stories para evitar flash de Home)
-    Navigator.of(context, rootNavigator: true).pushReplacement(
-      MaterialPageRoute(
-        builder: (context) => ChatScreen(
-          topicKey: widget.topicKey,
-          initialGospelText: chatText,
-          initialGospelReference: widget.gospel.reference,
-          initialUserMessage: message,
-        ),
-      ),
-    );
+    // Navegar al chat usando GoRouter (go reemplaza la ubicación completamente)
+    context.go('/chat/new', extra: {
+      'topicKey': widget.topicKey,
+      'initialGospelText': chatText,
+      'initialGospelReference': widget.gospel.reference,
+      'initialUserMessage': message,
+    });
   }
 
   void _shareContent() {

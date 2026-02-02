@@ -74,7 +74,7 @@ BibliaChat/
 - `deleted_user_archives` (archivado pseudonimizado para GDPR, 3 años retención)
 - `liturgical_readings` (calendario litúrgico católico - 365 días/año)
 
-## Migraciones SQL (25 total)
+## Migraciones SQL (26 total)
 - 00001-00009: Tablas core, ENUMs, RLS, índices
 - 00010: `rc_app_user_id` para restaurar compras
 - 00011: `gender` + enum `gender_type`
@@ -92,6 +92,7 @@ BibliaChat/
 - 00023: `bible_verses` tabla para almacenar Biblia localmente (reemplaza API.Bible)
 - 00024: `liturgical_readings` tabla para calendario litúrgico (reemplaza dependencia de API externa)
 - 00025: `country_code` en `user_profiles` para país específico (ISO 3166-1 alpha-2)
+- 00026: Fix `daily_activity.completed` sobrescrito por `message_limit_service` + arreglar datos corruptos
 
 ## EPICs del Proyecto (12 total)
 - **EPIC 0-1:** Foundation + Base de datos + RLS
@@ -1348,6 +1349,68 @@ BibliaChat/
     - `lib/features/settings/presentation/screens/settings_screen.dart` - Nuevo item + import subscription_provider
     - `lib/features/subscription/presentation/screens/paywall_screen.dart` - `pop()` en lugar de `go(home)`
 
+- [x] Feature: Simplificar navegación atrás Android + Cerrar diálogos
+  - **Simplificación del BackButtonInterceptor:**
+    - Antes: Lógica compleja con `_isMainRoute()`, `_getParentRoute()`, `_getTabIndex()`
+    - Después: Solo usa `router.canPop()` para decidir
+    - Nueva lógica simple:
+      1. Si hay diálogo abierto → cerrarlo
+      2. Si `canPop()` → `pop()` (usa historial)
+      3. En Home sin historial → cierra app
+      4. En otro tab sin historial → ir a Home
+  - **Cierre de diálogos con botón atrás:**
+    - **Problema:** `BackButtonInterceptor` intercepta el back button ANTES de que llegue a los diálogos
+    - **Intentos fallidos:** Retornar `false` no funciona - el evento no llega al diálogo
+    - **Solución:** Cerrar el diálogo manualmente usando `dialogContextProvider`
+    - **Patrón implementado:**
+      ```dart
+      // En app.dart
+      final dialogContextProvider = StateProvider<BuildContext?>((ref) => null);
+
+      // En _handleBackButton
+      if (dialogContext != null) {
+        Navigator.of(dialogContext).pop();
+        ref.read(dialogContextProvider.notifier).state = null;
+        return true;
+      }
+
+      // En cada showDialog
+      showDialog(
+        builder: (dialogContext) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            ref.read(dialogContextProvider.notifier).state = dialogContext;
+          });
+          return AlertDialog(...);
+        },
+      ).then((_) {
+        ref.read(dialogContextProvider.notifier).state = null;
+      });
+      ```
+  - **Archivos modificados:**
+    - `lib/app.dart` - Simplificado BackButtonInterceptor + dialogContextProvider
+    - `lib/features/settings/presentation/screens/settings_screen.dart` - Diálogos guardan contexto
+
+- [x] Feature: Configuración App Icon y Nombre de la App
+  - **App Store Name:** `Biblia Chat: oracion diaria` (27 chars)
+  - **Nombre bajo el icono:** `Biblia Chat` (ambas plataformas)
+  - **App Icon:**
+    - Archivo fuente: `assets/icon/app_icon.png` (1024x1024)
+    - Diseño: Cruz blanca + Biblia abierta con brillo dorado + burbuja de chat
+    - Fondo: Gradiente púrpura/rosa
+    - **PENDIENTE:** Regenerar sin esquinas redondeadas (el actual tiene doble redondeo)
+  - **flutter_launcher_icons configurado:**
+    - Dev dependency: `flutter_launcher_icons: ^0.14.3`
+    - Configuración en `pubspec.yaml`
+    - Genera todos los tamaños para Android (5) e iOS (13+)
+    - Comando: `dart run flutter_launcher_icons`
+  - **Archivos generados:**
+    - Android: `android/app/src/main/res/mipmap-*/ic_launcher.png`
+    - iOS: `ios/Runner/Assets.xcassets/AppIcon.appiconset/`
+  - **Archivos modificados:**
+    - `pubspec.yaml` - Dependencia + configuración flutter_launcher_icons
+    - `android/app/src/main/AndroidManifest.xml` - `android:label="Biblia Chat"`
+    - `ios/Runner/Info.plist` - `CFBundleName` y `CFBundleDisplayName` = "Biblia Chat"
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
@@ -1365,6 +1428,49 @@ BibliaChat/
 - ~~T-0706~~: Oración guiada - Solo es un shortcut, usuario puede pedir en chat
 - ~~T-0707~~: Recomendaciones de planes - Depende de EPIC 9
 - ~~T-0906~~: Puntos/badges - Gamificación descartada para MVP
+
+### Feature Planificada: Widget Versículo en Lock Screen
+**Estado:** PLANIFICADO (después de T-0403 Purchase flow)
+**Prioridad:** Alta - Feature validada por competencia (Bible Chat centra toda su publicidad en esto)
+
+**Justificación:**
+- Bible Chat (competidor directo) usa esta feature como principal gancho publicitario
+- Retención pasiva: usuario ve el versículo 50-100 veces/día al mirar el móvil
+- Market validated: si gastan en ads solo para esto, han medido que convierte
+
+**Scope técnico:**
+
+| Plataforma | Widget | Tecnología | Complejidad |
+|------------|--------|------------|-------------|
+| iOS Lock Screen | accessoryRectangular | WidgetKit + SwiftUI | Media |
+| iOS Home Screen | systemSmall/Medium | WidgetKit + SwiftUI | Media |
+| Android Home Screen | Glance widget | Jetpack Glance (Kotlin) | Media |
+| Android Lock Screen | ❌ No disponible | Deprecado en Android 5.0 | N/A |
+
+**Package principal:** `home_widget` v0.9.0
+- Sincroniza datos entre Flutter y widgets nativos
+- Permite renderizar widgets Flutter como imágenes (`renderFlutterWidget`)
+- Requiere código nativo para UI (SwiftUI en iOS, Kotlin/Glance en Android)
+
+**Contenido del widget:**
+- Versículo del día (sincronizado con `daily_verse_texts`)
+- Actualización diaria (no horaria para simplificar)
+- Diseño minimalista con referencia bíblica
+
+**Tiempo estimado:** 4-5 días total
+- iOS Lock Screen + Home Screen: 2-3 días
+- Android Home Screen: 1-2 días
+- Testing y polish: 1 día
+
+**Requisitos iOS:**
+- iOS 16+ para Lock Screen widgets (accessory families)
+- WidgetKit Extension en Xcode
+- App Groups para compartir datos entre app y widget
+
+**Documentación de referencia:**
+- Google Codelab: https://codelabs.developers.google.com/flutter-home-screen-widgets
+- home_widget package: https://pub.dev/packages/home_widget
+- iOS Lock Screen con Flutter: https://medium.com/@ABausG/ios-lockscreen-widgets-with-flutter-and-home-widget-0dfecc18cfa0
 - ~~T-0801..T-0803~~: Seed devotions - POSPUESTO (Evangelio del Día ya cubre, posible futuro)
 
 ### Próximos Pasos
@@ -1381,8 +1487,12 @@ BibliaChat/
 - [x] Fix: Botones con texto cortado en Estudiar - COMPLETADO
 - [x] **EPIC 10**: Notificaciones Push (FCM) - COMPLETADO
 - [x] Feature: Acceso a Paywall desde Settings - COMPLETADO
+- [x] Feature: Simplificar navegación atrás + Cerrar diálogos - COMPLETADO
+- [x] Feature: Configuración App Icon + Nombre - COMPLETADO (pendiente regenerar icono sin esquinas)
+- [ ] Regenerar app icon sin esquinas redondeadas (ChatGPT disponible mañana 20:35)
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
+- [ ] **Feature: Widget versículo en Lock Screen** (iOS) + Home Screen (Android) - PLANIFICADO
 
 ## Comandos Útiles
 ```bash
@@ -1833,3 +1943,34 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
     ```
   - **Clave:** NUNCA recrear el `PageController` → `_pageController ??= PageController(...)`
   - Con esto, las pantallas mantienen su estado de scroll incluso después de múltiples navegaciones
+- **Cerrar diálogos con botón atrás Android (BackButtonInterceptor + showDialog):**
+  - `BackButtonInterceptor` intercepta el back button ANTES de que llegue a los diálogos
+  - Retornar `false` del interceptor NO funciona - el evento no llega al diálogo
+  - **Solución:** Guardar el contexto del diálogo en un provider y cerrarlo manualmente
+  - Patrón:
+    ```dart
+    // En app.dart
+    final dialogContextProvider = StateProvider<BuildContext?>((ref) => null);
+
+    // En _handleBackButton (PRIMERO, antes de cualquier otra lógica)
+    final dialogContext = ref.read(dialogContextProvider);
+    if (dialogContext != null) {
+      Navigator.of(dialogContext).pop();
+      ref.read(dialogContextProvider.notifier).state = null;
+      return true;
+    }
+
+    // En cada showDialog
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ref.read(dialogContextProvider.notifier).state = dialogContext;
+        });
+        return AlertDialog(...);
+      },
+    ).then((_) {
+      ref.read(dialogContextProvider.notifier).state = null;
+    });
+    ```
+  - Afecta: Diálogos de cerrar sesión, borrar cuenta, y cualquier otro showDialog
