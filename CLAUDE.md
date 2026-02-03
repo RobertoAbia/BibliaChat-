@@ -1395,8 +1395,9 @@ BibliaChat/
   - **Nombre bajo el icono:** `Biblia Chat` (ambas plataformas)
   - **App Icon:**
     - Archivo fuente: `assets/icon/app_icon.png` (1024x1024)
-    - Diseño: Cruz de madera rústica + burbuja de chat
-    - Fondo: Beige claro, sin esquinas redondeadas
+    - Diseño: Cruz de madera con brillo dorado + burbuja dorada
+    - Fondo: Gradiente púrpura (coincide con tema de la app)
+    - Sin esquinas redondeadas (las tiendas las añaden)
     - Generado con Ideogram AI
   - **flutter_launcher_icons configurado:**
     - Dev dependency: `flutter_launcher_icons: ^0.14.3`
