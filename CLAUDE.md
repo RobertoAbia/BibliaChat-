@@ -1395,9 +1395,9 @@ BibliaChat/
   - **Nombre bajo el icono:** `Biblia Chat` (ambas plataformas)
   - **App Icon:**
     - Archivo fuente: `assets/icon/app_icon.png` (1024x1024)
-    - Diseño: Cruz blanca + Biblia abierta con brillo dorado + burbuja de chat
-    - Fondo: Gradiente púrpura/rosa
-    - **PENDIENTE:** Regenerar sin esquinas redondeadas (el actual tiene doble redondeo)
+    - Diseño: Cruz de madera rústica + burbuja de chat
+    - Fondo: Beige claro, sin esquinas redondeadas
+    - Generado con Ideogram AI
   - **flutter_launcher_icons configurado:**
     - Dev dependency: `flutter_launcher_icons: ^0.14.3`
     - Configuración en `pubspec.yaml`
@@ -1488,8 +1488,8 @@ BibliaChat/
 - [x] **EPIC 10**: Notificaciones Push (FCM) - COMPLETADO
 - [x] Feature: Acceso a Paywall desde Settings - COMPLETADO
 - [x] Feature: Simplificar navegación atrás + Cerrar diálogos - COMPLETADO
-- [x] Feature: Configuración App Icon + Nombre - COMPLETADO (pendiente regenerar icono sin esquinas)
-- [ ] Regenerar app icon sin esquinas redondeadas (ChatGPT disponible mañana 20:35)
+- [x] Feature: Configuración App Icon + Nombre - COMPLETADO
+- [x] Regenerar app icon sin esquinas redondeadas - COMPLETADO (cruz de madera + burbuja chat)
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 - [ ] **Feature: Widget versículo en Lock Screen** (iOS) + Home Screen (Android) - PLANIFICADO
