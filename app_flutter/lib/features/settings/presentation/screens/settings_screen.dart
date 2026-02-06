@@ -369,7 +369,7 @@ class SettingsScreen extends ConsumerWidget {
                 Navigator.pop(dialogContext);
               }
               if (context.mounted) {
-                // FIX: Navegar a Splash después de logout
+                // Navegar a Splash para reiniciar el flujo de auth
                 context.go(RouteConstants.splash);
               }
             },
@@ -435,7 +435,7 @@ class SettingsScreen extends ConsumerWidget {
               ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
               if (success) {
-                // La sesión se invalida automáticamente
+                // La sesión se invalida - ir a splash para reiniciar
                 context.go(RouteConstants.splash);
               } else {
                 final error = ref.read(authNotifierProvider).errorMessage;

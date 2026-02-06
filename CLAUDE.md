@@ -1395,8 +1395,7 @@ BibliaChat/
   - **Nombre bajo el icono:** `Biblia Chat` (ambas plataformas)
   - **App Icon:**
     - Archivo fuente: `assets/icon/app_icon.png` (1024x1024)
-    - Diseño: Cruz de madera con brillo dorado + burbuja dorada
-    - Fondo: Gradiente púrpura (coincide con tema de la app)
+    - Diseño: Cruz de madera con brillo dorado + burbuja dorada, fondo azul oscuro navy
     - Sin esquinas redondeadas (las tiendas las añaden)
     - Generado con Ideogram AI
   - **flutter_launcher_icons configurado:**
@@ -1411,6 +1410,44 @@ BibliaChat/
     - `pubspec.yaml` - Dependencia + configuración flutter_launcher_icons
     - `android/app/src/main/AndroidManifest.xml` - `android:label="Biblia Chat"`
     - `ios/Runner/Info.plist` - `CFBundleName` y `CFBundleDisplayName` = "Biblia Chat"
+
+- [x] Feature: Splash Screen rediseñada + Home Screen UI polish
+  - **Splash Screen:**
+    - Color de fondo cambiado a `#141A2E` (azul noche oscuro, igual que el fondo de la app)
+    - Transición invisible entre splash nativo y Flutter splash
+    - `splash_screen.dart` backgroundColor: `Color(0xFF141A2E)`
+  - **Imágenes de splash (3 archivos separados por uso):**
+    - `splash_logo.png` - Logo completo full quality (cruz+burbuja con fondo redondeado). Uso: HomeScreen header, OnboardingWelcomePage
+    - `splash_logo_small.png` - Mismo logo reducido a 500px contenido en canvas 1024x1024. Uso: splash pre-Android 12
+    - `splash_icon.png` - Cruz+burbuja SIN fondo (transparente), 500px contenido en 1024x1024. Uso: splash Android 12+ (evita cuadrado visible)
+  - **Configuración splash en `pubspec.yaml`:**
+    ```yaml
+    flutter_native_splash:
+      color: "#141A2E"
+      image: assets/images/splash_logo_small.png
+      android_12:
+        color: "#141A2E"
+        image: assets/images/splash_icon.png
+      ios: true
+    ```
+  - **HomeScreen header actualizado:**
+    - Logo: `splash_logo.png` a 64x64 con `ClipRRect(borderRadius: 14)` y sombra dorada
+    - Reemplaza el antiguo círculo dorado con letra "B"
+    - Icono de calendario (arriba derecha) ELIMINADO (no hacía nada)
+  - **OnboardingWelcomePage:**
+    - Usa `splash_logo.png` en lugar de animación Lottie
+  - **Fix auth:** Corregido bug de navegación a VerifyEmailScreen con email vacío
+  - **Archivos modificados:**
+    - `pubspec.yaml` - Configuración splash + assets
+    - `lib/features/auth/presentation/screens/splash_screen.dart` - Color fondo #141A2E
+    - `lib/features/home/presentation/screens/home_screen.dart` - Logo + eliminar calendario
+    - `lib/features/onboarding/presentation/widgets/onboarding_welcome_page.dart` - Logo en vez de Lottie
+    - `assets/images/splash_icon.png` - NUEVO (transparente, para Android 12)
+    - `assets/images/splash_logo_small.png` - NUEVO (reducido, para splash pre-12)
+    - `assets/images/splash_logo.png` - Restaurado a full quality
+    - `assets/icon/app_icon.png` - Nuevo diseño oscuro
+  - **Comando para regenerar splash:** `dart run flutter_native_splash:create`
+  - **IMPORTANTE:** Hay que desinstalar la app para ver cambios en splash (Android cachea a nivel de OS)
 
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
@@ -1491,6 +1528,8 @@ BibliaChat/
 - [x] Feature: Simplificar navegación atrás + Cerrar diálogos - COMPLETADO
 - [x] Feature: Configuración App Icon + Nombre - COMPLETADO
 - [x] Regenerar app icon sin esquinas redondeadas - COMPLETADO (cruz de madera + burbuja chat)
+- [x] Feature: Splash Screen rediseñada (#141A2E) + Home Screen UI polish - COMPLETADO
+- [ ] **Feature: Calendario semanal interactivo** - Candados en días pasados no completados → Paywall
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 - [ ] **Feature: Widget versículo en Lock Screen** (iOS) + Home Screen (Android) - PLANIFICADO

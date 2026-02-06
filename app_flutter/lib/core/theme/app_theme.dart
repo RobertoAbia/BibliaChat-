@@ -14,11 +14,11 @@ class AppTheme {
   static const Color primaryLight = Color(0xFFE8C967); // Dorado claro
   static const Color primaryDark = Color(0xFFB8963A); // Dorado oscuro
 
-  // Background Colors - Azul Noche
-  static const Color backgroundDark = Color(0xFF1A1A2E); // Fondo principal
-  static const Color backgroundDeep = Color(0xFF16162A); // Fondo más oscuro
-  static const Color surfaceDark = Color(0xFF252540); // Superficies/cards
-  static const Color surfaceLight = Color(0xFF2D2D4A); // Superficies elevadas
+  // Background Colors - Azul Noche (más azulado)
+  static const Color backgroundDark = Color(0xFF141A2E); // Fondo principal
+  static const Color backgroundDeep = Color(0xFF0F1424); // Fondo más oscuro
+  static const Color surfaceDark = Color(0xFF1C2240); // Superficies/cards
+  static const Color surfaceLight = Color(0xFF242D4A); // Superficies elevadas
 
   // Text Colors
   static const Color textPrimary = Color(0xFFFAFAFA); // Texto principal (blanco)
@@ -41,8 +41,8 @@ class AppTheme {
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [
-      Color(0xFF1A1A2E),
-      Color(0xFF16162A),
+      Color(0xFF141A2E),
+      Color(0xFF0F1424),
     ],
   );
 
@@ -69,8 +69,8 @@ class AppTheme {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF252540),
-      Color(0xFF1E1E35),
+      Color(0xFF1C2240),
+      Color(0xFF161C35),
     ],
   );
 
@@ -78,8 +78,8 @@ class AppTheme {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF2A2540),
-      Color(0xFF252035),
+      Color(0xFF202540),
+      Color(0xFF1A2035),
     ],
   );
 
@@ -87,9 +87,9 @@ class AppTheme {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF252540),
-      Color(0xFF2D2D4A),
-      Color(0xFF252540),
+      Color(0xFF1C2240),
+      Color(0xFF242D4A),
+      Color(0xFF1C2240),
     ],
   );
 

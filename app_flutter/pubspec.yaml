@@ -70,6 +70,9 @@ dependencies:
   in_app_review: ^2.0.9
   back_button_interceptor: ^8.0.4
 
+  # Native Splash Screen (runtime API for preserve/remove)
+  flutter_native_splash: ^2.4.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -111,3 +114,17 @@ flutter_launcher_icons:
   #       - asset: assets/fonts/Nunito-Regular.ttf
   #       - asset: assets/fonts/Nunito-Bold.ttf
   #         weight: 700
+
+# Native Splash Screen Configuration
+# Logo con cruz de madera y burbuja dorada
+flutter_native_splash:
+  color: "#141A2E"
+  image: assets/images/splash_logo_small.png
+
+  # Android 12+ usa icono sin fondo para evitar cuadrado visible
+  android_12:
+    color: "#141A2E"
+    image: assets/images/splash_icon.png
+
+  # iOS specific
+  ios: true

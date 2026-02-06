@@ -2,30 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../app.dart'; // Para currentTabIndexProvider
+import '../../app.dart';
+import '../constants/route_constants.dart';
 import '../services/analytics_service.dart';
 
+import '../../features/auth/presentation/screens/link_email_screen.dart';
+import '../../features/auth/presentation/screens/login_screen.dart';
+import '../../features/auth/presentation/screens/reset_password_screen.dart';
 import '../../features/auth/presentation/screens/splash_screen.dart';
+import '../../features/auth/presentation/screens/verify_email_screen.dart';
+import '../../features/chat/presentation/screens/chat_list_screen.dart';
+import '../../features/chat/presentation/screens/chat_screen.dart';
 import '../../features/daily_gospel/domain/entities/daily_gospel.dart';
 import '../../features/daily_gospel/presentation/screens/gospel_stories_screen.dart';
-import '../../features/auth/presentation/screens/login_screen.dart';
-import '../../features/auth/presentation/screens/link_email_screen.dart';
-import '../../features/auth/presentation/screens/verify_email_screen.dart';
-import '../../features/auth/presentation/screens/reset_password_screen.dart';
-import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/home/presentation/screens/home_screen.dart';
-import '../../features/chat/presentation/screens/chat_screen.dart';
-import '../../features/chat/presentation/screens/chat_list_screen.dart';
-import '../../features/study/presentation/screens/study_screen.dart';
-import '../../features/study/presentation/screens/plan_detail_screen.dart';
-import '../../features/study/presentation/screens/plan_day_screen.dart';
-import '../../features/settings/presentation/screens/settings_screen.dart';
-import '../../features/subscription/presentation/screens/paywall_screen.dart';
-import '../../features/profile/presentation/screens/profile_edit_screen.dart';
-import '../../features/saved_messages/presentation/screens/saved_messages_screen.dart';
 import '../../features/legal/presentation/screens/privacy_policy_screen.dart';
 import '../../features/legal/presentation/screens/terms_conditions_screen.dart';
-import '../constants/route_constants.dart';
+import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
+import '../../features/profile/presentation/screens/profile_edit_screen.dart';
+import '../../features/saved_messages/presentation/screens/saved_messages_screen.dart';
+import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/study/presentation/screens/plan_day_screen.dart';
+import '../../features/study/presentation/screens/plan_detail_screen.dart';
+import '../../features/study/presentation/screens/study_screen.dart';
+import '../../features/subscription/presentation/screens/paywall_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -33,7 +33,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     debugLogDiagnostics: true,
     observers: [AnalyticsService().observer],
     routes: [
-      // Splash Screen
+      // Splash Screen (auth check + navigation)
       GoRoute(
         path: RouteConstants.splash,
         name: 'splash',
@@ -82,7 +82,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       // Main App with Bottom Navigation
       ShellRoute(
         builder: (context, state, child) {
-          // state.uri.path tiene la ruta REAL (ej: /chat/id/xxx)
           return MainShell(child: child, location: state.uri.path);
         },
         routes: [
@@ -112,7 +111,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: 'chatList',
             builder: (context, state) => const ChatListScreen(),
             routes: [
-              // Nueva conversación (chat libre o desde Stories con datos extra)
+              // Nueva conversación
               GoRoute(
                 path: 'new',
                 name: 'chatNew',
@@ -135,7 +134,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   return ChatScreen(chatId: chatId);
                 },
               ),
-              // Chat por topic (desde Stories o temas guiados)
+              // Chat por topic
               GoRoute(
                 path: 'topic/:topicKey',
                 name: 'chatByTopic',
@@ -151,7 +150,6 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             name: 'study',
             builder: (context, state) => const StudyScreen(),
             routes: [
-              // Plan detail
               GoRoute(
                 path: 'plan/:planId',
                 name: 'planDetail',
@@ -160,13 +158,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                   return PlanDetailScreen(planId: planId);
                 },
               ),
-              // Plan day (current day of active plan, or any day in readOnly mode)
               GoRoute(
                 path: 'day/:userPlanId',
                 name: 'planDay',
                 builder: (context, state) {
                   final userPlanId = state.pathParameters['userPlanId']!;
-                  // Query params for readOnly mode
                   final readOnly = state.uri.queryParameters['readOnly'] == 'true';
                   final dayParam = state.uri.queryParameters['day'];
                   final day = dayParam != null ? int.tryParse(dayParam) : null;
@@ -215,7 +211,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 /// Shell widget for bottom navigation with swipe support
 class MainShell extends ConsumerStatefulWidget {
   final Widget child;
-  final String location; // Ruta REAL desde el ShellRoute builder
+  final String location;
 
   const MainShell({super.key, required this.child, required this.location});
 
@@ -225,9 +221,8 @@ class MainShell extends ConsumerStatefulWidget {
 
 class _MainShellState extends ConsumerState<MainShell> {
   PageController? _pageController;
-  bool _isSyncing = false; // Flag para evitar cascada de navegaciones
+  bool _isSyncing = false;
 
-  // Rutas principales (tabs)
   static const _mainRoutes = [
     RouteConstants.home,
     RouteConstants.chatList,
@@ -235,7 +230,6 @@ class _MainShellState extends ConsumerState<MainShell> {
     RouteConstants.settings,
   ];
 
-  // Las pantallas principales (se mantienen en memoria para swipe)
   final List<Widget> _screens = const [
     HomeScreen(),
     ChatListScreen(),
@@ -249,30 +243,25 @@ class _MainShellState extends ConsumerState<MainShell> {
     super.dispose();
   }
 
-  // Detectar si estamos en una ruta principal (tab) o anidada
   bool _isMainRoute(String location) {
     return _mainRoutes.contains(location);
   }
 
-  // Obtener el índice de la tab según la ruta
   int _getTabIndex(String location) {
     if (location.startsWith('/settings')) return 3;
     if (location.startsWith('/study')) return 2;
     if (location.startsWith('/chat')) return 1;
-    return 0; // /home por defecto
+    return 0;
   }
 
   void _onItemTapped(int index, String currentLocation) {
-    // Actualizar el provider global
     ref.read(currentTabIndexProvider.notifier).state = index;
 
-    // Si estamos en ruta anidada, navegar a la tab
     if (!_isMainRoute(currentLocation)) {
       context.go(_mainRoutes[index]);
       return;
     }
 
-    // Si estamos en tabs, animar el PageView y sincronizar
     _pageController?.animateToPage(
       index,
       duration: const Duration(milliseconds: 150),
@@ -282,31 +271,23 @@ class _MainShellState extends ConsumerState<MainShell> {
   }
 
   void _onPageChanged(int index) {
-    // Actualizar el provider global
     ref.read(currentTabIndexProvider.notifier).state = index;
-
-    // NO navegar si estamos sincronizando (evita cascada de navegaciones)
     if (_isSyncing) return;
-
     context.go(_mainRoutes[index]);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Usar widget.location que viene del ShellRoute builder (ruta REAL)
     final location = widget.location;
     final isMainRoute = _isMainRoute(location);
     final selectedIndex = _getTabIndex(location);
 
-    // Actualizar el provider global con la ruta REAL (para BackButtonInterceptor)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(currentLocationProvider.notifier).state = location;
     });
 
-    // Crear PageController solo si no existe
     _pageController ??= PageController(initialPage: selectedIndex);
 
-    // Sincronizar PageController cuando estamos en ruta principal
     if (isMainRoute && _pageController!.hasClients) {
       final currentPage = _pageController!.page?.round() ?? 0;
       if (currentPage != selectedIndex) {
@@ -320,25 +301,21 @@ class _MainShellState extends ConsumerState<MainShell> {
       }
     }
 
-    // Ocultar bottom nav en pantallas de chat y Stories
     final shouldHideBottomNav =
         (location.startsWith('/chat/') && location != '/chat') ||
         location == '/home/stories';
 
     return Scaffold(
-      // Stack mantiene PageView siempre montado para preservar estado de scroll
       body: Stack(
         children: [
-          // PageView siempre presente (mantiene estado de las pantallas)
           Offstage(
-            offstage: !isMainRoute, // Oculto pero montado cuando hay ruta anidada
+            offstage: !isMainRoute,
             child: PageView(
               controller: _pageController,
               onPageChanged: _onPageChanged,
               children: _screens,
             ),
           ),
-          // Child encima cuando es ruta anidada
           if (!isMainRoute) widget.child,
         ],
       ),

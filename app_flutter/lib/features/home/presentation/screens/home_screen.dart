@@ -92,7 +92,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Row(
         children: [
-          // Avatar with glow
+          // App logo
           Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(14),
@@ -106,29 +106,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(14),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                child: Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.goldGradient,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: AppTheme.primaryLight.withOpacity(0.5),
-                    ),
-                  ),
-                  child: const Center(
-                    child: Text(
-                      'B',
-                      style: TextStyle(
-                        color: AppTheme.textOnPrimary,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
+              child: Image.asset(
+                'assets/images/splash_logo.png',
+                width: 64,
+                height: 64,
+                fit: BoxFit.cover,
               ),
             ),
           ),
@@ -183,23 +165,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             ),
           ),
 
-          const SizedBox(width: 8),
-
-          // Calendar icon with glass effect
-          GlassContainer(
-            padding: const EdgeInsets.all(10),
-            borderRadius: 14,
-            blur: 5,
-            backgroundOpacity: 0.3,
-            onTap: () {
-              // TODO: Show calendar/history
-            },
-            child: const Icon(
-              Icons.calendar_today_outlined,
-              color: AppTheme.textSecondary,
-              size: 20,
-            ),
-          ),
         ],
       ),
     );

@@ -259,8 +259,8 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
       children: [
         // Outer glow
         Container(
-          width: 170,
-          height: 170,
+          width: 180,
+          height: 180,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             boxShadow: [
@@ -273,38 +273,14 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
           ),
         ),
 
-        // Glass container with Lottie
+        // Logo image
         ClipRRect(
           borderRadius: BorderRadius.circular(35),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                gradient: AppTheme.goldGradient,
-                borderRadius: BorderRadius.circular(35),
-                border: Border.all(
-                  color: AppTheme.primaryLight.withOpacity(0.5),
-                  width: 2,
-                ),
-              ),
-              child: Center(
-                child: Lottie.asset(
-                  LottieAssets.crossGlow,
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Icon(
-                      Icons.add_rounded,
-                      size: 70,
-                      color: AppTheme.backgroundDark.withOpacity(0.9),
-                    );
-                  },
-                ),
-              ),
-            ),
+          child: Image.asset(
+            'assets/images/splash_logo.png',
+            width: 150,
+            height: 150,
+            fit: BoxFit.contain,
           ),
         ),
       ],
