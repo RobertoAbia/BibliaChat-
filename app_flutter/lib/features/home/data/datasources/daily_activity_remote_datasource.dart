@@ -114,6 +114,55 @@ class DailyActivityRemoteDatasource {
     return response?['completed'] == true;
   }
 
+  /// Obtener fechas completadas en un rango (para calendario semanal).
+  /// Retorna Set<String> de fechas YYYY-MM-DD que tienen completed=true.
+  Future<Set<String>> getCompletedDatesInRange(DateTime start, DateTime end) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return <String>{};
+
+    final startStr = _dateToString(start);
+    final endStr = _dateToString(end);
+
+    try {
+      final response = await _client
+          .from('daily_activity')
+          .select('activity_date')
+          .eq('user_id', userId)
+          .eq('completed', true)
+          .gte('activity_date', startStr)
+          .lte('activity_date', endStr);
+
+      return response
+          .map<String>((row) => row['activity_date'] as String)
+          .toSet();
+    } catch (e) {
+      debugPrint('getCompletedDatesInRange: Error - $e');
+      return <String>{};
+    }
+  }
+
+  /// Marcar una fecha específica como completada (para días pasados).
+  /// Usa upsert para evitar duplicados.
+  Future<void> markDateCompleted(DateTime date, String source) async {
+    final userId = _client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    final dateStr = _dateToString(date);
+
+    try {
+      await _client.from('daily_activity').upsert({
+        'user_id': userId,
+        'activity_date': dateStr,
+        'completed': true,
+        'source': source,
+      });
+      debugPrint('markDateCompleted: $dateStr marked as completed');
+    } catch (e) {
+      debugPrint('markDateCompleted: Error - $e');
+      rethrow;
+    }
+  }
+
   /// Convierte DateTime a string formato YYYY-MM-DD.
   String _dateToString(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';

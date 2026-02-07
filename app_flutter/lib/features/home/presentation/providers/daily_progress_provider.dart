@@ -47,6 +47,24 @@ final isTodayCompletedProvider = FutureProvider<bool>((ref) async {
   return await datasource.isTodayCompleted();
 });
 
+/// Trigger para refrescar weekCompletionProvider.
+final weekCompletionRefreshProvider = StateProvider<int>((ref) => 0);
+
+/// Provider que retorna las fechas completadas de la semana actual (Lun-Dom).
+/// Formato: Set<String> con fechas YYYY-MM-DD.
+final weekCompletionProvider = FutureProvider<Set<String>>((ref) async {
+  ref.watch(currentUserIdProvider); // Invalidar al cambiar usuario
+  ref.watch(weekCompletionRefreshProvider); // Trigger de refresco manual
+  final datasource = ref.watch(dailyActivityDatasourceProvider);
+
+  final now = DateTime.now();
+  final weekStart = DateTime(now.year, now.month, now.day)
+      .subtract(Duration(days: now.weekday - 1)); // Lunes
+  final weekEnd = weekStart.add(const Duration(days: 6)); // Domingo
+
+  return await datasource.getCompletedDatesInRange(weekStart, weekEnd);
+});
+
 /// Función para marcar el día como completado cuando progreso = 100%.
 /// Retorna true si se marcó exitosamente (primera vez), false si ya estaba completado.
 /// Usa Optimistic UI para actualizar la racha instantáneamente.
@@ -66,6 +84,7 @@ Future<bool> markDayAsCompleted(WidgetRef ref) async {
   // Refrescar desde Supabase
   ref.invalidate(streakDaysProvider);
   ref.invalidate(isTodayCompletedProvider);
+  ref.invalidate(weekCompletionProvider);
 
   // Esperar a que streakDaysProvider termine de cargar antes de limpiar estado optimista
   // Esto evita la race condition donde el timeout fijo de 500ms no era suficiente
@@ -76,6 +95,30 @@ Future<bool> markDayAsCompleted(WidgetRef ref) async {
   if (newStreak == 7) {
     _sendWeekCompletedNotification();
   }
+
+  return true;
+}
+
+/// Marcar una fecha pasada como completada (después de ver 3 Stories de ese día).
+/// Retorna true si se marcó exitosamente, false si ya estaba completado.
+Future<bool> markPastDateAsCompleted(WidgetRef ref, DateTime date) async {
+  final datasource = ref.read(dailyActivityDatasourceProvider);
+  final dateStr = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  // Verificar si ya está completado
+  final completedDates = ref.read(weekCompletionProvider).valueOrNull ?? <String>{};
+  if (completedDates.contains(dateStr)) return false;
+
+  // Marcar en Supabase
+  await datasource.markDateCompleted(date, 'stories_past');
+
+  // Refrescar providers
+  ref.invalidate(weekCompletionProvider);
+  ref.invalidate(streakDaysProvider);
+  ref.invalidate(isTodayCompletedProvider);
+
+  // Esperar a que la racha se recalcule
+  await ref.read(streakDaysProvider.future);
 
   return true;
 }

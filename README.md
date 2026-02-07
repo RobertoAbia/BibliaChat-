@@ -56,6 +56,13 @@ App móvil (iOS + Android) para práctica diaria de fe cristiana, personalizada 
 - **Almacenamiento local**: Slides vistos en SharedPreferences por usuario y fecha
 - **Mutex para concurrencia**: Evita race conditions en escrituras rápidas
 - **Aislamiento por usuario**: Cada usuario tiene su propio progreso de Stories
+- **Calendario semanal interactivo** (estilo Bible Chat):
+  - Selector de día: al tocar un día, las content cards cambian al contenido de ese día
+  - **Hoy**: Círculo dorado (seleccionado por defecto)
+  - **Días pasados completados**: Check verde, tappable para revisar contenido
+  - **Días pasados no completados**: Número + candado superpuesto (premium → ve Stories y recupera racha / free → paywall)
+  - **Días futuros**: No tappables
+  - Al ver 3 Stories de un día pasado: se marca como completado y la racha se recalcula
 
 ### Chat IA Denominacional (Sistema Híbrido)
 - **Estilo ChatGPT**: Conversaciones libres + temas guiados

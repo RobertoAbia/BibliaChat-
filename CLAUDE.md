@@ -1449,6 +1449,50 @@ BibliaChat/
   - **Comando para regenerar splash:** `dart run flutter_native_splash:create`
   - **IMPORTANTE:** Hay que desinstalar la app para ver cambios en splash (Android cachea a nivel de OS)
 
+- [x] Feature: Calendario semanal interactivo con candados
+  - **Objetivo:** El calendario semanal en HomeScreen actúa como selector de día (estilo Bible Chat)
+  - **Comportamiento por defecto:** Hoy seleccionado → content cards muestran contenido de hoy
+  - **Al tocar otro día:** Las content cards cambian al contenido de ese día
+  - **Estados de cada día (`_DayState` enum):**
+    | Estado | Círculo | Contenido | Candado | Tap |
+    |--------|---------|-----------|---------|-----|
+    | `today` | Gold gradient | Número día | No | Selecciona hoy |
+    | `pastCompleted` | Verde 20% + borde verde | Check icon | No | Selecciona día (review) |
+    | `pastLocked` | Gris sutil | Número día | Sí (superpuesto abajo) | Premium: selecciona / Free: paywall |
+    | `future` | Transparente + borde | Número día | No | No tappable |
+  - **Candado estilo Bible Chat:** Número dentro del círculo + candadito superpuesto en la parte inferior del círculo (usando `Stack` + `Positioned(bottom: 0)`)
+  - **Día seleccionado:** Borde dorado + sombra dorada sutil
+  - **Content cards adaptativas:**
+    - `_isViewingToday` → usa `dailyGospelProvider`, `viewedSlidesProvider` (comportamiento actual)
+    - Día pasado → usa `gospelForDateProvider(_selectedDate)` para cargar contenido de ese día
+    - Si día completado: slides = {0,1,2} (todo visto)
+    - Si día con candado: slides = {} (nada visto)
+  - **Progreso adaptativo:**
+    - Hoy → `todayProgressProvider` (actual)
+    - Día pasado completado → 100%
+    - Día pasado con candado → 0%
+    - Label cambia: "Progreso de hoy" / "Progreso del día"
+  - **Stories de días pasados:**
+    - `_openStoriesAtIndex()` acepta `DateTime? forDate`
+    - Si `forDate != null`: carga gospel con `gospelForDateProvider(forDate)`
+    - Al ver 3 slides de día pasado: `markPastDateAsCompleted(ref, forDate)`
+    - SnackBar: "¡Día recuperado! 🔥 X días seguidos"
+    - Solo usuarios premium pueden ver Stories de días pasados (free → paywall)
+  - **Providers nuevos:**
+    - `weekCompletionRefreshProvider` (StateProvider<int>) - trigger de refresco manual
+    - `weekCompletionProvider` (FutureProvider<Set<String>>) - fechas completadas de la semana (Lun-Dom)
+    - `markPastDateAsCompleted(ref, date)` - marca fecha pasada + invalida streak/weekCompletion
+  - **Datasource nuevos métodos:**
+    - `getCompletedDatesInRange(start, end)` - query `daily_activity` para rango de fechas
+    - `markDateCompleted(date, source)` - upsert para fecha específica (source: `stories_past`)
+  - **Archivos modificados:**
+    - `lib/features/home/data/datasources/daily_activity_remote_datasource.dart` - 2 métodos nuevos
+    - `lib/features/home/presentation/providers/daily_progress_provider.dart` - providers + función
+    - `lib/features/home/presentation/screens/home_screen.dart` - calendario interactivo completo
+  - **Imports nuevos en home_screen.dart:**
+    - `route_constants.dart` (para `RouteConstants.paywall`)
+    - `subscription_provider.dart` (para `isPremiumProvider`)
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
@@ -1529,7 +1573,7 @@ BibliaChat/
 - [x] Feature: Configuración App Icon + Nombre - COMPLETADO
 - [x] Regenerar app icon sin esquinas redondeadas - COMPLETADO (cruz de madera + burbuja chat)
 - [x] Feature: Splash Screen rediseñada (#141A2E) + Home Screen UI polish - COMPLETADO
-- [ ] **Feature: Calendario semanal interactivo** - Candados en días pasados no completados → Paywall
+- [x] **Feature: Calendario semanal interactivo** - Candados en días pasados no completados → Paywall - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 - [ ] **Feature: Widget versículo en Lock Screen** (iOS) + Home Screen (Android) - PLANIFICADO

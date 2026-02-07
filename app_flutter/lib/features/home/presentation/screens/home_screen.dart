@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/constants/route_constants.dart';
 import '../../../../core/providers/story_viewed_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/daily_progress_provider.dart';
@@ -14,6 +15,7 @@ import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart'
 import '../../../profile/domain/entities/user_profile.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../../study/presentation/providers/study_provider.dart';
+import '../../../subscription/presentation/providers/subscription_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -26,6 +28,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
+
+  /// Día seleccionado en el calendario (por defecto hoy).
+  DateTime _selectedDate = DateTime.now();
+
+  /// Compara si el día seleccionado es hoy.
+  bool get _isViewingToday {
+    final now = DateTime.now();
+    return _selectedDate.year == now.year &&
+        _selectedDate.month == now.month &&
+        _selectedDate.day == now.day;
+  }
 
   @override
   void initState() {
@@ -172,7 +185,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _buildWeekCalendar(BuildContext context) {
     final now = DateTime.now();
-    final weekStart = now.subtract(Duration(days: now.weekday - 1));
+    final today = DateTime(now.year, now.month, now.day);
+    final weekStart = today.subtract(Duration(days: now.weekday - 1));
+
+    // Obtener días completados de la semana
+    final weekCompletionAsync = ref.watch(weekCompletionProvider);
+    final completedDates = weekCompletionAsync.valueOrNull ?? <String>{};
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -185,10 +203,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: List.generate(7, (index) {
             final day = weekStart.add(Duration(days: index));
-            final isToday = day.day == now.day &&
-                day.month == now.month &&
-                day.year == now.year;
+            final dayOnly = DateTime(day.year, day.month, day.day);
             final dayNames = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
+
+            final isToday = dayOnly == today;
+            final isPast = dayOnly.isBefore(today);
+
+            // Determinar estado del día
+            final _DayState dayState;
+            if (isToday) {
+              dayState = _DayState.today;
+            } else if (!isPast) {
+              dayState = _DayState.future;
+            } else {
+              final dateStr = '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+              dayState = completedDates.contains(dateStr)
+                  ? _DayState.pastCompleted
+                  : _DayState.pastLocked;
+            }
+
+            // Comprobar si este día está seleccionado
+            final isSelected = _selectedDate.year == dayOnly.year &&
+                _selectedDate.month == dayOnly.month &&
+                _selectedDate.day == dayOnly.day;
+
+            // Tap handler según estado
+            final VoidCallback? onTap;
+            switch (dayState) {
+              case _DayState.today:
+                onTap = () => setState(() => _selectedDate = today);
+              case _DayState.pastCompleted:
+                onTap = () => setState(() => _selectedDate = dayOnly);
+              case _DayState.pastLocked:
+                onTap = () => _onLockedDayTapped(dayOnly);
+              case _DayState.future:
+                onTap = null;
+            }
 
             return TweenAnimationBuilder<double>(
               tween: Tween(begin: 0.0, end: 1.0),
@@ -203,56 +253,83 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   ),
                 );
               },
-              child: Column(
-                children: [
-                  Text(
-                    dayNames[index],
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: isToday
-                              ? AppTheme.primaryColor
-                              : AppTheme.textTertiary,
-                          fontWeight: isToday ? FontWeight.w600 : FontWeight.normal,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      gradient: isToday ? AppTheme.goldGradient : null,
-                      color: isToday ? null : Colors.transparent,
-                      shape: BoxShape.circle,
-                      border: !isToday
-                          ? Border.all(
-                              color: AppTheme.surfaceLight.withOpacity(0.5),
-                              width: 1,
-                            )
-                          : null,
-                      boxShadow: isToday
-                          ? [
-                              BoxShadow(
-                                color: AppTheme.primaryColor.withOpacity(0.3),
-                                blurRadius: 10,
-                                spreadRadius: 0,
-                              ),
-                            ]
-                          : null,
+              child: GestureDetector(
+                onTap: onTap,
+                child: Column(
+                  children: [
+                    Text(
+                      dayNames[index],
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: _getDayLabelColor(dayState),
+                            fontWeight: isToday || isSelected
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
                     ),
-                    child: Center(
-                      child: Text(
-                        '${day.day}',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: isToday
-                                  ? AppTheme.textOnPrimary
-                                  : AppTheme.textSecondary,
-                              fontWeight:
-                                  isToday ? FontWeight.bold : FontWeight.normal,
+                    const SizedBox(height: 8),
+                    SizedBox(
+                      width: 38,
+                      height: 44, // Extra espacio para el candado superpuesto
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        alignment: Alignment.topCenter,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              gradient: dayState == _DayState.today
+                                  ? AppTheme.goldGradient
+                                  : null,
+                              color: dayState == _DayState.pastCompleted
+                                  ? AppTheme.successColor.withOpacity(0.2)
+                                  : dayState == _DayState.pastLocked
+                                      ? AppTheme.surfaceLight.withOpacity(0.3)
+                                      : (dayState == _DayState.today
+                                          ? null
+                                          : Colors.transparent),
+                              shape: BoxShape.circle,
+                              border: _getDayBorder(dayState, isSelected),
+                              boxShadow: dayState == _DayState.today
+                                  ? [
+                                      BoxShadow(
+                                        color:
+                                            AppTheme.primaryColor.withOpacity(0.3),
+                                        blurRadius: 10,
+                                        spreadRadius: 0,
+                                      ),
+                                    ]
+                                  : isSelected
+                                      ? [
+                                          BoxShadow(
+                                            color: AppTheme.primaryColor
+                                                .withOpacity(0.2),
+                                            blurRadius: 8,
+                                            spreadRadius: 0,
+                                          ),
+                                        ]
+                                      : null,
                             ),
+                            child: Center(
+                              child: _buildDayContent(context, day, dayState),
+                            ),
+                          ),
+                          // Candado superpuesto en la parte inferior del círculo
+                          if (dayState == _DayState.pastLocked)
+                            Positioned(
+                              bottom: 0,
+                              child: Icon(
+                                Icons.lock_rounded,
+                                color: AppTheme.textTertiary,
+                                size: 14,
+                              ),
+                            ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           }),
@@ -261,8 +338,97 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+  Color _getDayLabelColor(_DayState state) {
+    switch (state) {
+      case _DayState.today:
+        return AppTheme.primaryColor;
+      case _DayState.pastCompleted:
+        return AppTheme.successColor;
+      case _DayState.pastLocked:
+      case _DayState.future:
+        return AppTheme.textTertiary;
+    }
+  }
+
+  Border? _getDayBorder(_DayState state, bool isSelected) {
+    if (isSelected && state != _DayState.today) {
+      return Border.all(
+        color: AppTheme.primaryColor.withOpacity(0.6),
+        width: 2,
+      );
+    }
+    switch (state) {
+      case _DayState.today:
+        return null;
+      case _DayState.pastCompleted:
+        return Border.all(
+          color: AppTheme.successColor.withOpacity(0.4),
+          width: 1,
+        );
+      case _DayState.pastLocked:
+      case _DayState.future:
+        return Border.all(
+          color: AppTheme.surfaceLight.withOpacity(0.5),
+          width: 1,
+        );
+    }
+  }
+
+  Widget _buildDayContent(BuildContext context, DateTime day, _DayState state) {
+    switch (state) {
+      case _DayState.today:
+        return Text(
+          '${day.day}',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textOnPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+        );
+      case _DayState.pastCompleted:
+        return const Icon(
+          Icons.check_rounded,
+          color: AppTheme.successColor,
+          size: 20,
+        );
+      case _DayState.pastLocked:
+        return Text(
+          '${day.day}',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.normal,
+              ),
+        );
+      case _DayState.future:
+        return Text(
+          '${day.day}',
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.normal,
+              ),
+        );
+    }
+  }
+
+  void _onLockedDayTapped(DateTime date) {
+    final isPremium = ref.read(isPremiumProvider);
+    if (isPremium) {
+      setState(() => _selectedDate = date);
+    } else {
+      context.push(RouteConstants.paywall);
+    }
+  }
+
   Widget _buildProgressSection(BuildContext context) {
-    final progress = ref.watch(todayProgressProvider);
+    // Progreso adaptativo según día seleccionado
+    final int progress;
+    if (_isViewingToday) {
+      progress = ref.watch(todayProgressProvider);
+    } else {
+      // Día pasado: completado = 100%, no completado = 0%
+      final completedDates = ref.watch(weekCompletionProvider).valueOrNull ?? <String>{};
+      final dateStr = '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+      progress = completedDates.contains(dateStr) ? 100 : 0;
+    }
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -273,7 +439,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Progreso de hoy',
+                _isViewingToday ? 'Progreso de hoy' : 'Progreso del día',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: AppTheme.textPrimary,
                     ),
@@ -335,16 +501,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return '${now.day} de ${months[now.month - 1]}';
   }
 
-  /// Opens Stories at a specific slide index
-  Future<void> _openStoriesAtIndex(int slideIndex) async {
+  /// Opens Stories at a specific slide index.
+  /// Si [forDate] es null, usa el gospel de hoy. Si no, carga el de esa fecha.
+  Future<void> _openStoriesAtIndex(int slideIndex, {DateTime? forDate}) async {
     final userId = ref.read(currentUserIdProvider);
-    final gospelAsync = ref.read(dailyGospelProvider);
     final profileAsync = ref.read(currentUserProfileProvider);
     final service = ref.read(storyViewedServiceProvider);
 
-    final gospel = gospelAsync.valueOrNull;
-    if (gospel == null || !gospel.hasStoriesContent || userId == null) {
-      // No gospel content available or no user
+    if (userId == null) return;
+
+    // Cargar gospel: hoy o fecha específica
+    final gospel = forDate != null
+        ? await ref.read(gospelForDateProvider(forDate).future)
+        : ref.read(dailyGospelProvider).valueOrNull;
+
+    if (gospel == null || !gospel.hasStoriesContent) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'No hay contenido disponible para este día',
+              style: TextStyle(color: AppTheme.textPrimary),
+            ),
+            backgroundColor: AppTheme.surfaceDark,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
       return;
     }
 
@@ -370,38 +555,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     ref.invalidate(viewedSlidesProvider);
 
     // Read directly from SharedPreferences to check completion
-    // This avoids race conditions with provider refresh
     final viewedSlides = await service.getViewedSlides(userId, gospel.date);
     debugPrint('After Stories: viewedSlides = $viewedSlides (length=${viewedSlides.length})');
 
     if (viewedSlides.length >= 3) {
-      final marked = await markDayAsCompleted(ref);
-      if (marked) {
-        debugPrint('Day marked as completed! Streak updated.');
-        // Show celebration SnackBar
-        if (context.mounted) {
-          final newStreak = ref.read(streakDaysDisplayProvider);
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '¡Felicidades! 🔥 $newStreak ${newStreak == 1 ? 'día' : 'días'} seguidos',
-                style: const TextStyle(
-                  color: AppTheme.textOnPrimary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              backgroundColor: AppTheme.primaryColor,
-              behavior: SnackBarBehavior.floating,
-              duration: const Duration(seconds: 3),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              margin: const EdgeInsets.all(16),
-            ),
-          );
-        }
+      final bool marked;
+      final String snackMessage;
+
+      if (forDate != null) {
+        // Día pasado: marcar esa fecha
+        marked = await markPastDateAsCompleted(ref, forDate);
+        final newStreak = ref.read(streakDaysDisplayProvider);
+        snackMessage = '¡Día recuperado! 🔥 $newStreak ${newStreak == 1 ? 'día' : 'días'} seguidos';
       } else {
-        debugPrint('Day was already completed.');
+        // Hoy: marcar con optimistic UI
+        marked = await markDayAsCompleted(ref);
+        final newStreak = ref.read(streakDaysDisplayProvider);
+        snackMessage = '¡Felicidades! 🔥 $newStreak ${newStreak == 1 ? 'día' : 'días'} seguidos';
+      }
+
+      if (marked && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              snackMessage,
+              style: const TextStyle(
+                color: AppTheme.textOnPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            backgroundColor: AppTheme.primaryColor,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 3),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
       }
     } else {
       debugPrint('Not all slides viewed yet: ${viewedSlides.length}/3');
@@ -409,13 +600,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildContentCards() {
-    final viewedSlidesAsync = ref.watch(viewedSlidesProvider);
-    final gospelAsync = ref.watch(dailyGospelProvider);
     final activePlanAsync = ref.watch(activePlanDataProvider);
 
-    // Get viewed slides (default to empty if loading/error)
-    final viewedSlides = viewedSlidesAsync.valueOrNull ?? <int>{};
-    final hasContent = gospelAsync.valueOrNull?.hasStoriesContent ?? false;
+    // Datos según día seleccionado
+    final AsyncValue gospelAsync;
+    final Set<int> viewedSlides;
+    final DateTime? forDate;
+
+    if (_isViewingToday) {
+      gospelAsync = ref.watch(dailyGospelProvider);
+      viewedSlides = ref.watch(viewedSlidesProvider).valueOrNull ?? <int>{};
+      forDate = null;
+    } else {
+      gospelAsync = ref.watch(gospelForDateProvider(_selectedDate));
+      // Para días pasados, los slides vistos se cargan del SharedPreferences de esa fecha
+      // Por simplicidad, si el día está completado mostramos todo como visto
+      final completedDates = ref.watch(weekCompletionProvider).valueOrNull ?? <String>{};
+      final dateStr = '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+      viewedSlides = completedDates.contains(dateStr) ? {0, 1, 2} : <int>{};
+      forDate = _selectedDate;
+    }
+
+    final hasContent = (gospelAsync.valueOrNull as dynamic)?.hasStoriesContent ?? false;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -434,7 +640,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             icon: Icons.lightbulb_outline,
             delay: 100,
             isNew: hasContent && !viewedSlides.contains(1),
-            onTap: () => _openStoriesAtIndex(1),
+            onTap: () => _openStoriesAtIndex(1, forDate: forDate),
           ),
 
           const SizedBox(height: 16),
@@ -447,7 +653,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             icon: Icons.favorite_outline,
             delay: 200,
             isNew: hasContent && !viewedSlides.contains(2),
-            onTap: () => _openStoriesAtIndex(2),
+            onTap: () => _openStoriesAtIndex(2, forDate: forDate),
           ),
 
           // Active Plan Card (only if user has an active plan)
@@ -512,9 +718,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   Widget _buildGospelCard() {
     final userId = ref.watch(currentUserIdProvider);
-    final gospelAsync = ref.watch(dailyGospelProvider);
     final profileAsync = ref.watch(currentUserProfileProvider);
-    final viewedSlidesAsync = ref.watch(viewedSlidesProvider);
+
+    // Gospel y slides según día seleccionado
+    final AsyncValue gospelAsync;
+    final Set<int> viewedSlides;
+    final DateTime? forDate;
+
+    if (_isViewingToday) {
+      gospelAsync = ref.watch(dailyGospelProvider);
+      viewedSlides = ref.watch(viewedSlidesProvider).valueOrNull ?? <int>{};
+      forDate = null;
+    } else {
+      gospelAsync = ref.watch(gospelForDateProvider(_selectedDate));
+      final completedDates = ref.watch(weekCompletionProvider).valueOrNull ?? <String>{};
+      final dateStr = '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
+      viewedSlides = completedDates.contains(dateStr) ? {0, 1, 2} : <int>{};
+      forDate = _selectedDate;
+    }
 
     // Determine label and topic based on denomination
     final isCatholic = profileAsync.whenOrNull(
@@ -527,80 +748,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return gospelAsync.when(
       loading: () => const ShimmerVerseCard(),
       error: (error, stack) => _GospelErrorCard(
-        onRetry: () => ref.invalidate(dailyGospelProvider),
+        onRetry: () {
+          if (_isViewingToday) {
+            ref.invalidate(dailyGospelProvider);
+          } else {
+            ref.invalidate(gospelForDateProvider(_selectedDate));
+          }
+        },
       ),
       data: (gospel) {
         if (gospel == null || userId == null) {
           return _GospelErrorCard(
             message: 'No hay contenido disponible',
-            onRetry: () => ref.invalidate(dailyGospelProvider),
+            onRetry: () {
+              if (_isViewingToday) {
+                ref.invalidate(dailyGospelProvider);
+              } else {
+                ref.invalidate(gospelForDateProvider(_selectedDate));
+              }
+            },
           );
         }
-        // Check if slide 0 has been viewed
-        final viewedSlides = viewedSlidesAsync.valueOrNull ?? <int>{};
         final isSlide0New = gospel.hasStoriesContent && !viewedSlides.contains(0);
-        final service = ref.read(storyViewedServiceProvider);
 
         return _GospelCardCompact(
           label: label,
           reference: gospel.reference,
           hasStories: isSlide0New,
           onTap: () async {
-            // Si tiene contenido de Stories, abrir Stories primero
             if (gospel.hasStoriesContent) {
-              // Usar GoRouter para navegar (fullscreen, fuera del ShellRoute)
-              await context.push(
-                '/home/stories',
-                extra: {
-                  'gospel': gospel,
-                  'initialSlideIndex': 0,
-                  'topicKey': topicKey,
-                  'onSlideViewed': (int index) async {
-                    await service.markSlideAsViewed(userId, gospel.date, index);
-                  },
-                },
-              );
-
-              // Refresh the viewed slides state
-              ref.invalidate(viewedSlidesProvider);
-
-              // Check completion - read directly from SharedPreferences
-              final viewedSlidesNow = await service.getViewedSlides(userId, gospel.date);
-              debugPrint('After Stories (Gospel Card): viewedSlides = $viewedSlidesNow (length=${viewedSlidesNow.length})');
-
-              if (viewedSlidesNow.length >= 3) {
-                final marked = await markDayAsCompleted(ref);
-                if (marked) {
-                  debugPrint('Day marked as completed! Streak updated.');
-                  if (context.mounted) {
-                    final newStreak = ref.read(streakDaysDisplayProvider);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          '¡Felicidades! 🔥 $newStreak ${newStreak == 1 ? 'día' : 'días'} seguidos',
-                          style: const TextStyle(
-                            color: AppTheme.textOnPrimary,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        backgroundColor: AppTheme.primaryColor,
-                        behavior: SnackBarBehavior.floating,
-                        duration: const Duration(seconds: 3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        margin: const EdgeInsets.all(16),
-                      ),
-                    );
-                  }
-                } else {
-                  debugPrint('Day was already completed.');
-                }
-              } else {
-                debugPrint('Not all slides viewed yet: ${viewedSlidesNow.length}/3');
-              }
+              await _openStoriesAtIndex(0, forDate: forDate);
             } else {
-              // Si no, ir directo al chat
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (context) => ChatScreen(
@@ -1434,3 +1612,6 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
     );
   }
 }
+
+/// Estado de cada día en el calendario semanal.
+enum _DayState { today, pastCompleted, pastLocked, future }
