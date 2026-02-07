@@ -183,6 +183,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
+  /// Gradiente dorado tenue para días pasados completados.
+  static const _dimGoldGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xB3E8C967), // 0.7 opacity
+      Color(0xB3D4AF37), // 0.7 opacity
+    ],
+  );
+
   Widget _buildWeekCalendar(BuildContext context) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
@@ -208,16 +218,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
             final isToday = dayOnly == today;
             final isPast = dayOnly.isBefore(today);
+            final dateStr = '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
+            final isDayCompleted = completedDates.contains(dateStr);
 
-            // Determinar estado del día
+            // Determinar estado del día (para tap behavior)
             final _DayState dayState;
             if (isToday) {
               dayState = _DayState.today;
             } else if (!isPast) {
               dayState = _DayState.future;
             } else {
-              final dateStr = '${day.year}-${day.month.toString().padLeft(2, '0')}-${day.day.toString().padLeft(2, '0')}';
-              dayState = completedDates.contains(dateStr)
+              dayState = isDayCompleted
                   ? _DayState.pastCompleted
                   : _DayState.pastLocked;
             }
@@ -240,6 +251,58 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 onTap = null;
             }
 
+            // --- VISUAL: Letra = selector, Círculo = completación ---
+
+            // Letra: dorada si seleccionado, gris si no
+            final letterColor = isSelected
+                ? AppTheme.primaryColor
+                : AppTheme.textTertiary;
+
+            // Círculo: dorado si completado, gris si locked, transparente si no completado/futuro
+            final Gradient? circleGradient;
+            final Color? circleColor;
+            final Border? circleBorder;
+            final List<BoxShadow>? circleShadow;
+
+            if (isDayCompleted) {
+              // Completado: dorado (bright para hoy, dimmer para pasado)
+              circleGradient = isToday ? AppTheme.goldGradient : _dimGoldGradient;
+              circleColor = null;
+              circleBorder = null;
+              circleShadow = [
+                BoxShadow(
+                  color: AppTheme.primaryColor.withOpacity(isToday ? 0.3 : 0.15),
+                  blurRadius: isToday ? 10 : 6,
+                  spreadRadius: 0,
+                ),
+              ];
+            } else if (dayState == _DayState.pastLocked) {
+              // Pasado no completado: gris + candado
+              circleGradient = null;
+              circleColor = AppTheme.surfaceLight.withOpacity(0.3);
+              circleBorder = Border.all(
+                color: AppTheme.surfaceLight.withOpacity(0.5),
+                width: 1,
+              );
+              circleShadow = null;
+            } else {
+              // Hoy no completado / futuro: transparente + borde sutil
+              circleGradient = null;
+              circleColor = Colors.transparent;
+              circleBorder = Border.all(
+                color: AppTheme.surfaceLight.withOpacity(0.5),
+                width: 1,
+              );
+              circleShadow = null;
+            }
+
+            // Número: blanco sobre dorado, gris sobre transparente
+            final numberColor = isDayCompleted
+                ? AppTheme.textOnPrimary
+                : (dayState == _DayState.future
+                    ? AppTheme.textTertiary
+                    : AppTheme.textSecondary);
+
             return TweenAnimationBuilder<double>(
               tween: Tween(begin: 0.0, end: 1.0),
               duration: Duration(milliseconds: 400 + (index * 60)),
@@ -260,8 +323,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     Text(
                       dayNames[index],
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: _getDayLabelColor(dayState),
-                            fontWeight: isToday || isSelected
+                            color: letterColor,
+                            fontWeight: isSelected
                                 ? FontWeight.w600
                                 : FontWeight.normal,
                           ),
@@ -269,7 +332,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     const SizedBox(height: 8),
                     SizedBox(
                       width: 38,
-                      height: 44, // Extra espacio para el candado superpuesto
+                      height: 44,
                       child: Stack(
                         clipBehavior: Clip.none,
                         alignment: Alignment.topCenter,
@@ -279,40 +342,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                             width: 38,
                             height: 38,
                             decoration: BoxDecoration(
-                              gradient: dayState == _DayState.today
-                                  ? AppTheme.goldGradient
-                                  : null,
-                              color: dayState == _DayState.pastCompleted
-                                  ? AppTheme.successColor.withOpacity(0.2)
-                                  : dayState == _DayState.pastLocked
-                                      ? AppTheme.surfaceLight.withOpacity(0.3)
-                                      : (dayState == _DayState.today
-                                          ? null
-                                          : Colors.transparent),
+                              gradient: circleGradient,
+                              color: circleColor,
                               shape: BoxShape.circle,
-                              border: _getDayBorder(dayState, isSelected),
-                              boxShadow: dayState == _DayState.today
-                                  ? [
-                                      BoxShadow(
-                                        color:
-                                            AppTheme.primaryColor.withOpacity(0.3),
-                                        blurRadius: 10,
-                                        spreadRadius: 0,
-                                      ),
-                                    ]
-                                  : isSelected
-                                      ? [
-                                          BoxShadow(
-                                            color: AppTheme.primaryColor
-                                                .withOpacity(0.2),
-                                            blurRadius: 8,
-                                            spreadRadius: 0,
-                                          ),
-                                        ]
-                                      : null,
+                              border: circleBorder,
+                              boxShadow: circleShadow,
                             ),
                             child: Center(
-                              child: _buildDayContent(context, day, dayState),
+                              child: Text(
+                                '${day.day}',
+                                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: numberColor,
+                                      fontWeight: isDayCompleted || isToday
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                    ),
+                              ),
                             ),
                           ),
                           // Candado superpuesto en la parte inferior del círculo
@@ -336,77 +381,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         ),
       ),
     );
-  }
-
-  Color _getDayLabelColor(_DayState state) {
-    switch (state) {
-      case _DayState.today:
-        return AppTheme.primaryColor;
-      case _DayState.pastCompleted:
-        return AppTheme.successColor;
-      case _DayState.pastLocked:
-      case _DayState.future:
-        return AppTheme.textTertiary;
-    }
-  }
-
-  Border? _getDayBorder(_DayState state, bool isSelected) {
-    if (isSelected && state != _DayState.today) {
-      return Border.all(
-        color: AppTheme.primaryColor.withOpacity(0.6),
-        width: 2,
-      );
-    }
-    switch (state) {
-      case _DayState.today:
-        return null;
-      case _DayState.pastCompleted:
-        return Border.all(
-          color: AppTheme.successColor.withOpacity(0.4),
-          width: 1,
-        );
-      case _DayState.pastLocked:
-      case _DayState.future:
-        return Border.all(
-          color: AppTheme.surfaceLight.withOpacity(0.5),
-          width: 1,
-        );
-    }
-  }
-
-  Widget _buildDayContent(BuildContext context, DateTime day, _DayState state) {
-    switch (state) {
-      case _DayState.today:
-        return Text(
-          '${day.day}',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textOnPrimary,
-                fontWeight: FontWeight.bold,
-              ),
-        );
-      case _DayState.pastCompleted:
-        return const Icon(
-          Icons.check_rounded,
-          color: AppTheme.successColor,
-          size: 20,
-        );
-      case _DayState.pastLocked:
-        return Text(
-          '${day.day}',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
-                fontWeight: FontWeight.normal,
-              ),
-        );
-      case _DayState.future:
-        return Text(
-          '${day.day}',
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                color: AppTheme.textSecondary,
-                fontWeight: FontWeight.normal,
-              ),
-        );
-    }
   }
 
   void _onLockedDayTapped(DateTime date) {

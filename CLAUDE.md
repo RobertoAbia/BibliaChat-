@@ -1453,15 +1453,21 @@ BibliaChat/
   - **Objetivo:** El calendario semanal en HomeScreen actúa como selector de día (estilo Bible Chat)
   - **Comportamiento por defecto:** Hoy seleccionado → content cards muestran contenido de hoy
   - **Al tocar otro día:** Las content cards cambian al contenido de ese día
-  - **Estados de cada día (`_DayState` enum):**
-    | Estado | Círculo | Contenido | Candado | Tap |
-    |--------|---------|-----------|---------|-----|
-    | `today` | Gold gradient | Número día | No | Selecciona hoy |
-    | `pastCompleted` | Verde 20% + borde verde | Check icon | No | Selecciona día (review) |
-    | `pastLocked` | Gris sutil | Número día | Sí (superpuesto abajo) | Premium: selecciona / Free: paywall |
-    | `future` | Transparente + borde | Número día | No | No tappable |
+  - **Sistema visual con dos ejes independientes:**
+    - **Letra** = indica día SELECCIONADO (dorada si seleccionado, gris si no). Por defecto hoy.
+    - **Círculo** = indica COMPLETACIÓN (dorado = completado, transparente = no completado, gris+candado = pasado no completado)
+  - **Estados visuales:**
+    | Situación | Letra | Círculo | Número | Candado |
+    |-----------|-------|---------|--------|---------|
+    | Hoy completado | Dorado (si seleccionado) | Gold gradient bright + sombra | Blanco bold | No |
+    | Hoy no completado | Dorado (si seleccionado) | Transparente + borde sutil | textSecondary | No |
+    | Pasado completado | Gris (dorado si seleccionado) | Gold gradient dimmer (opacity 0.7) | Blanco bold | No |
+    | Pasado no completado | Gris (dorado si seleccionado) | Gris sutil | textSecondary | Sí (superpuesto abajo) |
+    | Futuro | Gris | Transparente + borde sutil | textTertiary | No |
+  - **`_dimGoldGradient`**: Constante estática con colores `0xB3E8C967` / `0xB3D4AF37` (gold al 70% opacity) para días pasados completados
   - **Candado estilo Bible Chat:** Número dentro del círculo + candadito superpuesto en la parte inferior del círculo (usando `Stack` + `Positioned(bottom: 0)`)
-  - **Día seleccionado:** Borde dorado + sombra dorada sutil
+  - **Sin check icons:** El color dorado del círculo es el indicador de completación
+  - **`_DayState` enum:** `today`, `pastCompleted`, `pastLocked`, `future` (controla tap behavior, no visual)
   - **Content cards adaptativas:**
     - `_isViewingToday` → usa `dailyGospelProvider`, `viewedSlidesProvider` (comportamiento actual)
     - Día pasado → usa `gospelForDateProvider(_selectedDate)` para cargar contenido de ese día
