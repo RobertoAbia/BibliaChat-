@@ -938,17 +938,16 @@ BibliaChat/
 
 - [x] Feature: Simplificar Settings + Valorar/Compartir
   - **Sección Privacidad eliminada:** No era necesaria para MVP (borrar cuenta ya existe)
-  - **"Valorar la app" implementado:**
-    - Usa `in_app_review` para mostrar dialog nativo de review
-    - Si no está disponible, abre App Store directamente
-    - App Store ID: `6740001949`
-  - **"Compartir con un amigo" implementado:**
+  - **"Valorar la app":**
+    - **Pre-publicación:** SnackBar "Disponible próximamente" (import `in_app_review` eliminado)
+    - **Post-publicación (TODO):** Restaurar `in_app_review` con dialog nativo + fallback a App Store (ID: `6740001949`)
+  - **"Compartir con un amigo":**
     - Usa `share_plus` para compartir nativo
-    - Texto predefinido con enlaces a iOS/Android stores
-  - **Dependencia añadida:** `in_app_review: ^2.0.9`
+    - **Pre-publicación:** Texto descriptivo sin links a stores
+    - **Post-publicación (TODO):** Añadir enlaces a iOS/Android stores
+  - **Dependencia `in_app_review`:** Sigue en pubspec.yaml pero sin importar (se restaurará post-publicación)
   - **Archivos modificados:**
     - `lib/features/settings/presentation/screens/settings_screen.dart` - Eliminada sección Privacidad, implementados onTap handlers
-    - `pubspec.yaml` - Nueva dependencia in_app_review
 
 - [x] Feature: Mejoras UX en Stories y ShareImageScreen
   - **Icono de compartir en Stories:** Cambiado de `Icons.send_outlined` a `Icons.ios_share` (más reconocible)
@@ -1580,6 +1579,7 @@ BibliaChat/
 - [x] Regenerar app icon sin esquinas redondeadas - COMPLETADO (cruz de madera + burbuja chat)
 - [x] Feature: Splash Screen rediseñada (#141A2E) + Home Screen UI polish - COMPLETADO
 - [x] **Feature: Calendario semanal interactivo** - Candados en días pasados no completados → Paywall - COMPLETADO
+- [x] Fix: Valorar/Compartir pre-publicación - SnackBar + texto sin links (TODO: restaurar post-publicación)
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 - [ ] **Feature: Widget versículo en Lock Screen** (iOS) + Home Screen (Android) - PLANIFICADO

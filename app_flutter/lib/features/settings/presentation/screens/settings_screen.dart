@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:in_app_review/in_app_review.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
@@ -163,16 +162,15 @@ class SettingsScreen extends ConsumerWidget {
                 SettingsItem(
                   icon: Icons.star_outline,
                   title: 'Valorar la app',
-                  onTap: () async {
-                    final InAppReview inAppReview = InAppReview.instance;
-                    if (await inAppReview.isAvailable()) {
-                      inAppReview.requestReview();
-                    } else {
-                      // Fallback: abrir store directamente
-                      inAppReview.openStoreListing(
-                        appStoreId: '6740001949', // App Store ID
-                      );
-                    }
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('Disponible próximamente'),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        margin: const EdgeInsets.all(16),
+                      ),
+                    );
                   },
                 ),
                 SettingsItem(
@@ -180,10 +178,7 @@ class SettingsScreen extends ConsumerWidget {
                   title: 'Compartir con un amigo',
                   onTap: () {
                     Share.share(
-                      '¡Descubre Biblia Chat! La app cristiana que entiende tu fe, tu idioma y tu cultura. 🙏\n\n'
-                      'Descárgala gratis:\n'
-                      'iOS: https://apps.apple.com/app/biblia-chat/id6740001949\n'
-                      'Android: https://play.google.com/store/apps/details?id=ee.bikain.bibliachat',
+                      '¡Descubre Biblia Chat! La app cristiana que entiende tu fe, tu idioma y tu cultura. 🙏',
                       subject: 'Te recomiendo Biblia Chat',
                     );
                   },
