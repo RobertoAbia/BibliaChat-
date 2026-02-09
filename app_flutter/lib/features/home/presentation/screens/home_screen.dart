@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/providers/story_viewed_provider.dart';
@@ -24,11 +25,7 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
-
+class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// Día seleccionado en el calendario (por defecto hoy).
   DateTime _selectedDate = DateTime.now();
 
@@ -41,28 +38,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-
-    _fadeAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeOut,
-    );
-
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
@@ -70,29 +45,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header with glass effect
-                  _buildHeader(context),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with glass effect
+                _buildHeader(context),
 
-                  // Week Calendar with glass effect
-                  _buildWeekCalendar(context),
+                // Week Calendar with glass effect
+                _buildWeekCalendar(context),
 
-                  const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-                  // Today's Progress
-                  _buildProgressSection(context),
+                // Today's Progress
+                _buildProgressSection(context),
 
-                  const SizedBox(height: 24),
+                const SizedBox(height: 24),
 
-                  // Content Cards
-                  _buildContentCards(),
-                ],
-              ),
+                // Content Cards
+                _buildContentCards(),
+              ],
             ),
           ),
         ),
@@ -209,7 +181,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         borderRadius: 20,
         blur: 10,
         backgroundOpacity: 0.35,
-        child: Row(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOutCubic,
+          builder: (context, value, child) {
+            return Opacity(
+              opacity: value,
+              child: Transform.translate(
+                offset: Offset(0, 10 * (1 - value)),
+                child: child,
+              ),
+            );
+          },
+          child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: List.generate(7, (index) {
             final day = weekStart.add(Duration(days: index));
@@ -303,20 +288,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ? AppTheme.textTertiary
                     : AppTheme.textSecondary);
 
-            return TweenAnimationBuilder<double>(
-              tween: Tween(begin: 0.0, end: 1.0),
-              duration: Duration(milliseconds: 400 + (index * 60)),
-              curve: Curves.easeOutCubic,
-              builder: (context, value, child) {
-                return Opacity(
-                  opacity: value,
-                  child: Transform.translate(
-                    offset: Offset(0, 10 * (1 - value)),
-                    child: child,
-                  ),
-                );
-              },
-              child: GestureDetector(
+            return GestureDetector(
                 onTap: onTap,
                 child: Column(
                   children: [
@@ -375,9 +347,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     ),
                   ],
                 ),
-              ),
             );
           }),
+        ),
         ),
       ),
     );
@@ -583,7 +555,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     if (_isViewingToday) {
       gospelAsync = ref.watch(dailyGospelProvider);
-      viewedSlides = ref.watch(viewedSlidesProvider).valueOrNull ?? <int>{};
+      final viewedAsync = ref.watch(viewedSlidesProvider);
+      // Mientras carga, asumir todo visto para evitar flash de badge NUEVO
+      viewedSlides = viewedAsync.isLoading ? {0, 1, 2} : (viewedAsync.valueOrNull ?? <int>{});
       forDate = null;
     } else {
       gospelAsync = ref.watch(gospelForDateProvider(_selectedDate));
@@ -701,7 +675,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     if (_isViewingToday) {
       gospelAsync = ref.watch(dailyGospelProvider);
-      viewedSlides = ref.watch(viewedSlidesProvider).valueOrNull ?? <int>{};
+      final viewedAsync = ref.watch(viewedSlidesProvider);
+      // Mientras carga, asumir todo visto para evitar flash de badge NUEVO
+      viewedSlides = viewedAsync.isLoading ? {0, 1, 2} : (viewedAsync.valueOrNull ?? <int>{});
       forDate = null;
     } else {
       gospelAsync = ref.watch(gospelForDateProvider(_selectedDate));
@@ -720,7 +696,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final topicKey = isCatholic ? 'evangelio_del_dia' : 'lectura_del_dia';
 
     return gospelAsync.when(
-      loading: () => const ShimmerVerseCard(),
+      loading: () => const _GospelCardSkeleton(),
       error: (error, stack) => _GospelErrorCard(
         onRetry: () {
           if (_isViewingToday) {
@@ -1278,6 +1254,83 @@ class _ContentCardState extends State<_ContentCard>
                         ? AppTheme.primaryColor
                         : AppTheme.textSecondary,
                     size: widget.isNew ? 22 : 20,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GospelCardSkeleton extends StatelessWidget {
+  const _GospelCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Shimmer.fromColors(
+          baseColor: ShimmerColors.baseColor,
+          highlightColor: ShimmerColors.highlightColor,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceDark.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppTheme.surfaceLight.withOpacity(0.2),
+              ),
+            ),
+            child: Row(
+              children: [
+                // Icon placeholder
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceLight.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                // Text placeholders
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 12,
+                        width: 120,
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceLight.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 16,
+                        width: 180,
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceLight.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Chevron placeholder
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: AppTheme.surfaceLight.withOpacity(0.2),
+                    shape: BoxShape.circle,
                   ),
                 ),
               ],

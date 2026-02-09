@@ -11,6 +11,8 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/revenue_cat_service.dart';
+import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart';
+import '../../../home/presentation/providers/daily_progress_provider.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 
 /// Splash screen simplificada - la UI viene de la splash nativa
@@ -127,6 +129,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       FlutterNativeSplash.remove();
 
       if (hasCompletedOnboarding) {
+        // Precargar datos críticos para evitar parpadeos en HomeScreen
+        await _preloadHomeData();
+        if (!mounted) return;
         context.go(RouteConstants.home);
       } else {
         context.go(RouteConstants.onboarding);
@@ -136,6 +141,19 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         FlutterNativeSplash.remove();
         context.go(RouteConstants.home);
       }
+    }
+  }
+
+  /// Precarga datos que HomeScreen necesita para evitar shimmer/parpadeos.
+  /// Timeout de 3 segundos para no bloquear si la red es lenta.
+  Future<void> _preloadHomeData() async {
+    try {
+      await Future.wait([
+        ref.read(dailyGospelProvider.future),
+        ref.read(weekCompletionProvider.future),
+      ]).timeout(const Duration(seconds: 3));
+    } catch (_) {
+      // Si falla o timeout, Home cargará los datos normalmente
     }
   }
 
