@@ -3,14 +3,12 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shimmer/shimmer.dart';
 
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/providers/story_viewed_provider.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/daily_progress_provider.dart';
 import '../../../../core/widgets/glass_container.dart';
-import '../../../../core/widgets/shimmer_loading.dart';
 import '../../../chat/presentation/screens/chat_screen.dart';
 import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart';
 import '../../../profile/domain/entities/user_profile.dart';
@@ -695,8 +693,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final label = isCatholic ? 'EVANGELIO DEL DÍA' : 'LECTURA DEL DÍA';
     final topicKey = isCatholic ? 'evangelio_del_dia' : 'lectura_del_dia';
 
-    return gospelAsync.when(
-      loading: () => const _GospelCardSkeleton(),
+    final cardChild = gospelAsync.when(
+      loading: () => const _GospelCardPlaceholder(key: ValueKey('placeholder')),
       error: (error, stack) => _GospelErrorCard(
         onRetry: () {
           if (_isViewingToday) {
@@ -722,6 +720,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         final isSlide0New = gospel.hasStoriesContent && !viewedSlides.contains(0);
 
         return _GospelCardCompact(
+          key: const ValueKey('gospel'),
           label: label,
           reference: gospel.reference,
           hasStories: isSlide0New,
@@ -754,12 +753,90 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         );
       },
     );
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 600),
+      child: cardChild,
+    );
   }
 }
 
 // ============================================
 // WIDGETS
 // ============================================
+
+/// Placeholder glass que reserva el espacio del gospel card mientras carga.
+/// Misma estructura y tamaño que _GospelCardCompact para evitar layout shift.
+class _GospelCardPlaceholder extends StatelessWidget {
+  const _GospelCardPlaceholder({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.surfaceLight.withOpacity(0.08),
+                AppTheme.surfaceDark.withOpacity(0.3),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppTheme.surfaceLight.withOpacity(0.1),
+            ),
+          ),
+          child: Row(
+            children: [
+              // Icono placeholder
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              const SizedBox(width: 16),
+              // Líneas placeholder
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 100,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceLight.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      width: 160,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: AppTheme.surfaceLight.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _GospelCardCompact extends StatefulWidget {
   final String label;
@@ -769,6 +846,7 @@ class _GospelCardCompact extends StatefulWidget {
   final VoidCallback? onChatTap;
 
   const _GospelCardCompact({
+    super.key,
     required this.label,
     required this.reference,
     this.hasStories = false,
@@ -1254,83 +1332,6 @@ class _ContentCardState extends State<_ContentCard>
                         ? AppTheme.primaryColor
                         : AppTheme.textSecondary,
                     size: widget.isNew ? 22 : 20,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GospelCardSkeleton extends StatelessWidget {
-  const _GospelCardSkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Shimmer.fromColors(
-          baseColor: ShimmerColors.baseColor,
-          highlightColor: ShimmerColors.highlightColor,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceDark.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppTheme.surfaceLight.withOpacity(0.2),
-              ),
-            ),
-            child: Row(
-              children: [
-                // Icon placeholder
-                Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceLight.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                // Text placeholders
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        height: 12,
-                        width: 120,
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceLight.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Container(
-                        height: 16,
-                        width: 180,
-                        decoration: BoxDecoration(
-                          color: AppTheme.surfaceLight.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Chevron placeholder
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceLight.withOpacity(0.2),
-                    shape: BoxShape.circle,
                   ),
                 ),
               ],

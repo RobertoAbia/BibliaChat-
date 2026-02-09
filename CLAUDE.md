@@ -1498,6 +1498,27 @@ BibliaChat/
     - `route_constants.dart` (para `RouteConstants.paywall`)
     - `subscription_provider.dart` (para `isPremiumProvider`)
 
+- [x] Fix: Eliminar flicker de carga en HomeScreen + Optimizar splash
+  - **Problema:** Al abrir Home, los cards parpadeaban y aparecían de forma fea
+  - **5 fixes aplicados:**
+    - Glass skeleton placeholder para gospel card (en vez de shimmer que parecía rectángulo blanco)
+    - Eliminada doble animación (FadeTransition 800ms + TweenAnimationBuilder por card)
+    - Precarga de datos en SplashScreen (`dailyGospelProvider` + `weekCompletionProvider`)
+    - Calendario: animación única de 400ms para toda la Row (en vez de 7 individuales)
+    - Guard NUEVO badge: asumir todo visto mientras `isLoading` para evitar flash
+  - **Gospel card placeholder:**
+    - `_GospelCardPlaceholder`: glass container sutil que reserva el espacio (misma altura que card real)
+    - `AnimatedSwitcher` (600ms) para crossfade de placeholder → card real sin layout shift
+    - Reemplaza `SizedBox.shrink()` que causaba salto de contenido
+  - **Splash screen optimizada:**
+    - RevenueCat + NotificationService se inicializan en paralelo (`Future.wait`)
+    - Servicios + onboarding check en paralelo
+    - Timeout de precarga reducido de 3s a 1.5s
+    - `FlutterNativeSplash.remove()` se llama DESPUÉS de la precarga (splash nativo visible durante carga)
+  - **Archivos modificados:**
+    - `lib/features/home/presentation/screens/home_screen.dart` - Placeholder, AnimatedSwitcher, calendar animation, NUEVO guard
+    - `lib/features/auth/presentation/screens/splash_screen.dart` - Parallelization, timeout, splash ordering
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
@@ -1580,6 +1601,7 @@ BibliaChat/
 - [x] Feature: Splash Screen rediseñada (#141A2E) + Home Screen UI polish - COMPLETADO
 - [x] **Feature: Calendario semanal interactivo** - Candados en días pasados no completados → Paywall - COMPLETADO
 - [x] Fix: Valorar/Compartir pre-publicación - SnackBar + texto sin links (TODO: restaurar post-publicación)
+- [x] Fix: Eliminar flicker de carga en HomeScreen + Optimizar splash - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 - [ ] **Feature: Widget versículo en Lock Screen** (iOS) + Home Screen (Android) - PLANIFICADO
@@ -2064,3 +2086,27 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
     });
     ```
   - Afecta: Diálogos de cerrar sesión, borrar cuenta, y cualquier otro showDialog
+- **AnimatedSwitcher para crossfade sin layout shift:**
+  - Problema: `SizedBox.shrink()` → widget real causa salto de layout (empuja contenido abajo)
+  - `AnimatedSize` suaviza el crecimiento pero sigue empujando contenido
+  - **Solución:** Placeholder con misma altura + `AnimatedSwitcher` para crossfade
+  - Cada widget hijo necesita `ValueKey` distinto para que `AnimatedSwitcher` detecte el cambio
+  - Ejemplo:
+    ```dart
+    AnimatedSwitcher(
+      duration: const Duration(milliseconds: 600),
+      child: isLoading
+          ? const Placeholder(key: ValueKey('placeholder'))
+          : RealWidget(key: ValueKey('real')),
+    );
+    ```
+- **Paralelizar inicialización en splash screen:**
+  - `Future.wait` con `.catchError` individual para que un fallo no bloquee al otro
+  - Lanzar futures sin `await` y luego esperarlos permite ejecución paralela:
+    ```dart
+    final servicesFuture = _initializeServices(userId);
+    final onboardingFuture = repository.hasCompletedOnboarding();
+    await servicesFuture;
+    final result = await onboardingFuture;
+    ```
+  - `FlutterNativeSplash.remove()` debe ir DESPUÉS de la precarga para que el splash nativo cubra la espera

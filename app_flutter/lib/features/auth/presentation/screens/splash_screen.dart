@@ -63,11 +63,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     if (session != null) {
       final user = session.user;
 
-      // Inicializar servicios
-      await _initializeServices(user.id);
-
       // Verificar si tiene email pendiente de verificación
       if (user.email != null && user.email!.isNotEmpty && user.emailConfirmedAt == null) {
+        await _initializeServices(user.id);
         if (mounted) {
           FlutterNativeSplash.remove();
           context.go('${RouteConstants.verifyEmail}?email=${user.email}');
@@ -75,8 +73,34 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         return;
       }
 
-      // Usuario autenticado - verificar si completó onboarding
-      await _checkOnboardingAndNavigate();
+      // Inicializar servicios y verificar onboarding EN PARALELO
+      try {
+        final repository = ref.read(userProfileRepositoryProvider);
+        final servicesFuture = _initializeServices(user.id);
+        final onboardingFuture = repository.hasCompletedOnboarding();
+
+        // Esperar ambos resultados
+        await servicesFuture;
+        final hasCompletedOnboarding = await onboardingFuture;
+
+        if (!mounted) return;
+
+        if (hasCompletedOnboarding) {
+          // Precargar datos mientras el splash nativo sigue visible
+          await _preloadHomeData();
+          if (!mounted) return;
+          FlutterNativeSplash.remove();
+          context.go(RouteConstants.home);
+        } else {
+          FlutterNativeSplash.remove();
+          context.go(RouteConstants.onboarding);
+        }
+      } catch (e) {
+        if (mounted) {
+          FlutterNativeSplash.remove();
+          context.go(RouteConstants.home);
+        }
+      }
     } else {
       // Usuario nuevo - crear sesión anónima
       try {
@@ -100,58 +124,29 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   }
 
   Future<void> _initializeServices(String userId) async {
-    // Inicializar RevenueCat
-    try {
-      await RevenueCatService.instance.init(userId);
-    } catch (e) {
-      debugPrint('RevenueCat init error: $e');
-    }
-
-    // Set user ID for Firebase Analytics
+    // Set user ID for Firebase Analytics (instantáneo, no necesita await)
     AnalyticsService().setUserId(userId);
 
-    // Inicializar notificaciones push
-    try {
-      final router = ref.read(appRouterProvider);
-      await NotificationService().init(userId, router);
-    } catch (e) {
-      debugPrint('Notification init error: $e');
-    }
-  }
-
-  Future<void> _checkOnboardingAndNavigate() async {
-    try {
-      final repository = ref.read(userProfileRepositoryProvider);
-      final hasCompletedOnboarding = await repository.hasCompletedOnboarding();
-
-      if (!mounted) return;
-
-      FlutterNativeSplash.remove();
-
-      if (hasCompletedOnboarding) {
-        // Precargar datos críticos para evitar parpadeos en HomeScreen
-        await _preloadHomeData();
-        if (!mounted) return;
-        context.go(RouteConstants.home);
-      } else {
-        context.go(RouteConstants.onboarding);
-      }
-    } catch (e) {
-      if (mounted) {
-        FlutterNativeSplash.remove();
-        context.go(RouteConstants.home);
-      }
-    }
+    // Inicializar RevenueCat y Notificaciones en paralelo
+    final router = ref.read(appRouterProvider);
+    await Future.wait([
+      RevenueCatService.instance.init(userId).catchError((e) {
+        debugPrint('RevenueCat init error: $e');
+      }),
+      NotificationService().init(userId, router).catchError((e) {
+        debugPrint('Notification init error: $e');
+      }),
+    ]);
   }
 
   /// Precarga datos que HomeScreen necesita para evitar shimmer/parpadeos.
-  /// Timeout de 3 segundos para no bloquear si la red es lenta.
+  /// Timeout de 1.5 segundos para no bloquear si la red es lenta.
   Future<void> _preloadHomeData() async {
     try {
       await Future.wait([
         ref.read(dailyGospelProvider.future),
         ref.read(weekCompletionProvider.future),
-      ]).timeout(const Duration(seconds: 3));
+      ]).timeout(const Duration(milliseconds: 1500));
     } catch (_) {
       // Si falla o timeout, Home cargará los datos normalmente
     }
