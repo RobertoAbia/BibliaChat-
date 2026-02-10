@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/providers/story_viewed_provider.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/daily_progress_provider.dart';
 import '../../../../core/widgets/glass_container.dart';
@@ -26,6 +27,15 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// Día seleccionado en el calendario (por defecto hoy).
   DateTime _selectedDate = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    // Pedir permiso de notificaciones después de que Home sea visible
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      NotificationService().requestPermissionIfNeeded();
+    });
+  }
 
   /// Compara si el día seleccionado es hoy.
   bool get _isViewingToday {
@@ -883,216 +893,202 @@ class _GospelCardCompactState extends State<_GospelCardCompact>
 
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 20 * (1 - value)),
+    return GestureDetector(
+      onTapDown: (_) => _scaleController.forward(),
+      onTapUp: (_) => _scaleController.reverse(),
+      onTapCancel: () => _scaleController.reverse(),
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _scaleController,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
             child: child,
-          ),
-        );
-      },
-      child: GestureDetector(
-        onTapDown: (_) => _scaleController.forward(),
-        onTapUp: (_) => _scaleController.reverse(),
-        onTapCancel: () => _scaleController.reverse(),
-        onTap: widget.onTap,
-        child: AnimatedBuilder(
-          animation: _scaleController,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: _scaleAnimation.value,
-              child: child,
-            );
-          },
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppTheme.primaryColor.withOpacity(0.15),
-                      AppTheme.surfaceDark.withOpacity(0.5),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: AppTheme.primaryColor.withOpacity(0.25),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primaryColor.withOpacity(0.1),
-                      blurRadius: 20,
-                      spreadRadius: 0,
-                    ),
+          );
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(20),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.primaryColor.withOpacity(0.15),
+                    AppTheme.surfaceDark.withOpacity(0.5),
                   ],
                 ),
-                child: Row(
-                  children: [
-                    // Icon with Stories ring indicator
-                    Stack(
-                      children: [
-                        // Stories ring (visible cuando hasStories)
-                        if (widget.hasStories)
-                          Container(
-                            width: 58,
-                            height: 58,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(17),
-                              gradient: AppTheme.goldGradient,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.primaryColor.withOpacity(0.4),
-                                  blurRadius: 12,
-                                  spreadRadius: 0,
-                                ),
-                              ],
-                            ),
-                          ),
-                        // Icon container
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppTheme.primaryColor.withOpacity(0.25),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withOpacity(0.1),
+                    blurRadius: 20,
+                    spreadRadius: 0,
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  // Icon with Stories ring indicator
+                  Stack(
+                    children: [
+                      // Stories ring (visible cuando hasStories)
+                      if (widget.hasStories)
                         Container(
-                          width: 52,
-                          height: 52,
-                          margin: widget.hasStories
-                              ? const EdgeInsets.all(3)
-                              : EdgeInsets.zero,
+                          width: 58,
+                          height: 58,
                           decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(17),
                             gradient: AppTheme.goldGradient,
-                            borderRadius: BorderRadius.circular(14),
-                            border: widget.hasStories
-                                ? Border.all(
-                                    color: AppTheme.backgroundDark,
-                                    width: 2,
-                                  )
-                                : null,
-                            boxShadow: widget.hasStories
-                                ? null
-                                : [
-                                    BoxShadow(
-                                      color:
-                                          AppTheme.primaryColor.withOpacity(0.3),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                          ),
-                          child: const Icon(
-                            Icons.menu_book_rounded,
-                            color: AppTheme.textOnPrimary,
-                            size: 26,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 16),
-                    // Content
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text(
-                                widget.label,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.copyWith(
-                                      color: AppTheme.primaryColor,
-                                      fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.5,
-                                    ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryColor.withOpacity(0.4),
+                                blurRadius: 12,
+                                spreadRadius: 0,
                               ),
-                              if (widget.hasStories) ...[
-                                const SizedBox(width: 8),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 6,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    gradient: AppTheme.goldGradient,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    'NUEVO',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .labelSmall
-                                        ?.copyWith(
-                                          color: AppTheme.textOnPrimary,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 8,
-                                          letterSpacing: 0.5,
-                                        ),
-                                  ),
-                                ),
-                              ],
                             ],
                           ),
-                          const SizedBox(height: 4),
-                          Text(
-                            widget.reference,
-                            style:
-                                Theme.of(context).textTheme.titleMedium?.copyWith(
-                                      color: AppTheme.textPrimary,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                          ),
-                        ],
+                        ),
+                      // Icon container
+                      Container(
+                        width: 52,
+                        height: 52,
+                        margin: widget.hasStories
+                            ? const EdgeInsets.all(3)
+                            : EdgeInsets.zero,
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.goldGradient,
+                          borderRadius: BorderRadius.circular(14),
+                          border: widget.hasStories
+                              ? Border.all(
+                                  color: AppTheme.backgroundDark,
+                                  width: 2,
+                                )
+                              : null,
+                          boxShadow: widget.hasStories
+                              ? null
+                              : [
+                                  BoxShadow(
+                                    color:
+                                        AppTheme.primaryColor.withOpacity(0.3),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                        ),
+                        child: const Icon(
+                          Icons.menu_book_rounded,
+                          color: AppTheme.textOnPrimary,
+                          size: 26,
+                        ),
                       ),
-                    ),
-                    // Actions
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+                    ],
+                  ),
+                  const SizedBox(width: 16),
+                  // Content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Chat button (si tiene Stories)
-                        if (widget.hasStories && widget.onChatTap != null)
-                          GestureDetector(
-                            onTap: widget.onChatTap,
-                            child: Container(
-                              padding: const EdgeInsets.all(8),
-                              margin: const EdgeInsets.only(right: 8),
-                              decoration: BoxDecoration(
-                                color: AppTheme.surfaceLight.withOpacity(0.4),
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                Icons.chat_bubble_outline_rounded,
-                                color: AppTheme.textSecondary,
-                                size: 20,
-                              ),
+                        Row(
+                          children: [
+                            Text(
+                              widget.label,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                    color: AppTheme.primaryColor,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.5,
+                                  ),
                             ),
-                          ),
-                        // Chevron / Play
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor.withOpacity(0.2),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            widget.hasStories
-                                ? Icons.play_arrow_rounded
-                                : Icons.chevron_right,
-                            color: AppTheme.primaryColor,
-                            size: 22,
-                          ),
+                            if (widget.hasStories) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  gradient: AppTheme.goldGradient,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'NUEVO',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                        color: AppTheme.textOnPrimary,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 8,
+                                        letterSpacing: 0.5,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          widget.reference,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: AppTheme.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                  // Actions
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Chat button (si tiene Stories)
+                      if (widget.hasStories && widget.onChatTap != null)
+                        GestureDetector(
+                          onTap: widget.onChatTap,
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: BoxDecoration(
+                              color: AppTheme.surfaceLight.withOpacity(0.4),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.chat_bubble_outline_rounded,
+                              color: AppTheme.textSecondary,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      // Chevron / Play
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryColor.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          widget.hasStories
+                              ? Icons.play_arrow_rounded
+                              : Icons.chevron_right,
+                          color: AppTheme.primaryColor,
+                          size: 22,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -1151,33 +1147,20 @@ class _ContentCardState extends State<_ContentCard>
 
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 600 + widget.delay),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 20 * (1 - value)),
+    return GestureDetector(
+      onTapDown: (_) => _controller.forward(),
+      onTapUp: (_) => _controller.reverse(),
+      onTapCancel: () => _controller.reverse(),
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
             child: child,
-          ),
-        );
-      },
-      child: GestureDetector(
-        onTapDown: (_) => _controller.forward(),
-        onTapUp: (_) => _controller.reverse(),
-        onTapCancel: () => _controller.reverse(),
-        onTap: widget.onTap,
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: _scaleAnimation.value,
-              child: child,
-            );
-          },
-          child: GlassContainer(
+          );
+        },
+        child: GlassContainer(
             padding: const EdgeInsets.all(18),
             borderRadius: 20,
             blur: 8,
@@ -1338,8 +1321,7 @@ class _ContentCardState extends State<_ContentCard>
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 }
 
@@ -1465,33 +1447,20 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
 
   @override
   Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: const Duration(milliseconds: 600),
-      curve: Curves.easeOutCubic,
-      builder: (context, value, child) {
-        return Opacity(
-          opacity: value,
-          child: Transform.translate(
-            offset: Offset(0, 20 * (1 - value)),
+    return GestureDetector(
+      onTapDown: (_) => _scaleController.forward(),
+      onTapUp: (_) => _scaleController.reverse(),
+      onTapCancel: () => _scaleController.reverse(),
+      onTap: widget.onTap,
+      child: AnimatedBuilder(
+        animation: _scaleController,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scaleAnimation.value,
             child: child,
-          ),
-        );
-      },
-      child: GestureDetector(
-        onTapDown: (_) => _scaleController.forward(),
-        onTapUp: (_) => _scaleController.reverse(),
-        onTapCancel: () => _scaleController.reverse(),
-        onTap: widget.onTap,
-        child: AnimatedBuilder(
-          animation: _scaleController,
-          builder: (context, child) {
-            return Transform.scale(
-              scale: _scaleAnimation.value,
-              child: child,
-            );
-          },
-          child: ClipRRect(
+          );
+        },
+        child: ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
@@ -1636,8 +1605,7 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
             ),
           ),
         ),
-      ),
-    );
+      );
   }
 }
 

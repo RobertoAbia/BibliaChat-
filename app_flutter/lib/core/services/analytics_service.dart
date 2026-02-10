@@ -9,7 +9,7 @@ class AnalyticsService {
 
   final FirebaseAnalytics _analytics = FirebaseAnalytics.instance;
 
-  FirebaseAnalyticsObserver get observer =>
+  late final FirebaseAnalyticsObserver observer =
       FirebaseAnalyticsObserver(analytics: _analytics);
 
   // ============ ONBOARDING ============

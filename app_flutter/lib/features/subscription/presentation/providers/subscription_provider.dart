@@ -87,7 +87,8 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
     final success = await _revenueCatService.purchasePackage(package);
 
     if (success) {
-      await _checkPremiumStatus();
+      // Actualizar estado directamente (el stream de customerInfo confirmará después)
+      state = state.copyWith(isPremium: true);
       // Log analytics event
       final planType = package.packageType == PackageType.annual ? 'annual' : 'monthly';
       AnalyticsService().logSubscriptionStarted(planType: planType);

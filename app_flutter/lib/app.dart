@@ -44,7 +44,6 @@ class _BibliaChatAppState extends ConsumerState<BibliaChatApp> {
 
     // Si hay un diálogo abierto, cerrarlo manualmente
     if (dialogContext != null) {
-      debugPrint('BackButtonInterceptor: Dialog open, closing it');
       Navigator.of(dialogContext).pop();
       ref.read(dialogContextProvider.notifier).state = null;
       return true;
@@ -53,24 +52,19 @@ class _BibliaChatAppState extends ConsumerState<BibliaChatApp> {
     final router = ref.read(appRouterProvider);
     final currentTabIndex = ref.read(currentTabIndexProvider);
 
-    debugPrint('BackButtonInterceptor: canPop=${router.canPop()}, tabIndex=$currentTabIndex');
-
     // 1. Si hay historial → pop (volver a ruta anterior)
     if (router.canPop()) {
-      debugPrint('BackButtonInterceptor: Doing pop()');
       router.pop();
       return true;
     }
 
     // 2. En Home sin historial → cerrar app
     if (currentTabIndex == 0) {
-      debugPrint('BackButtonInterceptor: Closing app');
       SystemNavigator.pop();
       return true;
     }
 
     // 3. En otro tab sin historial → ir a Home
-    debugPrint('BackButtonInterceptor: Going to Home');
     ref.read(currentTabIndexProvider.notifier).state = 0;
     router.go(RouteConstants.home);
     return true;

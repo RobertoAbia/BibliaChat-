@@ -29,7 +29,9 @@ class NotificationService {
   bool _isInitialized = false;
   String? _currentUserId;
 
-  /// Inicializa el servicio de notificaciones
+  /// Inicializa el servicio de notificaciones.
+  /// NO muestra diálogo de permisos - solo configura listeners y token si ya autorizado.
+  /// Para pedir permiso, llamar requestPermissionIfNeeded() después.
   Future<void> init(String userId, GoRouter router) async {
     if (kIsWeb) return;
 
@@ -53,36 +55,24 @@ class NotificationService {
     // 1. Configurar handler para mensajes en background
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // 2. Pedir permiso
-    final hasPermission = await requestPermission();
-    if (!hasPermission) {
-      debugPrint('Notification permission denied');
-      return;
+    // 2. Verificar si YA tiene permiso (sin mostrar diálogo)
+    final settings = await _messaging.getNotificationSettings();
+    final alreadyAuthorized =
+        settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional;
+
+    // 3. Si ya autorizado, configurar local notifications + token
+    if (alreadyAuthorized) {
+      await _setupAfterPermission(userId);
     }
 
-    // 3. Configurar local notifications para foreground en Android
-    await _setupLocalNotifications();
-
-    // 4. Obtener y guardar token FCM
-    final token = await _messaging.getToken();
-    if (token != null) {
-      await _saveTokenToSupabase(token, userId);
-      debugPrint('FCM Token: $token');
-    }
-
-    // 5. Escuchar cambios de token
-    _messaging.onTokenRefresh.listen((newToken) {
-      _saveTokenToSupabase(newToken, userId);
-    });
-
-    // 6. Configurar handlers para mensajes
+    // 4. Configurar handlers para mensajes (funcionan sin permiso)
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageTap);
 
-    // 7. Verificar si la app se abrió desde una notificación
+    // 5. Verificar si la app se abrió desde una notificación
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
-      // Pequeño delay para asegurar que el router esté listo
       Future.delayed(const Duration(milliseconds: 500), () {
         _handleMessageTap(initialMessage);
       });
@@ -90,6 +80,40 @@ class NotificationService {
 
     _isInitialized = true;
     debugPrint('NotificationService initialized');
+  }
+
+  /// Pide permiso de notificaciones si aún no lo tiene.
+  /// Llamar DESPUÉS de que la UI sea visible (ej: desde HomeScreen).
+  Future<void> requestPermissionIfNeeded() async {
+    if (kIsWeb || !_isInitialized) return;
+
+    // Verificar estado actual sin mostrar diálogo
+    final settings = await _messaging.getNotificationSettings();
+    if (settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional) {
+      return; // Ya tiene permiso
+    }
+
+    // Mostrar diálogo del sistema
+    final hasPermission = await requestPermission();
+    if (hasPermission && _currentUserId != null) {
+      await _setupAfterPermission(_currentUserId!);
+    }
+  }
+
+  /// Configura local notifications, obtiene token y escucha cambios.
+  Future<void> _setupAfterPermission(String userId) async {
+    await _setupLocalNotifications();
+
+    final token = await _messaging.getToken();
+    if (token != null) {
+      await _saveTokenToSupabase(token, userId);
+      debugPrint('FCM Token: $token');
+    }
+
+    _messaging.onTokenRefresh.listen((newToken) {
+      _saveTokenToSupabase(newToken, userId);
+    });
   }
 
   /// Solicita permiso para notificaciones

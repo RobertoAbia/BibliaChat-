@@ -1499,25 +1499,42 @@ BibliaChat/
     - `subscription_provider.dart` (para `isPremiumProvider`)
 
 - [x] Fix: Eliminar flicker de carga en HomeScreen + Optimizar splash
-  - **Problema:** Al abrir Home, los cards parpadeaban y aparecían de forma fea
-  - **5 fixes aplicados:**
-    - Glass skeleton placeholder para gospel card (en vez de shimmer que parecía rectángulo blanco)
-    - Eliminada doble animación (FadeTransition 800ms + TweenAnimationBuilder por card)
-    - Precarga de datos en SplashScreen (`dailyGospelProvider` + `weekCompletionProvider`)
-    - Calendario: animación única de 400ms para toda la Row (en vez de 7 individuales)
-    - Guard NUEVO badge: asumir todo visto mientras `isLoading` para evitar flash
-  - **Gospel card placeholder:**
+  - **Problema:** Al abrir Home, los cards parpadeaban y aparecían de forma fea. Después del fix inicial, el gospel card seguía parpadeando (se cargaba dos veces con el mismo contenido).
+  - **Gospel card placeholder (fix inicial):**
     - `_GospelCardPlaceholder`: glass container sutil que reserva el espacio (misma altura que card real)
     - `AnimatedSwitcher` (600ms) para crossfade de placeholder → card real sin layout shift
-    - Reemplaza `SizedBox.shrink()` que causaba salto de contenido
-  - **Splash screen optimizada:**
-    - RevenueCat + NotificationService se inicializan en paralelo (`Future.wait`)
+    - Calendario: animación única de 400ms para toda la Row (en vez de 7 individuales)
+    - Guard NUEVO badge: asumir todo visto mientras `isLoading` para evitar flash
+  - **Splash screen optimizada (v2 - background services):**
+    - RevenueCat + preload diferidos a `_initializeBackgroundServices()` (fire-and-forget DESPUÉS de navegar)
+    - Permiso de notificaciones movido a HomeScreen `initState` (no bloquea splash)
+    - `_initializeServices()` solo hace FCM init (rápido)
     - Servicios + onboarding check en paralelo
-    - Timeout de precarga reducido de 3s a 1.5s
-    - `FlutterNativeSplash.remove()` se llama DESPUÉS de la precarga (splash nativo visible durante carga)
-  - **Archivos modificados:**
-    - `lib/features/home/presentation/screens/home_screen.dart` - Placeholder, AnimatedSwitcher, calendar animation, NUEVO guard
-    - `lib/features/auth/presentation/screens/splash_screen.dart` - Parallelization, timeout, splash ordering
+  - **Home sin "impulsos":**
+    - Eliminado `TweenAnimationBuilder` individual de `_GospelCardCompact`, `_ContentCard` y `_ActivePlanCard`
+    - Cada card tenía su propia animación fade+slide que se disparaba a tiempos diferentes → efecto "a impulsos"
+    - Se mantiene: AnimatedSwitcher en gospel card, scale-on-tap, calendar animation 400ms
+  - **Fix parpadeo gospel card (causa raíz):**
+    - `dailyGospelProvider` usaba `ref.watch(currentUserProfileProvider)` → cuando perfil pasaba de `AsyncLoading` a `AsyncData`, el gospel se re-evaluaba, iba a loading, y recargaba los mismos datos
+    - Solución: `await ref.read(currentUserProfileProvider.future)` → espera perfil sin crear dependencia reactiva
+    - Mismo patrón aplicado a `gospelForDateProvider`
+    - La versión de biblia no cambia durante una sesión, no necesita ser reactivo
+  - **Optimizaciones adicionales:**
+    - `analytics_service.dart`: Observer como `late final` (lazy init, evita recrear)
+    - `app_router.dart`: Guard `_previousLocation` para evitar state updates redundantes
+    - `study_provider.dart`: 3 queries secuenciales → `Future.wait` paralelo
+    - `subscription_provider.dart`: Eliminado `_checkPremiumStatus()` redundante post-compra
+    - `app.dart`: Eliminados `debugPrint` del back button handler
+  - **Archivos modificados (9):**
+    - `lib/features/auth/presentation/screens/splash_screen.dart` - Background services, simplificar init
+    - `lib/features/home/presentation/screens/home_screen.dart` - Placeholder, eliminar TweenAnimationBuilder, notification permission
+    - `lib/features/daily_gospel/presentation/providers/daily_gospel_provider.dart` - ref.read en vez de ref.watch
+    - `lib/core/services/notification_service.dart` - Separar init de requestPermission
+    - `lib/core/services/analytics_service.dart` - late final observer
+    - `lib/core/router/app_router.dart` - Guard _previousLocation
+    - `lib/features/study/presentation/providers/study_provider.dart` - Future.wait paralelo
+    - `lib/features/subscription/presentation/providers/subscription_provider.dart` - Eliminar check redundante
+    - `lib/app.dart` - Eliminar debugPrints
 
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)

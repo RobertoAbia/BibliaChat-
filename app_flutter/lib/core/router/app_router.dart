@@ -237,6 +237,8 @@ class _MainShellState extends ConsumerState<MainShell> {
     SettingsScreen(),
   ];
 
+  String? _previousLocation;
+
   @override
   void dispose() {
     _pageController?.dispose();
@@ -282,9 +284,14 @@ class _MainShellState extends ConsumerState<MainShell> {
     final isMainRoute = _isMainRoute(location);
     final selectedIndex = _getTabIndex(location);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(currentLocationProvider.notifier).state = location;
-    });
+    if (location != _previousLocation) {
+      _previousLocation = location;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ref.read(currentLocationProvider.notifier).state = location;
+        }
+      });
+    }
 
     _pageController ??= PageController(initialPage: selectedIndex);
 

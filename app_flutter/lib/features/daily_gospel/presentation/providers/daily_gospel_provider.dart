@@ -19,18 +19,17 @@ final dailyGospelRepositoryProvider = Provider<DailyGospelRepository>(
 );
 
 /// Provider para el Evangelio del día
-/// Automáticamente usa la versión de biblia preferida del usuario
+/// Usa ref.read (no watch) para el perfil: evita re-fetch cuando el perfil
+/// pasa de loading→data (causaba parpadeo del gospel card).
 final dailyGospelProvider = FutureProvider<DailyGospel?>((ref) async {
   final repository = ref.watch(dailyGospelRepositoryProvider);
 
-  // Obtener la versión de biblia del perfil del usuario
-  final profileAsync = ref.watch(currentUserProfileProvider);
-
-  final bibleVersion = profileAsync.when(
-    data: (profile) => profile?.bibleVersionCode ?? 'RVR1960',
-    loading: () => 'RVR1960',
-    error: (_, __) => 'RVR1960',
-  );
+  // Esperar perfil sin observarlo (la versión de biblia no cambia mid-session)
+  String bibleVersion = 'RVR1960';
+  try {
+    final profile = await ref.read(currentUserProfileProvider.future);
+    bibleVersion = profile?.bibleVersionCode ?? 'RVR1960';
+  } catch (_) {}
 
   return await repository.getTodaysGospel(bibleVersion);
 });
@@ -40,12 +39,11 @@ final gospelForDateProvider =
     FutureProvider.family<DailyGospel?, DateTime>((ref, date) async {
   final repository = ref.watch(dailyGospelRepositoryProvider);
 
-  final profileAsync = ref.watch(currentUserProfileProvider);
-  final bibleVersion = profileAsync.when(
-    data: (profile) => profile?.bibleVersionCode ?? 'RVR1960',
-    loading: () => 'RVR1960',
-    error: (_, __) => 'RVR1960',
-  );
+  String bibleVersion = 'RVR1960';
+  try {
+    final profile = await ref.read(currentUserProfileProvider.future);
+    bibleVersion = profile?.bibleVersionCode ?? 'RVR1960';
+  } catch (_) {}
 
   return await repository.getGospelForDate(date, bibleVersion);
 });

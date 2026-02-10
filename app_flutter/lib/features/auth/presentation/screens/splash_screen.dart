@@ -86,14 +86,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         if (!mounted) return;
 
         if (hasCompletedOnboarding) {
-          // Precargar datos mientras el splash nativo sigue visible
-          await _preloadHomeData();
-          if (!mounted) return;
           FlutterNativeSplash.remove();
           context.go(RouteConstants.home);
+          _initializeBackgroundServices(user.id);
         } else {
           FlutterNativeSplash.remove();
           context.go(RouteConstants.onboarding);
+          _initializeBackgroundServices(user.id);
         }
       } catch (e) {
         if (mounted) {
@@ -108,9 +107,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
         if (response.user != null) {
           await _initializeServices(response.user!.id);
-        }
-
-        if (mounted) {
+          if (mounted) {
+            FlutterNativeSplash.remove();
+            context.go(RouteConstants.onboarding);
+            _initializeBackgroundServices(response.user!.id);
+          }
+        } else if (mounted) {
           FlutterNativeSplash.remove();
           context.go(RouteConstants.onboarding);
         }
@@ -127,29 +129,23 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // Set user ID for Firebase Analytics (instantáneo, no necesita await)
     AnalyticsService().setUserId(userId);
 
-    // Inicializar RevenueCat y Notificaciones en paralelo
+    // Solo notificaciones (rápido: ~50-200ms sin permiso dialog)
     final router = ref.read(appRouterProvider);
-    await Future.wait([
-      RevenueCatService.instance.init(userId).catchError((e) {
-        debugPrint('RevenueCat init error: $e');
-      }),
-      NotificationService().init(userId, router).catchError((e) {
-        debugPrint('Notification init error: $e');
-      }),
-    ]);
+    await NotificationService().init(userId, router).catchError((e) {
+      debugPrint('Notification init error: $e');
+    });
   }
 
-  /// Precarga datos que HomeScreen necesita para evitar shimmer/parpadeos.
-  /// Timeout de 1.5 segundos para no bloquear si la red es lenta.
-  Future<void> _preloadHomeData() async {
-    try {
-      await Future.wait([
-        ref.read(dailyGospelProvider.future),
-        ref.read(weekCompletionProvider.future),
-      ]).timeout(const Duration(milliseconds: 1500));
-    } catch (_) {
-      // Si falla o timeout, Home cargará los datos normalmente
-    }
+  /// Lanza servicios no críticos en background después de navegar.
+  /// RevenueCat + preload de datos: estarán listos antes de que el usuario los necesite.
+  void _initializeBackgroundServices(String userId) {
+    // RevenueCat: estará listo antes de que el usuario llegue al paywall
+    RevenueCatService.instance.init(userId).catchError((e) {
+      debugPrint('RevenueCat init error: $e');
+    });
+    // Preload Home data: el placeholder glass cubre mientras cargan
+    ref.read(dailyGospelProvider.future).catchError((_) => null);
+    ref.read(weekCompletionProvider.future).catchError((_) => <String>{});
   }
 
   @override

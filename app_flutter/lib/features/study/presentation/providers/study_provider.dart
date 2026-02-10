@@ -8,6 +8,7 @@ import '../../data/repositories/study_repository_impl.dart';
 import '../../domain/entities/plan.dart';
 import '../../domain/entities/plan_day.dart';
 import '../../domain/entities/user_plan.dart';
+import '../../domain/entities/user_plan_day.dart';
 import '../../domain/repositories/study_repository.dart';
 
 // ============================================================================
@@ -99,16 +100,18 @@ final activePlanDataProvider = FutureProvider<ActivePlanData?>((ref) async {
   final repository = ref.watch(studyRepositoryProvider);
   final datasource = ref.watch(studyDatasourceProvider);
 
-  final plan = await repository.getPlanById(userPlan.planId);
-  if (plan == null) return null;
+  // Ejecutar las 3 queries en paralelo (son independientes entre sí)
+  final results = await Future.wait([
+    repository.getPlanById(userPlan.planId),
+    datasource.getPlanDayByNumber(userPlan.planId, userPlan.currentDay),
+    repository.getCompletedDays(userPlan.id),
+  ]);
 
-  final currentDay = await datasource.getPlanDayByNumber(
-    userPlan.planId,
-    userPlan.currentDay,
-  );
-  if (currentDay == null) return null;
+  final plan = results[0] as Plan?;
+  final currentDay = results[1] as PlanDay?;
+  final completedDays = results[2] as List<UserPlanDay>;
 
-  final completedDays = await repository.getCompletedDays(userPlan.id);
+  if (plan == null || currentDay == null) return null;
 
   return ActivePlanData(
     userPlan: userPlan,
