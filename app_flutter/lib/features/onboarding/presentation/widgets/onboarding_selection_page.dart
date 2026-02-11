@@ -101,11 +101,11 @@ class OnboardingSelectionPage extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
-                // Bible verse (smaller, italic)
+                // Bible verse (decorative, subtle)
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppTheme.textSecondary,
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: AppTheme.textTertiary,
                         height: 1.4,
                         fontWeight: FontWeight.w400,
                         fontStyle: FontStyle.italic,
@@ -142,9 +142,9 @@ class OnboardingSelectionPage extends StatelessWidget {
                         child: Text(
                           subtitle,
                           style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                              Theme.of(context).textTheme.titleLarge?.copyWith(
                                     color: AppTheme.textPrimary,
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.w600,
                                   ),
                         ),
                       ),

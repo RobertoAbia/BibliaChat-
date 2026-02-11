@@ -138,11 +138,11 @@ class _OnboardingCountryPageState extends State<OnboardingCountryPage> {
 
           const SizedBox(height: 20),
 
-          // Bible verse (smaller, italic)
+          // Bible verse (decorative, subtle)
           Text(
             '¿A dónde me iré de tu Espíritu? Dondequiera que esté, allí estás tú.',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: AppTheme.textSecondary,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppTheme.textTertiary,
                   height: 1.4,
                   fontWeight: FontWeight.w400,
                   fontStyle: FontStyle.italic,
@@ -178,9 +178,9 @@ class _OnboardingCountryPageState extends State<OnboardingCountryPage> {
                 Expanded(
                   child: Text(
                     '¿De qué país eres?',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: AppTheme.textPrimary,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                         ),
                   ),
                 ),
