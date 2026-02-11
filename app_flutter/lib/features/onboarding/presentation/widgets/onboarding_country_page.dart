@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
@@ -90,102 +88,13 @@ class _OnboardingCountryPageState extends State<OnboardingCountryPage> {
         children: [
           const SizedBox(height: 20),
 
-          // Verse reference badge with glass effect
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 8,
-                ),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: AppTheme.primaryColor.withOpacity(0.3),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primaryColor.withOpacity(0.1),
-                      blurRadius: 10,
-                      spreadRadius: 0,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.menu_book_outlined,
-                      color: AppTheme.primaryColor,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Salmo 139:7-10',
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                            color: AppTheme.primaryColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 20),
-
-          // Bible verse (decorative, subtle)
+          // Question (main heading — clean, bold)
           Text(
-            '¿A dónde me iré de tu Espíritu? Dondequiera que esté, allí estás tú.',
-            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: AppTheme.textTertiary,
-                  height: 1.4,
-                  fontWeight: FontWeight.w400,
-                  fontStyle: FontStyle.italic,
+            '¿De qué país eres?',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.w600,
                 ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Question with glass effect
-          GlassContainer(
-            blur: 8,
-            backgroundOpacity: 0.35,
-            borderRadius: 14,
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 4,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.goldGradient,
-                    borderRadius: BorderRadius.circular(2),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primaryColor.withOpacity(0.3),
-                        blurRadius: 8,
-                        spreadRadius: 0,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 14),
-                Expanded(
-                  child: Text(
-                    '¿De qué país eres?',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: AppTheme.textPrimary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ),
-              ],
-            ),
           ),
 
           const SizedBox(height: 24),
@@ -251,6 +160,20 @@ class _OnboardingCountryPageState extends State<OnboardingCountryPage> {
                   // Mostrar país seleccionado
                   if (_selectedCode != null)
                     _buildSelectedCountry(),
+
+                  // Bible verse (subtle decorative quote)
+                  const SizedBox(height: 16),
+                  Center(
+                    child: Text(
+                      '«¿A dónde me iré de tu Espíritu? Dondequiera que esté, allí estás tú.» — Salmo 139:7-10',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.textTertiary,
+                            fontStyle: FontStyle.italic,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),

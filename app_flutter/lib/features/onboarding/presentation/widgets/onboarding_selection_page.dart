@@ -3,7 +3,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/glass_container.dart';
 
 class SelectionOption {
   final String key;
@@ -52,104 +51,13 @@ class OnboardingSelectionPage extends StatelessWidget {
               children: [
                 const SizedBox(height: 20),
 
-                // Verse reference badge with glass effect
-                if (verseReference != null)
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
-                            color: AppTheme.primaryColor.withOpacity(0.3),
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primaryColor.withOpacity(0.1),
-                              blurRadius: 10,
-                              spreadRadius: 0,
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.menu_book_outlined,
-                              color: AppTheme.primaryColor,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              verseReference!,
-                              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                    color: AppTheme.primaryColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                const SizedBox(height: 20),
-
-                // Bible verse (decorative, subtle)
+                // Question (main heading — clean, bold)
                 Text(
-                  title,
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: AppTheme.textTertiary,
-                        height: 1.4,
-                        fontWeight: FontWeight.w400,
-                        fontStyle: FontStyle.italic,
+                  subtitle,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w600,
                       ),
-                ),
-
-                const SizedBox(height: 24),
-
-                // Subtitle (question) with glass effect
-                GlassContainer(
-                  blur: 8,
-                  backgroundOpacity: 0.35,
-                  borderRadius: 14,
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 4,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          gradient: AppTheme.goldGradient,
-                          borderRadius: BorderRadius.circular(2),
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primaryColor.withOpacity(0.3),
-                              blurRadius: 8,
-                              spreadRadius: 0,
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Text(
-                          subtitle,
-                          style:
-                              Theme.of(context).textTheme.titleLarge?.copyWith(
-                                    color: AppTheme.textPrimary,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
 
                 const SizedBox(height: 24),
@@ -181,6 +89,21 @@ class OnboardingSelectionPage extends StatelessWidget {
                     ),
                   );
                 }),
+
+                // Bible verse (subtle decorative quote)
+                if (verseReference != null) ...[
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Text(
+                      '«$title» — $verseReference',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            color: AppTheme.textTertiary,
+                            fontStyle: FontStyle.italic,
+                          ),
+                    ),
+                  ),
+                ],
 
                 const SizedBox(height: 16),
               ],
