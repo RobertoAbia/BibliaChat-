@@ -85,27 +85,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header with glass effect
-                _buildHeader(context),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header fijo (no se va con el scroll)
+              _buildHeader(context),
 
-                // Week Calendar with glass effect
-                _buildWeekCalendar(context),
+              // Contenido scrollable
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Week Calendar with glass effect
+                      _buildWeekCalendar(context),
 
-                const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                // Today's Progress
-                _buildProgressSection(context),
+                      // Today's Progress
+                      _buildProgressSection(context),
 
-                const SizedBox(height: 24),
+                      const SizedBox(height: 24),
 
-                // Content Cards
-                _buildContentCards(),
-              ],
-            ),
+                      // Content Cards
+                      _buildContentCards(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),

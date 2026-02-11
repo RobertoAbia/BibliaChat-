@@ -61,70 +61,75 @@ class StudyScreen extends ConsumerWidget {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: RefreshIndicator(
-            onRefresh: () async {
-              ref.invalidate(allPlansProvider);
-              ref.invalidate(activePlanDataProvider);
-              ref.invalidate(allUserPlansProvider);
-            },
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-                    child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header fijo (no se va con el scroll)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.goldGradient,
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryColor.withOpacity(0.3),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.school_rounded,
+                        color: AppTheme.textOnPrimary,
+                        size: 22,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            gradient: AppTheme.goldGradient,
-                            borderRadius: BorderRadius.circular(14),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primaryColor.withOpacity(0.3),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
+                        Text(
+                          'Estudiar',
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineSmall
+                              ?.copyWith(
+                                color: AppTheme.textPrimary,
+                                fontWeight: FontWeight.w600,
                               ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.school_rounded,
-                            color: AppTheme.textOnPrimary,
-                            size: 22,
-                          ),
                         ),
-                        const SizedBox(width: 14),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Estudiar',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
-                                  ?.copyWith(
-                                    color: AppTheme.textPrimary,
-                                    fontWeight: FontWeight.w600,
+                        Text(
+                          'Planes de estudio bíblico',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: AppTheme.textTertiary,
                                   ),
-                            ),
-                            Text(
-                              'Planes de estudio bíblico',
-                              style:
-                                  Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: AppTheme.textTertiary,
-                                      ),
-                            ),
-                          ],
                         ),
                       ],
                     ),
-                  ),
+                  ],
+                ),
+              ),
 
-                  const SizedBox(height: 16),
+              // Contenido scrollable
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    ref.invalidate(allPlansProvider);
+                    ref.invalidate(activePlanDataProvider);
+                    ref.invalidate(allUserPlansProvider);
+                  },
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(height: 16),
 
                   // Active Plan Section
                   Padding(
@@ -233,10 +238,13 @@ class StudyScreen extends ConsumerWidget {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
-                ],
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),

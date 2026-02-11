@@ -1394,6 +1394,16 @@ BibliaChat/
     - `lib/app.dart` - Simplificado BackButtonInterceptor + dialogContextProvider
     - `lib/features/settings/presentation/screens/settings_screen.dart` - Diálogos guardan contexto
 
+- [x] Feature: Header fijo en Home y Estudiar
+  - **Problema:** En Chat y Perfil el header se quedaba fijo al hacer scroll, pero en Home y Estudiar el header se iba con el contenido
+  - **Patrón aplicado (igual que Chat):** `Column > [header, Expanded > SingleChildScrollView > content]`
+  - **HomeScreen:** `_buildHeader()` extraído fuera del `SingleChildScrollView`, calendario/progreso/cards siguen scrolleando
+  - **StudyScreen:** Header (icono + "Estudiar") extraído fuera del `SingleChildScrollView`, `RefreshIndicator` se mantiene dentro del `Expanded`
+  - **Consistencia:** Los 4 tabs ahora tienen header fijo
+  - **Archivos modificados:**
+    - `lib/features/home/presentation/screens/home_screen.dart` - Column + Expanded pattern
+    - `lib/features/study/presentation/screens/study_screen.dart` - Column + Expanded pattern
+
 - [x] Feature: Configuración App Icon y Nombre de la App
   - **App Store Name:** `Biblia Chat: oracion diaria` (27 chars)
   - **Nombre bajo el icono:** `Biblia Chat` (ambas plataformas)
@@ -2209,6 +2219,12 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
   - Si el provider fue precargado en splash, `.valueOrNull` devuelve el valor inmediatamente
   - Si no fue precargado, devuelve null → usar valor por defecto
   - Ejemplo: gospel provider lee versión de biblia del perfil cacheado en vez de await
+- **Header fijo con contenido scrollable (patrón Column + Expanded):**
+  - NO poner el header dentro del `SingleChildScrollView` (se va con el scroll)
+  - Patrón correcto: `Column > [header, Expanded > SingleChildScrollView > content]`
+  - El `Expanded` asegura que el `SingleChildScrollView` ocupe el espacio restante
+  - Si hay `RefreshIndicator`, va dentro del `Expanded` (envolviendo el `SingleChildScrollView`)
+  - Usado en las 4 pantallas principales: Home, Chat, Study, Settings
 - **Cerrar teclado al tocar fuera de text fields:**
   - Envolver el `SingleChildScrollView` (o body) con `GestureDetector`:
     ```dart
