@@ -24,12 +24,10 @@ final dailyGospelRepositoryProvider = Provider<DailyGospelRepository>(
 final dailyGospelProvider = FutureProvider<DailyGospel?>((ref) async {
   final repository = ref.watch(dailyGospelRepositoryProvider);
 
-  // Esperar perfil sin observarlo (la versión de biblia no cambia mid-session)
-  String bibleVersion = 'RVR1960';
-  try {
-    final profile = await ref.read(currentUserProfileProvider.future);
-    bibleVersion = profile?.bibleVersionCode ?? 'RVR1960';
-  } catch (_) {}
+  // Lectura síncrona del perfil: usa cache si hay, sino default RVR1960.
+  // El splash precarga el perfil → para cuando esto se ejecuta, ya está en AsyncData.
+  final cachedProfile = ref.read(currentUserProfileProvider).valueOrNull;
+  final bibleVersion = cachedProfile?.bibleVersionCode ?? 'RVR1960';
 
   return await repository.getTodaysGospel(bibleVersion);
 });
@@ -39,11 +37,8 @@ final gospelForDateProvider =
     FutureProvider.family<DailyGospel?, DateTime>((ref, date) async {
   final repository = ref.watch(dailyGospelRepositoryProvider);
 
-  String bibleVersion = 'RVR1960';
-  try {
-    final profile = await ref.read(currentUserProfileProvider.future);
-    bibleVersion = profile?.bibleVersionCode ?? 'RVR1960';
-  } catch (_) {}
+  final cachedProfile = ref.read(currentUserProfileProvider).valueOrNull;
+  final bibleVersion = cachedProfile?.bibleVersionCode ?? 'RVR1960';
 
   return await repository.getGospelForDate(date, bibleVersion);
 });

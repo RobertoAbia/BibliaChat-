@@ -1355,8 +1355,13 @@ BibliaChat/
     - Nueva lógica simple:
       1. Si hay diálogo abierto → cerrarlo
       2. Si `canPop()` → `pop()` (usa historial)
-      3. En Home sin historial → cierra app
+      3. En Home sin historial → minimizar app (moveTaskToBack, como WhatsApp/Instagram)
       4. En otro tab sin historial → ir a Home
+  - **Botón atrás en Home minimiza en vez de cerrar:**
+    - Antes: `SystemNavigator.pop()` cerraba la activity (cold restart al volver)
+    - Después: MethodChannel `moveTaskToBack(true)` minimiza sin destruir (resume instantáneo)
+    - `MainActivity.kt`: MethodChannel `ee.bikain.bibliachat/app` con método `moveToBack`
+    - `app.dart`: `MethodChannel('ee.bikain.bibliachat/app').invokeMethod('moveToBack')` en Home sin historial
   - **Cierre de diálogos con botón atrás:**
     - **Problema:** `BackButtonInterceptor` intercepta el back button ANTES de que llegue a los diálogos
     - **Intentos fallidos:** Retornar `false` no funciona - el evento no llega al diálogo
@@ -1516,9 +1521,21 @@ BibliaChat/
     - Se mantiene: AnimatedSwitcher en gospel card, scale-on-tap, calendar animation 400ms
   - **Fix parpadeo gospel card (causa raíz):**
     - `dailyGospelProvider` usaba `ref.watch(currentUserProfileProvider)` → cuando perfil pasaba de `AsyncLoading` a `AsyncData`, el gospel se re-evaluaba, iba a loading, y recargaba los mismos datos
-    - Solución: `await ref.read(currentUserProfileProvider.future)` → espera perfil sin crear dependencia reactiva
+    - Solución inicial: `await ref.read(currentUserProfileProvider.future)` → espera perfil sin crear dependencia reactiva
     - Mismo patrón aplicado a `gospelForDateProvider`
     - La versión de biblia no cambia durante una sesión, no necesita ser reactivo
+  - **Guard en HomeScreen.build() — renderizar todo de golpe:**
+    - Problema residual: aunque datos se precargan en splash, Riverpod tiene gap `AsyncLoading → AsyncData` (1-2 frames) y cada provider entrega datos en momentos distintos → UI se construye por partes
+    - Guard verifica `hasValue || hasError` de `dailyGospelProvider`, `weekCompletionProvider`, `activePlanDataProvider`
+    - Si alguno no tiene datos → muestra solo gradiente de fondo (idéntico a splash → invisible)
+    - Safety net `_forceReady` (150ms timer): si providers no resuelven a tiempo, fuerza renderización
+    - Cuando todos listos → UI completa de golpe (calendario, gospel, plan activo — todo simultáneo)
+  - **Gospel provider: lectura síncrona del perfil (elimina 200ms de delay):**
+    - `dailyGospelProvider` tenía dependencia secuencial: `await profile.future` (~200ms) → gospel query (~200ms) = ~400ms
+    - Los otros providers empezaban inmediatamente → gospel siempre llegaba último
+    - Solución: cambiar `await ref.read(currentUserProfileProvider.future)` → `ref.read(currentUserProfileProvider).valueOrNull`
+    - Lectura síncrona: si perfil está cacheado (precargado en splash), usa el valor; si no, default 'RVR1960'
+    - Ahora TODOS los providers ejecutan sus queries en paralelo (~200ms cada uno) → resuelven al mismo tiempo
   - **Optimizaciones adicionales:**
     - `analytics_service.dart`: Observer como `late final` (lazy init, evita recrear)
     - `app_router.dart`: Guard `_previousLocation` para evitar state updates redundantes
@@ -1917,25 +1934,11 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
     ```
   - `_isMainRoute()` compara location exacta con `/home`, `/chat`, `/study`, `/settings`
   - Recrear PageController al volver de ruta anidada para mostrar la tab correcta
-- **Botón atrás Android + GoRouter:**
-  - `PopScope` con `canPop: false` NO recibe eventos en Android 13+ con GoRouter
-  - **Solución:** Usar `BackButtonListener` que sí recibe el evento:
-    ```dart
-    BackButtonListener(
-      onBackButtonPressed: () async {
-        if (GoRouter.of(context).canPop()) {
-          GoRouter.of(context).pop();
-          return true;
-        } else if (isMainRoute) {
-          await SystemNavigator.pop(); // Cierra la app
-          return true;
-        }
-        return false;
-      },
-      child: Scaffold(...),
-    )
-    ```
-  - Requiere `android:enableOnBackInvokedCallback="true"` en AndroidManifest.xml
+- **Botón atrás Android — BackButtonInterceptor + MethodChannel:**
+  - `BackButtonInterceptor` en `app.dart` maneja TODA la lógica de back button
+  - Lógica: diálogo abierto → cerrar | canPop → pop | Home → moveTaskToBack | otro tab → ir a Home
+  - `moveTaskToBack(true)` via MethodChannel `ee.bikain.bibliachat/app` → minimiza app sin destruir (como WhatsApp)
+  - NO usar `SystemNavigator.pop()` → destruye activity, cold restart al volver (mala UX)
 - **TextField sin contenedores anidados:**
   - Usar Container con borde + TextField con `fillColor: Colors.transparent`, `filled: false`
   - Evitar GlassContainer.input() que crea efecto de caja dentro de caja
@@ -2194,6 +2197,18 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
     final result = await onboardingFuture;
     ```
   - `FlutterNativeSplash.remove()` debe ir DESPUÉS de la precarga para que el splash nativo cubra la espera
+- **Guard en build() para renderizar UI completa de golpe:**
+  - Problema: Riverpod `AsyncLoading → AsyncData` ocurre en microtask posterior al `await .future` del splash → Home se renderiza con datos parciales por 1-2 frames
+  - Solución: Guard que verifica `hasValue || hasError` de todos los providers críticos antes de renderizar
+  - Si alguno no tiene datos → mostrar solo gradiente de fondo (idéntico a splash → invisible)
+  - Safety net: `_forceReady` con timer de 150ms para garantizar que la UI nunca se bloquea indefinidamente
+  - NO usar `!isLoading` (puede quedarse bloqueado si provider nunca resuelve) → usar `hasValue || hasError`
+- **Lectura síncrona de providers cacheados (eliminar dependencias secuenciales):**
+  - Problema: `await ref.read(provider.future)` dentro de otro FutureProvider crea dependencia secuencial (200ms extra)
+  - Solución: `ref.read(provider).valueOrNull?.field ?? default` — lectura síncrona del cache
+  - Si el provider fue precargado en splash, `.valueOrNull` devuelve el valor inmediatamente
+  - Si no fue precargado, devuelve null → usar valor por defecto
+  - Ejemplo: gospel provider lee versión de biblia del perfil cacheado en vez de await
 - **Cerrar teclado al tocar fuera de text fields:**
   - Envolver el `SingleChildScrollView` (o body) con `GestureDetector`:
     ```dart

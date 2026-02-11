@@ -58,9 +58,9 @@ class _BibliaChatAppState extends ConsumerState<BibliaChatApp> {
       return true;
     }
 
-    // 2. En Home sin historial → cerrar app
+    // 2. En Home sin historial → minimizar app (como WhatsApp/Instagram)
     if (currentTabIndex == 0) {
-      SystemNavigator.pop();
+      const MethodChannel('ee.bikain.bibliachat/app').invokeMethod('moveToBack');
       return true;
     }
 

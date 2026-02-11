@@ -28,9 +28,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// Día seleccionado en el calendario (por defecto hoy).
   DateTime _selectedDate = DateTime.now();
 
+  /// Guard: esperar a que los providers tengan datos antes de renderizar.
+  /// _forceReady es safety net: si algo falla, mostramos la UI igual tras 150ms.
+  bool _forceReady = false;
+
   @override
   void initState() {
     super.initState();
+    // Safety net: si los providers no resuelven rápido, mostrar UI igual
+    Future.delayed(const Duration(milliseconds: 150), () {
+      if (mounted && !_forceReady) {
+        setState(() => _forceReady = true);
+      }
+    });
     // Pedir permiso de notificaciones después de que Home sea visible
     WidgetsBinding.instance.addPostFrameCallback((_) {
       NotificationService().requestPermissionIfNeeded();
@@ -47,6 +57,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Guard: no renderizar hasta que los providers críticos tengan datos.
+    // _forceReady (150ms) es safety net para que la UI nunca se quede bloqueada.
+    if (!_forceReady) {
+      final gospel = ref.watch(dailyGospelProvider);
+      final week = ref.watch(weekCompletionProvider);
+      final plan = ref.watch(activePlanDataProvider);
+
+      final allReady = (gospel.hasValue || gospel.hasError) &&
+          (week.hasValue || week.hasError) &&
+          (plan.hasValue || plan.hasError);
+
+      if (!allReady) {
+        return Scaffold(
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: AppTheme.backgroundGradient,
+            ),
+          ),
+        );
+      }
+    }
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -202,7 +234,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             );
           },
-          child: Row(
+          child: weekCompletionAsync.isLoading
+              ? const SizedBox(height: 52)
+              : Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: List.generate(7, (index) {
             final day = weekStart.add(Duration(days: index));
@@ -764,10 +798,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       },
     );
 
-    return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 600),
-      child: cardChild,
-    );
+    return cardChild;
   }
 }
 

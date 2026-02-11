@@ -14,6 +14,7 @@ import '../../../../core/services/revenue_cat_service.dart';
 import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart';
 import '../../../home/presentation/providers/daily_progress_provider.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
+import '../../../study/presentation/providers/study_provider.dart';
 
 /// Splash screen simplificada - la UI viene de la splash nativa
 /// Este widget solo hace el auth check y navega
@@ -86,6 +87,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         if (!mounted) return;
 
         if (hasCompletedOnboarding) {
+          // Precargar datos de Home ANTES de navegar (splash nativo cubre la espera)
+          await _preloadHomeData();
+          if (!mounted) return;
           FlutterNativeSplash.remove();
           context.go(RouteConstants.home);
           _initializeBackgroundServices(user.id);
@@ -136,16 +140,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     });
   }
 
+  /// Precarga TODOS los datos de Home y espera a que terminen.
+  /// El splash nativo sigue visible durante la espera.
+  /// Timeout de 1.5s: si la red es lenta, los placeholders cubren el resto.
+  Future<void> _preloadHomeData() async {
+    await Future.wait([
+      ref.read(currentUserProfileProvider.future).catchError((_) => null),
+      ref.read(dailyGospelProvider.future).catchError((_) => null),
+      ref.read(weekCompletionProvider.future).catchError((_) => <String>{}),
+      ref.read(activePlanDataProvider.future).catchError((_) => null),
+    ]).timeout(
+      const Duration(milliseconds: 1500),
+      onTimeout: () => [null, null, <String>{}, null],
+    );
+  }
+
   /// Lanza servicios no críticos en background después de navegar.
-  /// RevenueCat + preload de datos: estarán listos antes de que el usuario los necesite.
   void _initializeBackgroundServices(String userId) {
-    // RevenueCat: estará listo antes de que el usuario llegue al paywall
     RevenueCatService.instance.init(userId).catchError((e) {
       debugPrint('RevenueCat init error: $e');
     });
-    // Preload Home data: el placeholder glass cubre mientras cargan
-    ref.read(dailyGospelProvider.future).catchError((_) => null);
-    ref.read(weekCompletionProvider.future).catchError((_) => <String>{});
   }
 
   @override
