@@ -10,8 +10,6 @@ import '../widgets/onboarding_welcome_page.dart';
 import '../widgets/onboarding_selection_page.dart';
 import '../widgets/onboarding_country_page.dart';
 import '../widgets/onboarding_reminder_page.dart';
-import '../widgets/onboarding_persistence_page.dart';
-import '../widgets/onboarding_text_input_page.dart';
 import '../widgets/onboarding_analyzing_page.dart';
 import '../widgets/onboarding_ready_page.dart';
 
@@ -25,7 +23,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 11; // Welcome + 8 preguntas + Analyzing + Ready
+  final int _totalPages = 10; // Welcome + 7 preguntas + Analyzing + Ready
 
   @override
   void dispose() {
@@ -104,8 +102,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         return state.supportType != null;
       case 6: // Reminder - optional, always can proceed
         return true;
-      case 7: // Persistence - requires selection
-        return state.persistenceSelfReport != null;
+      case 7: // Faith motivation - requires selection
+        return state.heartMessage != null;
       default:
         return true;
     }
@@ -305,41 +303,50 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 7: Persistence
+                    // Page 7: Faith motivation
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
                         final notifier = ref.read(onboardingProvider.notifier);
-                        return OnboardingPersistencePage(
-                          selectedValue: state.persistenceSelfReport,
-                          onSelect: (value) => notifier.setPersistenceSelfReport(value),
+                        return OnboardingSelectionPage(
+                          verseReference: 'Filipenses 1:6',
+                          title: 'El que comenzó en vosotros la buena obra, la perfeccionará.',
+                          subtitle: '¿Por qué es importante para ti trabajar en tu Fe ahora?',
+                          options: const [
+                            SelectionOption(
+                              key: 'difficult_moment',
+                              label: 'Estoy pasando por un momento difícil',
+                              icon: Icons.favorite,
+                            ),
+                            SelectionOption(
+                              key: 'spiritual_growth',
+                              label: 'Quiero crecer espiritualmente',
+                              icon: Icons.auto_awesome,
+                            ),
+                            SelectionOption(
+                              key: 'feeling_distant',
+                              label: 'Me siento alejado/a de Dios',
+                              icon: Icons.explore,
+                            ),
+                            SelectionOption(
+                              key: 'understand_bible',
+                              label: 'Quiero entender mejor la Biblia',
+                              icon: Icons.menu_book,
+                            ),
+                          ],
+                          selectedKey: state.heartMessage,
+                          onSelect: (key) => notifier.setHeartMessage(key),
                           onNext: _canProceed() ? _nextPage : null,
                         );
                       },
                     ),
 
-                    // Page 8: Heart input
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        final notifier = ref.read(onboardingProvider.notifier);
-                        return OnboardingTextInputPage(
-                          title:
-                              '¿Qué hay en tu corazón?\nCreemos que la Biblia tiene\nconsuelo y paz para ti.',
-                          hint: 'Escribe lo que sientes...',
-                          initialValue: state.heartMessage,
-                          onChanged: (value) => notifier.setHeartMessage(value),
-                          onNext: _nextPage,
-                        );
-                      },
-                    ),
-
-                    // Page 9: Analyzing
+                    // Page 8: Analyzing
                     OnboardingAnalyzingPage(
                       onComplete: _nextPage,
                     ),
 
-                    // Page 10: Ready
+                    // Page 9: Ready
                     OnboardingReadyPage(
                       onStart: _completeOnboarding,
                     ),

@@ -68,7 +68,6 @@ class OnboardingState {
   final String? heartMessage;
   final bool reminderEnabled;
   final TimeOfDay reminderTime;
-  final bool? persistenceSelfReport;
   final bool isLoading;
   final String? error;
 
@@ -84,7 +83,6 @@ class OnboardingState {
     this.heartMessage,
     this.reminderEnabled = false,
     this.reminderTime = const TimeOfDay(hour: 8, minute: 0),
-    this.persistenceSelfReport,
     this.isLoading = false,
     this.error,
   });
@@ -101,7 +99,6 @@ class OnboardingState {
     String? heartMessage,
     bool? reminderEnabled,
     TimeOfDay? reminderTime,
-    bool? persistenceSelfReport,
     bool? isLoading,
     String? error,
   }) {
@@ -117,7 +114,6 @@ class OnboardingState {
       heartMessage: heartMessage ?? this.heartMessage,
       reminderEnabled: reminderEnabled ?? this.reminderEnabled,
       reminderTime: reminderTime ?? this.reminderTime,
-      persistenceSelfReport: persistenceSelfReport ?? this.persistenceSelfReport,
       isLoading: isLoading ?? this.isLoading,
       error: error,
     );
@@ -194,10 +190,6 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     state = state.copyWith(reminderTime: value);
   }
 
-  void setPersistenceSelfReport(bool value) {
-    state = state.copyWith(persistenceSelfReport: value);
-  }
-
   /// Convierte TimeOfDay a DateTime para guardar en BD
   DateTime? _timeOfDayToDateTime(TimeOfDay time) {
     final now = DateTime.now();
@@ -241,7 +233,6 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
         reminderTime: state.reminderEnabled
             ? _timeOfDayToDateTime(state.reminderTime)
             : null,
-        persistenceSelfReport: state.persistenceSelfReport,
         timezone: timezone,
       );
 

@@ -147,7 +147,7 @@ BibliaChat/
   - Tema Material 3 (light/dark)
   - Pantallas creadas:
     - SplashScreen (auth anónimo automático)
-    - OnboardingScreen (11 páginas: Welcome → Edad → Género → País → Denominación → Motivo → Recordatorio → Persistencia → Corazón → Análisis → Ready)
+    - OnboardingScreen (10 páginas: Welcome → Edad → Género → País → Denominación → Motivo → Recordatorio → Fe → Analizando → ¡Todo listo!)
     - HomeScreen (racha, versículo, devoción, oración)
     - ChatListScreen (10 temas)
     - ChatScreen (interfaz de chat)
@@ -203,7 +203,7 @@ BibliaChat/
     - `userProfileStreamProvider` - Cambios en tiempo real
     - `hasCompletedOnboardingProvider` - Verificación onboarding
     - `onboardingProvider` - StateNotifier para formulario onboarding
-  - **Pantallas de onboarding (11 páginas):**
+  - **Pantallas de onboarding (10 páginas):**
     - 0: Welcome (nombre)
     - 1: Edad (age_group)
     - 2: Género (gender) - Hombre/Mujer
@@ -211,10 +211,9 @@ BibliaChat/
     - 4: Denominación
     - 5: Motivo (tipo de apoyo)
     - 6: Recordatorio (reminder_enabled, reminder_time) - Toggle + Time picker
-    - 7: Persistencia (persistence_self_report) - Sí/No para recomendar planes
-    - 8: Corazón (primer mensaje libre)
-    - 9: Análisis (animación)
-    - 10: Ready (confirmación + auto-detección timezone)
+    - 7: Fe - "¿Por qué es importante para ti trabajar en tu Fe ahora?" (4 opciones: difficult_moment, spiritual_growth, feeling_distant, understand_bible) → guarda key en `first_message`
+    - 8: Analizando (animación)
+    - 9: ¡Todo listo! (confirmación + auto-detección timezone)
   - **Auto-detección de timezone:**
     - Usa `flutter_timezone` para detectar zona horaria del dispositivo
     - Se guarda en `user_profiles.timezone` al completar onboarding
@@ -1640,6 +1639,30 @@ BibliaChat/
     - BBDD: Edge Functions `send-notification` y `send-daily-reminders` documentadas, `max_completion_tokens` corregido
     - Tickets: Sprint 8 con 9 items nuevos, header actualizado
 
+- [x] Feature: Simplificar onboarding — eliminar persistencia + nueva pregunta Fe
+  - **Objetivo:** Reducir onboarding de 11 a 10 páginas, reemplazar pregunta de texto libre por selección concreta
+  - **Página eliminada:** Página 7 (Persistencia) — pregunta Sí/No sobre autodisciplina que no se usaba funcionalmente
+  - **Página reemplazada:** Página 8 (Corazón "¿Qué hay en tu corazón?" texto libre) → nueva página de selección "¿Por qué es importante para ti trabajar en tu Fe ahora?"
+  - **Nueva página Fe (page 7):**
+    - Versículo: Filipenses 1:6 — "El que comenzó en vosotros la buena obra, la perfeccionará."
+    - 4 opciones (single select):
+      | Key | Label | Icono |
+      |-----|-------|-------|
+      | `difficult_moment` | Estoy pasando por un momento difícil | `favorite` |
+      | `spiritual_growth` | Quiero crecer espiritualmente | `auto_awesome` |
+      | `feeling_distant` | Me siento alejado/a de Dios | `explore` |
+      | `understand_bible` | Quiero entender mejor la Biblia | `menu_book` |
+    - La key seleccionada se guarda en `first_message` de la BD (reutiliza columna TEXT existente)
+  - **Total páginas:** 10 (Welcome → Edad → Género → País → Denominación → Motivo → Recordatorio → Fe → Analizando → ¡Todo listo!)
+  - **Estado limpio:** Eliminado `persistenceSelfReport` de `OnboardingState`, `copyWith`, `OnboardingNotifier`
+  - **Sin migración SQL:** La columna `first_message` (TEXT) se reutiliza para almacenar la key de selección
+  - **Archivos modificados:**
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - Eliminar pág. persistencia, nueva pág. Fe, reindexar páginas
+    - `lib/features/profile/presentation/providers/user_profile_provider.dart` - Eliminar persistenceSelfReport del estado y notifier
+  - **Archivos que ya no se importan (pueden eliminarse):**
+    - `lib/features/onboarding/presentation/widgets/onboarding_persistence_page.dart`
+    - `lib/features/onboarding/presentation/widgets/onboarding_text_input_page.dart`
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
@@ -1728,6 +1751,7 @@ BibliaChat/
 - [x] Feature: Verificación de permisos de notificaciones en Recordatorio - COMPLETADO
 - [x] Fix: hasChanges incorrecto al auto-desactivar reminder - COMPLETADO
 - [x] Docs: Actualización completa de documentación (PRD, Backlog, Arquitectura, BBDD, Tickets) - COMPLETADO
+- [x] Feature: Simplificar onboarding (11→10 páginas) - Eliminar persistencia, nueva pregunta Fe - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 - [ ] **Feature: Widget versículo en Lock Screen** (iOS) + Home Screen (Android) - PLANIFICADO
