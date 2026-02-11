@@ -132,6 +132,14 @@ class ProfileEditNotifier extends StateNotifier<ProfileEditState> {
     state = state.copyWith(reminderEnabled: value);
   }
 
+  /// Actualiza el valor original de reminderEnabled (para sincronizar la baseline
+  /// cuando el sistema fuerza un cambio, ej: permisos revocados)
+  void updateOriginalReminderEnabled(bool value) {
+    if (_originalProfile != null) {
+      _originalProfile = _originalProfile!.copyWith(reminderEnabled: value);
+    }
+  }
+
   /// Actualiza la hora del recordatorio
   void updateReminderTime(DateTime? value) {
     state = state.copyWith(reminderTime: value);

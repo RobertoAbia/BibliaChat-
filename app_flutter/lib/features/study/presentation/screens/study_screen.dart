@@ -129,18 +129,22 @@ class StudyScreen extends ConsumerWidget {
                   // Active Plan Section
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: activePlanAsync.when(
-                      data: (activePlan) {
-                        if (activePlan == null) {
-                          return _NoActivePlanCard();
-                        }
-                        return _ActivePlanCard(
-                          activePlanData: activePlan,
-                          gradient: _getGradientForPlan(activePlan.plan),
-                        );
-                      },
-                      loading: () => const _ActivePlanCardLoading(),
-                      error: (_, __) => _NoActivePlanCard(),
+                    child: AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 500),
+                      child: activePlanAsync.when(
+                        data: (activePlan) {
+                          if (activePlan == null) {
+                            return _NoActivePlanCard(key: const ValueKey('no-plan'));
+                          }
+                          return _ActivePlanCard(
+                            key: const ValueKey('active-plan'),
+                            activePlanData: activePlan,
+                            gradient: _getGradientForPlan(activePlan.plan),
+                          );
+                        },
+                        loading: () => const _ActivePlanCardLoading(key: ValueKey('loading')),
+                        error: (_, __) => _NoActivePlanCard(key: const ValueKey('no-plan')),
+                      ),
                     ),
                   ),
 
@@ -150,16 +154,9 @@ class StudyScreen extends ConsumerWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: plansAsync.when(
-                      data: (plans) {
-                        // Show filtered count (excluding active plan)
-                        final activePlanId = activePlanAsync.valueOrNull?.plan.id;
-                        final availableCount = activePlanId != null
-                            ? plans.where((p) => p.id != activePlanId).length
-                            : plans.length;
-                        return _PlansHeader(planCount: availableCount);
-                      },
-                      loading: () => _PlansHeader(planCount: 0),
-                      error: (_, __) => _PlansHeader(planCount: 0),
+                      data: (plans) => _PlansHeader(planCount: plans.length),
+                      loading: () => const _PlansHeader(planCount: 0),
+                      error: (_, __) => const _PlansHeader(planCount: 0),
                     ),
                   ),
 
@@ -189,26 +186,12 @@ class StudyScreen extends ConsumerWidget {
                             (up) => up?.planId == plan.id,
                             orElse: () => null,
                           );
-                          return TweenAnimationBuilder<double>(
-                            tween: Tween(begin: 0.0, end: 1.0),
-                            duration: Duration(milliseconds: 400 + (index * 60)),
-                            curve: Curves.easeOutCubic,
-                            builder: (context, value, child) {
-                              return Transform.translate(
-                                offset: Offset(0, 20 * (1 - value)),
-                                child: Opacity(
-                                  opacity: value,
-                                  child: child,
-                                ),
-                              );
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: _StudyPlanTile(
-                                plan: plan,
-                                gradient: _getGradientForPlan(plan),
-                                userPlan: userPlan,
-                              ),
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _StudyPlanTile(
+                              plan: plan,
+                              gradient: _getGradientForPlan(plan),
+                              userPlan: userPlan,
                             ),
                           );
                         },
@@ -332,6 +315,8 @@ class _PlansHeader extends StatelessWidget {
 }
 
 class _NoActivePlanCard extends StatelessWidget {
+  const _NoActivePlanCard({super.key});
+
   @override
   Widget build(BuildContext context) {
     return ClipRRect(
@@ -386,7 +371,7 @@ class _NoActivePlanCard extends StatelessWidget {
 }
 
 class _ActivePlanCardLoading extends StatelessWidget {
-  const _ActivePlanCardLoading();
+  const _ActivePlanCardLoading({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -399,6 +384,7 @@ class _ActivePlanCard extends StatefulWidget {
   final LinearGradient gradient;
 
   const _ActivePlanCard({
+    super.key,
     required this.activePlanData,
     required this.gradient,
   });

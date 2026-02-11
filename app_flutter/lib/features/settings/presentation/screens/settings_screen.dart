@@ -92,9 +92,11 @@ class SettingsScreen extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
                   _buildStat(context, ref.watch(streakDaysDisplayProvider).toString(), 'Racha'),
-                  _buildStat(context, ref.watch(allUserPlansProvider).whenOrNull(
-                    data: (plans) => plans.where((p) => p.isCompleted).length,
-                  )?.toString() ?? '0', 'Planes\nCompletados'),
+                  _buildStat(context, ref.watch(allUserPlansProvider).when(
+                    data: (plans) => plans.where((p) => p.isCompleted).length.toString(),
+                    loading: () => '-',
+                    error: (_, __) => '-',
+                  ), 'Planes\nCompletados'),
                 ],
               ),
             ),

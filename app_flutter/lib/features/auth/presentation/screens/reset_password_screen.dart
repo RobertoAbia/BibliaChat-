@@ -50,11 +50,14 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
+          child: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.opaque,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 40),
@@ -111,6 +114,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
                 ],
               ),
             ),
+          ),
           ),
         ),
       ),

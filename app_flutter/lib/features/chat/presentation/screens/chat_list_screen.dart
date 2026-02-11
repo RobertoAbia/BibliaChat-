@@ -132,28 +132,14 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                                 }
 
                                 final chat = chats[index - 1];
-                                return TweenAnimationBuilder<double>(
-                                  tween: Tween(begin: 0.0, end: 1.0),
-                                  duration: Duration(milliseconds: 300 + (index * 50)),
-                                  curve: Curves.easeOutCubic,
-                                  builder: (context, value, child) {
-                                    return Transform.translate(
-                                      offset: Offset(0, 20 * (1 - value)),
-                                      child: Opacity(
-                                        opacity: value,
-                                        child: child,
-                                      ),
-                                    );
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                                    child: _ChatTile(
-                                      chat: chat,
-                                      onReturn: () {
-                                        if (!context.mounted) return;
-                                        ref.read(userChatsRefreshProvider.notifier).state++;
-                                      },
-                                    ),
+                                return Padding(
+                                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                                  child: _ChatTile(
+                                    chat: chat,
+                                    onReturn: () {
+                                      if (!context.mounted) return;
+                                      ref.read(userChatsRefreshProvider.notifier).state++;
+                                    },
                                   ),
                                 );
                               },

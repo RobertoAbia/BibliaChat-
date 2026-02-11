@@ -1536,6 +1536,68 @@ BibliaChat/
     - `lib/features/subscription/presentation/providers/subscription_provider.dart` - Eliminar check redundante
     - `lib/app.dart` - Eliminar debugPrints
 
+- [x] Fix: Optimizar carga de tabs Chat, Study y Settings
+  - **Chat tab (`chat_list_screen.dart`):**
+    - Eliminado `TweenAnimationBuilder` staggered (300ms + 50ms/tile) de los chat tiles
+    - Los tiles ahora aparecen instantáneamente sin animación "a impulsos"
+  - **Study tab (`study_screen.dart`):**
+    - Eliminado `TweenAnimationBuilder` staggered (400ms + 60ms/tile) de los plan tiles
+    - Header ya no flashea "7 planes" → "6 planes" (siempre muestra total sin filtrar plan activo)
+    - Active plan card ahora usa `AnimatedSwitcher` con `ValueKey` para crossfade suave (shimmer → card real)
+    - Añadido `super.key` a `_NoActivePlanCard`, `_ActivePlanCard`, `_ActivePlanCardLoading` para AnimatedSwitcher
+  - **Settings tab (`settings_screen.dart`):**
+    - Stats "Planes Completados" muestra '-' durante loading en vez de '0' (evita flash 0 → valor real)
+    - Usa `.when(data:, loading:, error:)` en vez de `.valueOrNull ?? '0'`
+  - **Archivos modificados:**
+    - `lib/features/chat/presentation/screens/chat_list_screen.dart` - Eliminar TweenAnimationBuilder
+    - `lib/features/study/presentation/screens/study_screen.dart` - Eliminar TweenAnimationBuilder + header fix + AnimatedSwitcher
+    - `lib/features/settings/presentation/screens/settings_screen.dart` - Stats loading display
+
+- [x] Fix: Teclado no se cierra al tocar fuera en pantallas de auth
+  - **Problema:** En LoginScreen, LinkEmailScreen y ResetPasswordScreen, al tocar fuera de los campos de texto el teclado permanecía abierto
+  - **Solución:** Envolver `SingleChildScrollView` con `GestureDetector(onTap: () => FocusScope.of(context).unfocus(), behavior: HitTestBehavior.opaque)`
+  - `HitTestBehavior.opaque` asegura que el gesto se detecte incluso en espacio vacío
+  - **Archivos modificados:**
+    - `lib/features/auth/presentation/screens/login_screen.dart`
+    - `lib/features/auth/presentation/screens/link_email_screen.dart`
+    - `lib/features/auth/presentation/screens/reset_password_screen.dart`
+
+- [x] Feature: Verificación de permisos de notificaciones en Recordatorio
+  - **Problema:** El toggle de "Recordatorio diario" en Editar Perfil no verificaba permisos de notificaciones
+  - **3 escenarios cubiertos:**
+    1. **Toggle OFF → intenta activar sin permiso:** Llama `NotificationService().requestPermission()`, si deniega muestra dialog
+    2. **Toggle ON pero permisos revocados desde ajustes del dispositivo:** Al abrir Editar Perfil, `_checkNotificationPermission()` detecta la inconsistencia, desactiva el toggle y muestra dialog
+    3. **Toggle ON con permisos OK:** No pasa nada (correcto)
+  - **Dialog "Notificaciones desactivadas":**
+    - Icono campana apagada en círculo naranja (estilo glassmorphism de la app)
+    - Texto explicativo
+    - Botón "Ahora no" (gris) + botón "Abrir Ajustes" (dorado)
+    - "Abrir Ajustes" abre directamente la configuración de notificaciones del dispositivo
+  - **Paquete añadido:** `app_settings: ^7.0.0` - Para abrir ajustes de notificaciones del dispositivo (iOS + Android)
+  - **Métodos nuevos:**
+    - `_checkNotificationPermission()` - Verifica permisos al cargar perfil usando `FirebaseMessaging.instance.getNotificationSettings()` (solo lectura, no muestra diálogo del sistema)
+    - `_showNotificationPermissionDialog()` - Dialog reutilizable para ambos escenarios
+  - **Archivos modificados:**
+    - `lib/features/profile/presentation/screens/profile_edit_screen.dart` - Toggle con check + dialog + auto-detección
+    - `pubspec.yaml` - Dependencia `app_settings`
+
+- [x] Fix: hasChanges incorrecto al auto-desactivar reminder por permisos revocados
+  - **Problema:** Cuando `_checkNotificationPermission()` auto-desactivaba el toggle, `hasChanges` se ponía a `true` sin que el usuario hubiera tocado nada. Si luego el usuario activaba permisos y ponía el toggle ON, `hasChanges` volvía a `false` y no podía guardar.
+  - **Causa raíz:** `updateReminderEnabled(false)` cambiaba el estado pero no actualizaba `_originalProfile`, la referencia que usa `hasChanges` para comparar.
+  - **Solución:** Nuevo método `updateOriginalReminderEnabled()` en `ProfileEditNotifier` que sincroniza la baseline. Se llama junto a `updateReminderEnabled(false)` en `_checkNotificationPermission()`.
+  - **Archivos modificados:**
+    - `lib/features/profile/presentation/providers/profile_edit_provider.dart` - Nuevo método `updateOriginalReminderEnabled()`
+    - `lib/features/profile/presentation/screens/profile_edit_screen.dart` - Llamada al nuevo método
+
+- [x] Docs: Actualización completa de documentación del proyecto
+  - **5 documentos actualizados:** PRD, Backlog, Arquitectura, BBDD, Tickets
+  - **Cambios principales:**
+    - PRD: F-016 (Evangelio+Stories), F-017/F-019 descartados, tabs actualizados
+    - Backlog: JS-008, JS-014-JS-025 con estado de implementación
+    - Arquitectura: C4 con Firebase/FCM, bounded contexts actualizados, UNIQUE constraint eliminado
+    - BBDD: Edge Functions `send-notification` y `send-daily-reminders` documentadas, `max_completion_tokens` corregido
+    - Tickets: Sprint 8 con 9 items nuevos, header actualizado
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
@@ -1619,6 +1681,11 @@ BibliaChat/
 - [x] **Feature: Calendario semanal interactivo** - Candados en días pasados no completados → Paywall - COMPLETADO
 - [x] Fix: Valorar/Compartir pre-publicación - SnackBar + texto sin links (TODO: restaurar post-publicación)
 - [x] Fix: Eliminar flicker de carga en HomeScreen + Optimizar splash - COMPLETADO
+- [x] Fix: Optimizar carga de tabs Chat, Study y Settings - COMPLETADO
+- [x] Fix: Teclado no se cierra al tocar fuera en pantallas de auth - COMPLETADO
+- [x] Feature: Verificación de permisos de notificaciones en Recordatorio - COMPLETADO
+- [x] Fix: hasChanges incorrecto al auto-desactivar reminder - COMPLETADO
+- [x] Docs: Actualización completa de documentación (PRD, Backlog, Arquitectura, BBDD, Tickets) - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 - [ ] **Feature: Widget versículo en Lock Screen** (iOS) + Home Screen (Android) - PLANIFICADO
@@ -2127,3 +2194,19 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
     final result = await onboardingFuture;
     ```
   - `FlutterNativeSplash.remove()` debe ir DESPUÉS de la precarga para que el splash nativo cubra la espera
+- **Cerrar teclado al tocar fuera de text fields:**
+  - Envolver el `SingleChildScrollView` (o body) con `GestureDetector`:
+    ```dart
+    GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      behavior: HitTestBehavior.opaque,
+      child: SingleChildScrollView(...),
+    )
+    ```
+  - `HitTestBehavior.opaque` es necesario para que el gesto se detecte en espacio vacío (sin widgets)
+  - Aplicar en todas las pantallas con formularios (auth screens, etc.)
+- **Verificar permisos de notificaciones sin mostrar diálogo del sistema:**
+  - `FirebaseMessaging.instance.getNotificationSettings()` es solo lectura (no solicita permiso)
+  - Útil para detectar permisos revocados desde ajustes del dispositivo
+  - `requestPermission()` muestra el diálogo del sistema (solo la primera vez en iOS, puede repetir en Android)
+  - Paquete `app_settings` para abrir ajustes de notificaciones: `AppSettings.openAppSettings(type: AppSettingsType.notification)`

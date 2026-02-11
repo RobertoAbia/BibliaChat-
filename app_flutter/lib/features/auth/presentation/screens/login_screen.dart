@@ -49,127 +49,131 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Back button
-                  IconButton(
-                    onPressed: () => context.pop(),
-                    icon: const Icon(
-                      Icons.arrow_back,
-                      color: AppTheme.textPrimary,
-                    ),
-                    style: IconButton.styleFrom(
-                      backgroundColor: AppTheme.surfaceDark.withOpacity(0.5),
-                      padding: const EdgeInsets.all(12),
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // Icono
-                  Center(child: _buildIcon()),
-
-                  const SizedBox(height: 32),
-
-                  // Título
-                  Center(
-                    child: Text(
-                      'Bienvenido de vuelta',
-                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                            color: AppTheme.textPrimary,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Subtítulo
-                  Center(
-                    child: Text(
-                      'Inicia sesión para recuperar tus conversaciones y progreso',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: AppTheme.textSecondary,
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-
-                  const SizedBox(height: 48),
-
-                  // Campo Email
-                  _buildEmailField(),
-
-                  const SizedBox(height: 20),
-
-                  // Campo Password
-                  _buildPasswordField(),
-
-                  const SizedBox(height: 12),
-
-                  // Olvidé contraseña
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: _onForgotPassword,
-                      child: const Text(
-                        '¿Olvidaste tu contraseña?',
-                        style: TextStyle(
-                          color: AppTheme.primaryColor,
-                          fontSize: 14,
-                        ),
+          child: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.opaque,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Back button
+                    IconButton(
+                      onPressed: () => context.pop(),
+                      icon: const Icon(
+                        Icons.arrow_back,
+                        color: AppTheme.textPrimary,
+                      ),
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppTheme.surfaceDark.withOpacity(0.5),
+                        padding: const EdgeInsets.all(12),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 8),
+                    const SizedBox(height: 40),
 
-                  // Mensaje de error
-                  if (authState.errorMessage != null)
-                    _buildErrorMessage(authState.errorMessage!),
+                    // Icono
+                    Center(child: _buildIcon()),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 32),
 
-                  // Botón Login
-                  _buildLoginButton(authState.isLoading),
-
-                  const SizedBox(height: 32),
-
-                  // Divider
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Divider(
-                          color: AppTheme.surfaceLight.withOpacity(0.3),
-                        ),
+                    // Título
+                    Center(
+                      child: Text(
+                        'Bienvenido de vuelta',
+                        style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                              color: AppTheme.textPrimary,
+                              fontWeight: FontWeight.bold,
+                            ),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Text(
-                          'o',
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Subtítulo
+                    Center(
+                      child: Text(
+                        'Inicia sesión para recuperar tus conversaciones y progreso',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: AppTheme.textSecondary,
+                            ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+
+                    const SizedBox(height: 48),
+
+                    // Campo Email
+                    _buildEmailField(),
+
+                    const SizedBox(height: 20),
+
+                    // Campo Password
+                    _buildPasswordField(),
+
+                    const SizedBox(height: 12),
+
+                    // Olvidé contraseña
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _onForgotPassword,
+                        child: const Text(
+                          '¿Olvidaste tu contraseña?',
                           style: TextStyle(
-                            color: AppTheme.textTertiary,
+                            color: AppTheme.primaryColor,
+                            fontSize: 14,
                           ),
                         ),
                       ),
-                      Expanded(
-                        child: Divider(
-                          color: AppTheme.surfaceLight.withOpacity(0.3),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // Mensaje de error
+                    if (authState.errorMessage != null)
+                      _buildErrorMessage(authState.errorMessage!),
+
+                    const SizedBox(height: 24),
+
+                    // Botón Login
+                    _buildLoginButton(authState.isLoading),
+
+                    const SizedBox(height: 32),
+
+                    // Divider
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Divider(
+                            color: AppTheme.surfaceLight.withOpacity(0.3),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'o',
+                            style: TextStyle(
+                              color: AppTheme.textTertiary,
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: Divider(
+                            color: AppTheme.surfaceLight.withOpacity(0.3),
+                          ),
+                        ),
+                      ],
+                    ),
 
-                  const SizedBox(height: 32),
+                    const SizedBox(height: 32),
 
-                  // Botón Empezar de nuevo
-                  _buildStartFreshButton(),
-                ],
+                    // Botón Empezar de nuevo
+                    _buildStartFreshButton(),
+                  ],
+                ),
               ),
             ),
           ),

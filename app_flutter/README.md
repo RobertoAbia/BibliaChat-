@@ -1,16 +1,52 @@
-# biblia_chat
+# Biblia Chat - App Flutter
 
-A new Flutter project.
+App cristiana para hispanohablantes en EE.UU. que combina IA denominacional, devocionales personalizados y planes de estudio.
 
-## Getting Started
+## Stack
 
-This project is a starting point for a Flutter application.
+- **Framework:** Flutter 3.35.3 (iOS 14.5+ / Android 6.0+)
+- **Backend:** Supabase (PostgreSQL + Auth + RLS + Edge Functions)
+- **IA:** OpenAI GPT-5.2
+- **Pagos:** RevenueCat
+- **Notificaciones:** Firebase Cloud Messaging
+- **Analytics:** Firebase Analytics
 
-A few resources to get you started if this is your first Flutter project:
+## Arquitectura
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+Clean Architecture con Riverpod para estado y GoRouter para navegación.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+```
+lib/
+├── core/               # Theme, router, services, constants
+├── features/
+│   ├── auth/           # Auth (anónimo, email, reset password)
+│   ├── onboarding/     # Onboarding (11 páginas)
+│   ├── home/           # Home (calendario, progreso, racha)
+│   ├── chat/           # Chat IA (híbrido: libre + temas)
+│   ├── study/          # Planes de estudio (7 pecados capitales)
+│   ├── daily_gospel/   # Evangelio del día + Stories
+│   ├── profile/        # Perfil de usuario
+│   ├── settings/       # Configuración
+│   ├── subscription/   # Paywall + RevenueCat
+│   ├── saved_messages/  # Mensajes guardados
+│   └── legal/          # Privacidad + Términos
+└── app.dart            # MaterialApp + BackButtonInterceptor
+```
+
+## Setup
+
+```bash
+flutter pub get
+flutter run -d ios
+flutter run -d android
+```
+
+## Configuracion requerida
+
+- `.env` en la raiz del proyecto con credenciales de Supabase
+- `google-services.json` en `android/app/`
+- `GoogleService-Info.plist` en `ios/Runner/`
+
+## Documentacion
+
+La documentacion completa del proyecto esta en `CLAUDE.md` en la raiz del repositorio.

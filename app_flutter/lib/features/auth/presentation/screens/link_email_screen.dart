@@ -51,11 +51,14 @@ class _LinkEmailScreenState extends ConsumerState<LinkEmailScreen> {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
+          child: GestureDetector(
+            onTap: () => FocusScope.of(context).unfocus(),
+            behavior: HitTestBehavior.opaque,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Back button
@@ -147,6 +150,7 @@ class _LinkEmailScreenState extends ConsumerState<LinkEmailScreen> {
                 ],
               ),
             ),
+          ),
           ),
         ),
       ),

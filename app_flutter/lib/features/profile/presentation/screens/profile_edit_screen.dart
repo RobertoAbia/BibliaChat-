@@ -1,7 +1,11 @@
+import 'package:app_settings/app_settings.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
 import '../../../onboarding/presentation/widgets/onboarding_country_page.dart';
@@ -51,7 +55,85 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
         _selectedCountryCode = country.code;
       }
       setState(() => _initialized = true);
+      _checkNotificationPermission();
     }
+  }
+
+  /// Si el reminder está activado pero los permisos de notificaciones fueron
+  /// revocados desde ajustes del dispositivo, desactiva el toggle y avisa.
+  Future<void> _checkNotificationPermission() async {
+    if (kIsWeb) return;
+    final editState = ref.read(profileEditProvider);
+    if (!editState.reminderEnabled) return;
+
+    final settings = await FirebaseMessaging.instance.getNotificationSettings();
+    final isAuthorized =
+        settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional;
+
+    if (!isAuthorized && mounted) {
+      ref.read(profileEditProvider.notifier).updateReminderEnabled(false);
+      ref.read(profileEditProvider.notifier).updateOriginalReminderEnabled(false);
+      _showNotificationPermissionDialog();
+    }
+  }
+
+  void _showNotificationPermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        icon: Container(
+          width: 56,
+          height: 56,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppTheme.warningColor.withOpacity(0.15),
+          ),
+          child: Icon(
+            Icons.notifications_off_outlined,
+            color: AppTheme.warningColor,
+            size: 28,
+          ),
+        ),
+        title: Text(
+          'Notificaciones desactivadas',
+          style: TextStyle(color: AppTheme.textPrimary),
+        ),
+        content: Text(
+          'Para recibir recordatorios diarios, necesitas activar las notificaciones en los ajustes de tu dispositivo.',
+          style: TextStyle(
+            color: AppTheme.textSecondary,
+            height: 1.5,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Ahora no'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              AppSettings.openAppSettings(
+                type: AppSettingsType.notification,
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: AppTheme.textOnPrimary,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text('Abrir Ajustes'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -398,7 +480,18 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
               style: TextStyle(color: AppTheme.textTertiary, fontSize: 12),
             ),
             value: state.reminderEnabled,
-            onChanged: notifier.updateReminderEnabled,
+            onChanged: (value) async {
+              if (value) {
+                final granted = await NotificationService().requestPermission();
+                if (granted) {
+                  notifier.updateReminderEnabled(true);
+                } else if (mounted) {
+                  _showNotificationPermissionDialog();
+                }
+              } else {
+                notifier.updateReminderEnabled(false);
+              }
+            },
             activeColor: AppTheme.primaryColor,
           ),
           // Time picker (solo si está activo)
