@@ -310,6 +310,8 @@ class _MainShellState extends ConsumerState<MainShell> {
 
     final shouldHideBottomNav =
         (location.startsWith('/chat/') && location != '/chat') ||
+        (location.startsWith('/study/') && location != '/study') ||
+        (location.startsWith('/settings/') && location != '/settings') ||
         location == '/home/stories';
 
     return Scaffold(

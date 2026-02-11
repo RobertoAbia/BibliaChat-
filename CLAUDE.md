@@ -1404,6 +1404,21 @@ BibliaChat/
     - `lib/features/home/presentation/screens/home_screen.dart` - Column + Expanded pattern
     - `lib/features/study/presentation/screens/study_screen.dart` - Column + Expanded pattern
 
+- [x] Feature: Ocultar bottom nav en rutas anidadas de Estudiar y Perfil
+  - **Problema:** Al entrar en detalle de plan o sub-pantallas de perfil, el bottom nav seguía visible ocupando espacio innecesario
+  - **Solución:** Ampliar condición `shouldHideBottomNav` en `app_router.dart`
+  - **Rutas que ahora ocultan bottom nav:**
+    - `/chat/*` (ya existía)
+    - `/home/stories` (ya existía)
+    - `/study/plan/:planId` — detalle del plan
+    - `/study/day/:userPlanId` — día del plan activo
+    - `/settings/edit` — editar perfil
+    - `/settings/saved-messages` — mis reflexiones
+    - `/settings/privacy-policy` — política de privacidad
+    - `/settings/terms-conditions` — términos de uso
+  - **Archivo modificado:**
+    - `lib/core/router/app_router.dart` — condición `shouldHideBottomNav`
+
 - [x] Feature: Configuración App Icon y Nombre de la App
   - **App Store Name:** `Biblia Chat: oracion diaria` (27 chars)
   - **Nombre bajo el icono:** `Biblia Chat` (ambas plataformas)
@@ -2088,12 +2103,13 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
   - NO mover rutas fuera del ShellRoute para ocultar bottom nav (rompe el back button)
   - Solución simple: ocultar condicionalmente en `MainShell.build()`:
     ```dart
-    final shouldHideBottomNav = location.startsWith('/chat/') && location != '/chat';
-    return Scaffold(
-      body: ...,
-      bottomNavigationBar: shouldHideBottomNav ? null : NavigationBar(...),
-    );
+    final shouldHideBottomNav =
+        (location.startsWith('/chat/') && location != '/chat') ||
+        (location.startsWith('/study/') && location != '/study') ||
+        (location.startsWith('/settings/') && location != '/settings') ||
+        location == '/home/stories';
     ```
+  - Patrón: `location.startsWith('/tab/') && location != '/tab'` — oculta en cualquier ruta anidada del tab
   - Las rutas siguen dentro del ShellRoute → back button funciona correctamente
   - Solo se oculta el UI del bottom nav, la estructura de navegación no cambia
 - **Refrescar listas desde otros providers (comunicación cross-provider):**
