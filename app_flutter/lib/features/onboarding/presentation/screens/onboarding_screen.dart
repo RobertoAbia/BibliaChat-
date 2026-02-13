@@ -23,7 +23,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 10; // Welcome + 7 preguntas + Analyzing + Ready
+  final int _totalPages = 11; // Welcome + 8 preguntas + Analyzing + Ready
 
   @override
   void dispose() {
@@ -98,12 +98,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         return state.origin != null;
       case 4: // Denomination
         return state.denomination != null;
-      case 5: // Support type
-        return state.supportType != null;
-      case 6: // Reminder - optional, always can proceed
+      case 5: // Faith motivation - requires selection
+        return state.motive != null;
+      case 6: // Support type (multi-select)
+        return state.supportTypes.isNotEmpty;
+      case 7: // Commitment - requires selection
+        return state.commitmentLevel != null;
+      case 8: // Reminder - optional, always can proceed
         return true;
-      case 7: // Faith motivation - requires selection
-        return state.heartMessage != null;
       default:
         return true;
     }
@@ -260,50 +262,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 5: Support type
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        final notifier = ref.read(onboardingProvider.notifier);
-                        return OnboardingSelectionPage(
-                          verseReference: 'Isaías 41:10',
-                          title: 'La Biblia tiene respuestas para superar cualquier prueba.',
-                          subtitle: '¿Cómo te puede ayudar Biblia Chat?',
-                          options: const [
-                            SelectionOption(
-                              key: 'study',
-                              label: 'Solo estudiar la Biblia',
-                              icon: Icons.menu_book,
-                            ),
-                            SelectionOption(
-                              key: 'overcome',
-                              label: 'Superar sufrimientos y desafíos',
-                              icon: Icons.favorite,
-                            ),
-                          ],
-                          selectedKey: state.supportType,
-                          onSelect: (key) => notifier.setSupportType(key),
-                          onNext: _canProceed() ? _nextPage : null,
-                        );
-                      },
-                    ),
-
-                    // Page 6: Reminder
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        final notifier = ref.read(onboardingProvider.notifier);
-                        return OnboardingReminderPage(
-                          reminderEnabled: state.reminderEnabled,
-                          reminderTime: state.reminderTime,
-                          onToggle: (value) => notifier.setReminderEnabled(value),
-                          onTimeChanged: (value) => notifier.setReminderTime(value),
-                          onNext: _nextPage,
-                        );
-                      },
-                    ),
-
-                    // Page 7: Faith motivation
+                    // Page 5: Faith motivation
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -334,19 +293,95 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                               icon: Icons.menu_book,
                             ),
                           ],
-                          selectedKey: state.heartMessage,
-                          onSelect: (key) => notifier.setHeartMessage(key),
+                          selectedKey: state.motive,
+                          onSelect: (key) => notifier.setMotive(key),
                           onNext: _canProceed() ? _nextPage : null,
                         );
                       },
                     ),
 
-                    // Page 8: Analyzing
+                    // Page 6: Support type
+                    Builder(
+                      builder: (context) {
+                        final state = ref.watch(onboardingProvider);
+                        final notifier = ref.read(onboardingProvider.notifier);
+                        return OnboardingSelectionPage(
+                          verseReference: 'Isaías 41:10',
+                          title: 'No temas, porque yo estoy contigo.',
+                          subtitle: '¿Cómo quieres que te ayudemos en Biblia Chat?',
+                          options: const [
+                            SelectionOption(
+                              key: 'talk_faith',
+                              label: 'Quiero hablar sobre mi fe con alguien que me entienda',
+                              icon: Icons.forum,
+                            ),
+                            SelectionOption(
+                              key: 'daily_reflection',
+                              label: 'Me gustaría recibir una reflexión bíblica cada mañana',
+                              icon: Icons.wb_sunny,
+                            ),
+                            SelectionOption(
+                              key: 'guided_plans',
+                              label: 'Quiero aprender de la Biblia con planes guiados',
+                              icon: Icons.menu_book,
+                            ),
+                          ],
+                          selectedKeys: state.supportTypes,
+                          onSelect: (key) => notifier.toggleSupportType(key),
+                          onNext: _canProceed() ? _nextPage : null,
+                        );
+                      },
+                    ),
+
+                    // Page 7: Commitment
+                    Builder(
+                      builder: (context) {
+                        final state = ref.watch(onboardingProvider);
+                        final notifier = ref.read(onboardingProvider.notifier);
+                        return OnboardingSelectionPage(
+                          verseReference: 'Josué 1:9',
+                          title: 'Sé fuerte y valiente, porque el Señor tu Dios estará contigo.',
+                          subtitle: '¿Qué nivel de compromiso tienes con cumplir tus objetivos?',
+                          options: const [
+                            SelectionOption(
+                              key: 'high',
+                              label: 'Estoy totalmente comprometido/a',
+                              icon: Icons.local_fire_department,
+                            ),
+                            SelectionOption(
+                              key: 'low',
+                              label: 'No estoy muy comprometido/a, mis objetivos no son tan importantes para mí',
+                              icon: Icons.sentiment_neutral,
+                            ),
+                          ],
+                          selectedKey: state.commitmentLevel,
+                          onSelect: (key) => notifier.setCommitmentLevel(key),
+                          onNext: _canProceed() ? _nextPage : null,
+                        );
+                      },
+                    ),
+
+                    // Page 8: Reminder
+                    Builder(
+                      builder: (context) {
+                        final state = ref.watch(onboardingProvider);
+                        final notifier = ref.read(onboardingProvider.notifier);
+                        return OnboardingReminderPage(
+                          reminderEnabled: state.reminderEnabled,
+                          reminderTime: state.reminderTime,
+                          onToggle: (value) => notifier.setReminderEnabled(value),
+                          onTimeChanged: (value) => notifier.setReminderTime(value),
+                          onNext: _nextPage,
+                        );
+                      },
+                    ),
+
+                    // Page 9: Analyzing
                     OnboardingAnalyzingPage(
                       onComplete: _nextPage,
                     ),
 
-                    // Page 9: Ready
+                    // Page 10: Ready
                     OnboardingReadyPage(
                       onStart: _completeOnboarding,
                     ),

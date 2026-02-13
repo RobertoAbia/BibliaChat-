@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
+import '../../../../core/constants/route_constants.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
@@ -92,7 +93,13 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     size: 20,
                     color: AppTheme.textTertiary.withOpacity(0.5),
                   ),
-                  onPressed: () => context.pop(),
+                  onPressed: () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go(RouteConstants.home);
+                    }
+                  },
                 ),
               ),
             ],

@@ -24,6 +24,7 @@ class OnboardingSelectionPage extends StatelessWidget {
   final String subtitle;
   final List<SelectionOption> options;
   final String? selectedKey;
+  final Set<String>? selectedKeys; // For multi-select
   final ValueChanged<String> onSelect;
   final VoidCallback? onNext;
 
@@ -33,7 +34,8 @@ class OnboardingSelectionPage extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.options,
-    required this.selectedKey,
+    this.selectedKey,
+    this.selectedKeys,
     required this.onSelect,
     required this.onNext,
   });
@@ -83,7 +85,9 @@ class OnboardingSelectionPage extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _SelectionTile(
                         option: option,
-                        isSelected: selectedKey == option.key,
+                        isSelected: selectedKeys != null
+                            ? selectedKeys!.contains(option.key)
+                            : selectedKey == option.key,
                         onTap: () => onSelect(option.key),
                       ),
                     ),

@@ -10,11 +10,11 @@ class UserProfileModel extends UserProfile {
     super.origin,
     super.countryCode,
     super.ageGroup,
-    super.motive,
+    super.features,
     super.reminderEnabled,
     super.reminderTime,
     super.persistenceSelfReport,
-    super.firstMessage,
+    super.motive,
     super.bibleVersionCode,
     super.aiMemory,
     super.timezone,
@@ -35,13 +35,13 @@ class UserProfileModel extends UserProfile {
       origin: OriginGroup.fromString(json['origin'] as String?),
       countryCode: json['country_code'] as String?,
       ageGroup: AgeGroup.fromString(json['age_group'] as String?),
-      motive: MotiveType.fromString(json['motive'] as String?),
+      features: json['features'] as String?,
       reminderEnabled: json['reminder_enabled'] as bool? ?? false,
       reminderTime: json['reminder_time'] != null
           ? _parseTime(json['reminder_time'] as String)
           : null,
       persistenceSelfReport: json['persistence_self_report'] as bool?,
-      firstMessage: json['first_message'] as String?,
+      motive: json['motive'] as String?,
       bibleVersionCode: json['bible_version_code'] as String? ?? 'RVR1960',
       aiMemory: json['ai_memory'] as Map<String, dynamic>?,
       timezone: json['timezone'] as String? ?? 'America/New_York',
@@ -63,12 +63,12 @@ class UserProfileModel extends UserProfile {
       if (origin != null) 'origin': origin!.dbValue,
       if (countryCode != null) 'country_code': countryCode,
       if (ageGroup != null) 'age_group': ageGroup!.dbValue,
-      if (motive != null) 'motive': motive!.dbValue,
+      if (features != null) 'features': features,
       'reminder_enabled': reminderEnabled,
       if (reminderTime != null) 'reminder_time': _formatTime(reminderTime!),
       if (persistenceSelfReport != null)
         'persistence_self_report': persistenceSelfReport,
-      if (firstMessage != null) 'first_message': firstMessage,
+      if (motive != null) 'motive': motive,
       'bible_version_code': bibleVersionCode,
       if (aiMemory != null) 'ai_memory': aiMemory,
       'timezone': timezone,
@@ -86,11 +86,11 @@ class UserProfileModel extends UserProfile {
     OriginGroup? origin,
     String? countryCode,
     AgeGroup? ageGroup,
-    MotiveType? motive,
+    String? features,
     bool? reminderEnabled,
     DateTime? reminderTime,
     bool? persistenceSelfReport,
-    String? firstMessage,
+    String? motive,
     String? bibleVersionCode,
     Map<String, dynamic>? aiMemory,
     String? timezone,
@@ -106,13 +106,13 @@ class UserProfileModel extends UserProfile {
     if (origin != null) map['origin'] = origin.dbValue;
     if (countryCode != null) map['country_code'] = countryCode;
     if (ageGroup != null) map['age_group'] = ageGroup.dbValue;
-    if (motive != null) map['motive'] = motive.dbValue;
+    if (features != null) map['features'] = features;
     if (reminderEnabled != null) map['reminder_enabled'] = reminderEnabled;
     if (reminderTime != null) map['reminder_time'] = _formatTime(reminderTime);
     if (persistenceSelfReport != null) {
       map['persistence_self_report'] = persistenceSelfReport;
     }
-    if (firstMessage != null) map['first_message'] = firstMessage;
+    if (motive != null) map['motive'] = motive;
     if (bibleVersionCode != null) map['bible_version_code'] = bibleVersionCode;
     if (aiMemory != null) map['ai_memory'] = aiMemory;
     if (timezone != null) map['timezone'] = timezone;
@@ -135,11 +135,11 @@ class UserProfileModel extends UserProfile {
       origin: entity.origin,
       countryCode: entity.countryCode,
       ageGroup: entity.ageGroup,
-      motive: entity.motive,
+      features: entity.features,
       reminderEnabled: entity.reminderEnabled,
       reminderTime: entity.reminderTime,
       persistenceSelfReport: entity.persistenceSelfReport,
-      firstMessage: entity.firstMessage,
+      motive: entity.motive,
       bibleVersionCode: entity.bibleVersionCode,
       aiMemory: entity.aiMemory,
       timezone: entity.timezone,

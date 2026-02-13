@@ -7,11 +7,11 @@ class UserProfile {
   final OriginGroup? origin;
   final String? countryCode; // ISO 3166-1 alpha-2 (e.g., MX, ES, CO)
   final AgeGroup? ageGroup;
-  final MotiveType? motive;
+  final String? features;
   final bool reminderEnabled;
   final DateTime? reminderTime;
   final bool? persistenceSelfReport;
-  final String? firstMessage;
+  final String? motive;
   final String bibleVersionCode;
   final Map<String, dynamic>? aiMemory;
   final String timezone;
@@ -29,11 +29,11 @@ class UserProfile {
     this.origin,
     this.countryCode,
     this.ageGroup,
-    this.motive,
+    this.features,
     this.reminderEnabled = false,
     this.reminderTime,
     this.persistenceSelfReport,
-    this.firstMessage,
+    this.motive,
     this.bibleVersionCode = 'RVR1960',
     this.aiMemory,
     this.timezone = 'America/New_York',
@@ -52,11 +52,11 @@ class UserProfile {
     OriginGroup? origin,
     String? countryCode,
     AgeGroup? ageGroup,
-    MotiveType? motive,
+    String? features,
     bool? reminderEnabled,
     DateTime? reminderTime,
     bool? persistenceSelfReport,
-    String? firstMessage,
+    String? motive,
     String? bibleVersionCode,
     Map<String, dynamic>? aiMemory,
     String? timezone,
@@ -74,11 +74,11 @@ class UserProfile {
       origin: origin ?? this.origin,
       countryCode: countryCode ?? this.countryCode,
       ageGroup: ageGroup ?? this.ageGroup,
-      motive: motive ?? this.motive,
+      features: features ?? this.features,
       reminderEnabled: reminderEnabled ?? this.reminderEnabled,
       reminderTime: reminderTime ?? this.reminderTime,
       persistenceSelfReport: persistenceSelfReport ?? this.persistenceSelfReport,
-      firstMessage: firstMessage ?? this.firstMessage,
+      motive: motive ?? this.motive,
       bibleVersionCode: bibleVersionCode ?? this.bibleVersionCode,
       aiMemory: aiMemory ?? this.aiMemory,
       timezone: timezone ?? this.timezone,
@@ -306,51 +306,3 @@ enum AgeGroup {
   }
 }
 
-/// Motivo principal de uso
-enum MotiveType {
-  estudio,
-  sufrimiento,
-  crecimiento,
-  comunidad,
-  habito,
-  otro;
-
-  String get displayName {
-    switch (this) {
-      case MotiveType.estudio:
-        return 'Estudiar la Biblia';
-      case MotiveType.sufrimiento:
-        return 'Superar sufrimientos';
-      case MotiveType.crecimiento:
-        return 'Crecimiento espiritual';
-      case MotiveType.comunidad:
-        return 'Comunidad';
-      case MotiveType.habito:
-        return 'Crear hábito';
-      case MotiveType.otro:
-        return 'Otro';
-    }
-  }
-
-  String get dbValue => name;
-
-  static MotiveType? fromString(String? value) {
-    if (value == null) return null;
-    switch (value) {
-      case 'estudio':
-        return MotiveType.estudio;
-      case 'sufrimiento':
-        return MotiveType.sufrimiento;
-      case 'crecimiento':
-        return MotiveType.crecimiento;
-      case 'comunidad':
-        return MotiveType.comunidad;
-      case 'habito':
-        return MotiveType.habito;
-      case 'otro':
-        return MotiveType.otro;
-      default:
-        return null;
-    }
-  }
-}

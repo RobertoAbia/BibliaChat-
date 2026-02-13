@@ -64,8 +64,9 @@ class OnboardingState {
   final String? countryCode; // ISO 3166-1 alpha-2 (e.g., MX, ES, CO)
   final String? denomination;
   final String? bibleVersionCode;
-  final String? supportType;
-  final String? heartMessage;
+  final Set<String> supportTypes;
+  final String? motive;
+  final String? commitmentLevel; // high, medium, low
   final bool reminderEnabled;
   final TimeOfDay reminderTime;
   final bool isLoading;
@@ -79,8 +80,9 @@ class OnboardingState {
     this.countryCode,
     this.denomination,
     this.bibleVersionCode,
-    this.supportType,
-    this.heartMessage,
+    this.supportTypes = const {},
+    this.motive,
+    this.commitmentLevel,
     this.reminderEnabled = false,
     this.reminderTime = const TimeOfDay(hour: 8, minute: 0),
     this.isLoading = false,
@@ -95,8 +97,9 @@ class OnboardingState {
     String? countryCode,
     String? denomination,
     String? bibleVersionCode,
-    String? supportType,
-    String? heartMessage,
+    Set<String>? supportTypes,
+    String? motive,
+    String? commitmentLevel,
     bool? reminderEnabled,
     TimeOfDay? reminderTime,
     bool? isLoading,
@@ -110,8 +113,9 @@ class OnboardingState {
       countryCode: countryCode ?? this.countryCode,
       denomination: denomination ?? this.denomination,
       bibleVersionCode: bibleVersionCode ?? this.bibleVersionCode,
-      supportType: supportType ?? this.supportType,
-      heartMessage: heartMessage ?? this.heartMessage,
+      supportTypes: supportTypes ?? this.supportTypes,
+      motive: motive ?? this.motive,
+      commitmentLevel: commitmentLevel ?? this.commitmentLevel,
       reminderEnabled: reminderEnabled ?? this.reminderEnabled,
       reminderTime: reminderTime ?? this.reminderTime,
       isLoading: isLoading ?? this.isLoading,
@@ -119,17 +123,9 @@ class OnboardingState {
     );
   }
 
-  /// Convierte supportType a MotiveType
-  MotiveType? get motive {
-    switch (supportType) {
-      case 'study':
-        return MotiveType.estudio;
-      case 'overcome':
-        return MotiveType.sufrimiento;
-      default:
-        return null;
-    }
-  }
+  /// Devuelve las keys de supportTypes como string separado por comas
+  String? get features =>
+      supportTypes.isNotEmpty ? supportTypes.join(',') : null;
 
   /// Convierte ageGroup string a AgeGroup enum
   AgeGroup? get ageGroupEnum => AgeGroup.fromString(ageGroup);
@@ -174,12 +170,22 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     state = state.copyWith(bibleVersionCode: value);
   }
 
-  void setSupportType(String value) {
-    state = state.copyWith(supportType: value);
+  void toggleSupportType(String key) {
+    final current = Set<String>.from(state.supportTypes);
+    if (current.contains(key)) {
+      current.remove(key);
+    } else {
+      current.add(key);
+    }
+    state = state.copyWith(supportTypes: current);
   }
 
-  void setHeartMessage(String value) {
-    state = state.copyWith(heartMessage: value);
+  void setMotive(String value) {
+    state = state.copyWith(motive: value);
+  }
+
+  void setCommitmentLevel(String value) {
+    state = state.copyWith(commitmentLevel: value);
   }
 
   void setReminderEnabled(bool value) {
@@ -227,8 +233,11 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
         ageGroup: state.ageGroupEnum,
         denomination: state.denominationEnum,
         bibleVersionCode: state.bibleVersionCode,
+        features: state.features,
+        persistenceSelfReport: state.commitmentLevel != null
+            ? state.commitmentLevel != 'low'
+            : null,
         motive: state.motive,
-        firstMessage: state.heartMessage,
         reminderEnabled: state.reminderEnabled,
         reminderTime: state.reminderEnabled
             ? _timeOfDayToDateTime(state.reminderTime)

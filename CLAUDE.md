@@ -74,7 +74,7 @@ BibliaChat/
 - `deleted_user_archives` (archivado pseudonimizado para GDPR, 3 años retención)
 - `liturgical_readings` (calendario litúrgico católico - 365 días/año)
 
-## Migraciones SQL (26 total)
+## Migraciones SQL (28 total)
 - 00001-00009: Tablas core, ENUMs, RLS, índices
 - 00010: `rc_app_user_id` para restaurar compras
 - 00011: `gender` + enum `gender_type`
@@ -93,6 +93,8 @@ BibliaChat/
 - 00024: `liturgical_readings` tabla para calendario litúrgico (reemplaza dependencia de API externa)
 - 00025: `country_code` en `user_profiles` para país específico (ISO 3166-1 alpha-2)
 - 00026: Fix `daily_activity.completed` sobrescrito por `message_limit_service` + arreglar datos corruptos
+- 00027: Columna `motive` (enum) → `features` (text) para multi-select de apoyo
+- 00028: Columna `first_message` → `motive` para key de motivación de fe
 
 ## EPICs del Proyecto (12 total)
 - **EPIC 0-1:** Foundation + Base de datos + RLS
@@ -193,7 +195,7 @@ BibliaChat/
 
 - [x] T-0302 + T-0303: Onboarding conectado con Supabase
   - **Clean Architecture para perfil de usuario:**
-    - Entity: `UserProfile` con enums (Denomination, OriginGroup, AgeGroup, MotiveType, GenderType)
+    - Entity: `UserProfile` con enums (Denomination, OriginGroup, AgeGroup, GenderType)
     - Repository interface + implementación
     - Model con serialización JSON para Supabase
     - Datasource remoto con operaciones CRUD
@@ -203,17 +205,18 @@ BibliaChat/
     - `userProfileStreamProvider` - Cambios en tiempo real
     - `hasCompletedOnboardingProvider` - Verificación onboarding
     - `onboardingProvider` - StateNotifier para formulario onboarding
-  - **Pantallas de onboarding (10 páginas):**
+  - **Pantallas de onboarding (11 páginas):**
     - 0: Welcome (nombre)
     - 1: Edad (age_group)
     - 2: Género (gender) - Hombre/Mujer
     - 3: País - Dropdown 21 países hispanohablantes → guarda `origin` (origin_group) + `country_code` (ISO)
     - 4: Denominación
-    - 5: Motivo (tipo de apoyo)
-    - 6: Recordatorio (reminder_enabled, reminder_time) - Toggle + Time picker
-    - 7: Fe - "¿Por qué es importante para ti trabajar en tu Fe ahora?" (4 opciones: difficult_moment, spiritual_growth, feeling_distant, understand_bible) → guarda key en `first_message`
-    - 8: Analizando (animación)
-    - 9: ¡Todo listo! (confirmación + auto-detección timezone)
+    - 5: Fe - "¿Por qué es importante para ti trabajar en tu Fe ahora?" (4 opciones single-select) → guarda key en `motive`
+    - 6: Apoyo - "¿Cómo quieres que te ayudemos?" (3 opciones multi-select) → guarda keys separadas por coma en `features`
+    - 7: Compromiso - "¿Qué nivel de compromiso tienes?" (2 opciones) → guarda en `persistence_self_report`
+    - 8: Recordatorio (reminder_enabled, reminder_time) - Toggle + Time picker
+    - 9: Analizando (animación)
+    - 10: ¡Todo listo! (confirmación + auto-detección timezone)
   - **Auto-detección de timezone:**
     - Usa `flutter_timezone` para detectar zona horaria del dispositivo
     - Se guarda en `user_profiles.timezone` al completar onboarding
@@ -1639,29 +1642,44 @@ BibliaChat/
     - BBDD: Edge Functions `send-notification` y `send-daily-reminders` documentadas, `max_completion_tokens` corregido
     - Tickets: Sprint 8 con 9 items nuevos, header actualizado
 
-- [x] Feature: Simplificar onboarding — eliminar persistencia + nueva pregunta Fe
-  - **Objetivo:** Reducir onboarding de 11 a 10 páginas, reemplazar pregunta de texto libre por selección concreta
-  - **Página eliminada:** Página 7 (Persistencia) — pregunta Sí/No sobre autodisciplina que no se usaba funcionalmente
-  - **Página reemplazada:** Página 8 (Corazón "¿Qué hay en tu corazón?" texto libre) → nueva página de selección "¿Por qué es importante para ti trabajar en tu Fe ahora?"
-  - **Nueva página Fe (page 7):**
-    - Versículo: Filipenses 1:6 — "El que comenzó en vosotros la buena obra, la perfeccionará."
-    - 4 opciones (single select):
-      | Key | Label | Icono |
-      |-----|-------|-------|
-      | `difficult_moment` | Estoy pasando por un momento difícil | `favorite` |
-      | `spiritual_growth` | Quiero crecer espiritualmente | `auto_awesome` |
-      | `feeling_distant` | Me siento alejado/a de Dios | `explore` |
-      | `understand_bible` | Quiero entender mejor la Biblia | `menu_book` |
-    - La key seleccionada se guarda en `first_message` de la BD (reutiliza columna TEXT existente)
-  - **Total páginas:** 10 (Welcome → Edad → Género → País → Denominación → Motivo → Recordatorio → Fe → Analizando → ¡Todo listo!)
-  - **Estado limpio:** Eliminado `persistenceSelfReport` de `OnboardingState`, `copyWith`, `OnboardingNotifier`
-  - **Sin migración SQL:** La columna `first_message` (TEXT) se reutiliza para almacenar la key de selección
+- [x] Feature: Rediseño completo del onboarding (10→11 páginas)
+  - **Páginas eliminadas:** Persistencia (Sí/No), Corazón (texto libre)
+  - **Páginas nuevas:** Fe (motivación), Apoyo (multi-select), Compromiso
+  - **Página Fe (page 5) — single select:**
+    - "¿Por qué es importante para ti trabajar en tu Fe ahora?"
+    - 4 opciones: `difficult_moment`, `spiritual_growth`, `feeling_distant`, `understand_bible`
+    - Guarda key en columna `motive` (antes `first_message`)
+  - **Página Apoyo (page 6) — multi-select:**
+    - "¿Cómo quieres que te ayudemos en Biblia Chat?"
+    - 3 opciones: `talk_faith`, `daily_reflection`, `guided_plans`
+    - Guarda keys separadas por coma en columna `features` (antes `motive` enum)
+    - `OnboardingSelectionPage` ahora soporta `selectedKeys: Set<String>` para multi-select
+  - **Página Compromiso (page 7) — single select:**
+    - "¿Qué nivel de compromiso tienes con cumplir tus objetivos?"
+    - 2 opciones: `high` (Estoy totalmente comprometido/a), `low` (No estoy muy comprometido/a)
+    - Guarda como boolean en `persistence_self_report` (`high` → true, `low` → false)
+  - **Total páginas:** 11 (Welcome → Edad → Género → País → Denominación → Fe → Apoyo → Compromiso → Recordatorio → Analizando → ¡Todo listo!)
+  - **Renames de columnas BD:**
+    - `motive` (enum `motive_type`) → `features` (text) — migración 00027
+    - `first_message` → `motive` — migración 00028
+    - Eliminado enum `MotiveType` de Flutter (ahora `String?`)
+  - **OnboardingState actualizado:**
+    - `supportTypes: Set<String>` (multi-select) con `toggleSupportType()`
+    - `commitmentLevel: String?` con `setCommitmentLevel()`
+    - `motive: String?` (antes `heartMessage`) con `setMotive()`
+    - Getter `features` devuelve `supportTypes.join(',')`
+  - **Fix PaywallScreen:** `context.canPop() ? pop() : go(home)` para evitar crash después de onboarding
   - **Archivos modificados:**
-    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - Eliminar pág. persistencia, nueva pág. Fe, reindexar páginas
-    - `lib/features/profile/presentation/providers/user_profile_provider.dart` - Eliminar persistenceSelfReport del estado y notifier
-  - **Archivos que ya no se importan (pueden eliminarse):**
-    - `lib/features/onboarding/presentation/widgets/onboarding_persistence_page.dart`
-    - `lib/features/onboarding/presentation/widgets/onboarding_text_input_page.dart`
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart`
+    - `lib/features/onboarding/presentation/widgets/onboarding_selection_page.dart` - Multi-select
+    - `lib/features/profile/presentation/providers/user_profile_provider.dart`
+    - `lib/features/profile/domain/entities/user_profile.dart` - Eliminado `MotiveType` enum
+    - `lib/features/profile/data/models/user_profile_model.dart`
+    - `lib/features/profile/domain/repositories/user_profile_repository.dart`
+    - `lib/features/profile/data/repositories/user_profile_repository_impl.dart`
+    - `lib/features/subscription/presentation/screens/paywall_screen.dart` - Fix pop
+    - `supabase/migrations/00027_change_motive_to_text.sql`
+    - `supabase/migrations/00028_rename_first_message_to_motive.sql`
 
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
@@ -1751,7 +1769,7 @@ BibliaChat/
 - [x] Feature: Verificación de permisos de notificaciones en Recordatorio - COMPLETADO
 - [x] Fix: hasChanges incorrecto al auto-desactivar reminder - COMPLETADO
 - [x] Docs: Actualización completa de documentación (PRD, Backlog, Arquitectura, BBDD, Tickets) - COMPLETADO
-- [x] Feature: Simplificar onboarding (11→10 páginas) - Eliminar persistencia, nueva pregunta Fe - COMPLETADO
+- [x] Feature: Rediseño onboarding (11 páginas) - Fe + Apoyo multi-select + Compromiso + renames BD - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 - [ ] **Feature: Widget versículo en Lock Screen** (iOS) + Home Screen (Android) - PLANIFICADO
