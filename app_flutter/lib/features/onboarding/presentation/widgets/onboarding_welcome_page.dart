@@ -1,5 +1,6 @@
 import 'dart:ui';
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
@@ -10,11 +11,15 @@ import '../../../../core/widgets/lottie_helper.dart';
 class OnboardingWelcomePage extends StatefulWidget {
   final VoidCallback onGetStarted;
   final VoidCallback? onLogin;
+  final VoidCallback? onPrivacyPolicy;
+  final VoidCallback? onTermsConditions;
 
   const OnboardingWelcomePage({
     super.key,
     required this.onGetStarted,
     this.onLogin,
+    this.onPrivacyPolicy,
+    this.onTermsConditions,
   });
 
   @override
@@ -95,159 +100,194 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        return SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                SizedBox(height: MediaQuery.of(context).size.height * 0.10),
+        return Column(
+          children: [
+            // Scrollable content
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    children: [
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.06),
 
-                // Animated Logo with pulse
-                AnimatedBuilder(
-                  animation: _pulseController,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: _scale.value * _pulse.value,
-                      child: Opacity(
-                        opacity: _fadeIn.value,
-                        child: _buildLogo(),
+                      // Animated Logo with pulse
+                      AnimatedBuilder(
+                        animation: _pulseController,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _scale.value * _pulse.value,
+                            child: Opacity(
+                              opacity: _fadeIn.value,
+                              child: _buildLogo(),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
 
-                const SizedBox(height: 40),
+                      const SizedBox(height: 24),
 
-                // Title with animation
-                Transform.translate(
-                  offset: Offset(0, _slideUp.value),
-                  child: Opacity(
-                    opacity: _fadeIn.value,
-                    child: Column(
-                      children: [
-                        Text(
-                          'Bienvenido a',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                color: AppTheme.textSecondary,
-                                fontWeight: FontWeight.w400,
+                      // Title with animation
+                      Transform.translate(
+                        offset: Offset(0, _slideUp.value),
+                        child: Opacity(
+                          opacity: _fadeIn.value,
+                          child: Column(
+                            children: [
+                              Text(
+                                'Bienvenido a',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineSmall
+                                    ?.copyWith(
+                                      color: AppTheme.textSecondary,
+                                      fontWeight: FontWeight.w400,
+                                    ),
                               ),
-                        ),
-                        const SizedBox(height: 8),
-                        ShaderMask(
-                          shaderCallback: (bounds) => LinearGradient(
-                            colors: [
-                              AppTheme.primaryLight,
-                              AppTheme.primaryColor,
-                              AppTheme.primaryLight,
-                            ],
-                          ).createShader(bounds),
-                          child: Text(
-                            'Biblia Chat',
-                            style: Theme.of(context)
-                                .textTheme
-                                .displayLarge
-                                ?.copyWith(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 1,
+                              const SizedBox(height: 8),
+                              ShaderMask(
+                                shaderCallback: (bounds) => LinearGradient(
+                                  colors: [
+                                    AppTheme.primaryLight,
+                                    AppTheme.primaryColor,
+                                    AppTheme.primaryLight,
+                                  ],
+                                ).createShader(bounds),
+                                child: Text(
+                                  'Biblia Chat',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .displayLarge
+                                      ?.copyWith(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 1,
+                                      ),
                                 ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 32),
-
-                // Features card with glassmorphism
-                Transform.translate(
-                  offset: Offset(0, _slideUp.value * 1.3),
-                  child: Opacity(
-                    opacity: _fadeIn.value,
-                    child: GlassContainer.card(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 20,
                       ),
-                      child: Column(
-                        children: [
-                          _FeatureRow(
-                            icon: Icons.chat_bubble_outline,
-                            text: 'Un amigo que te escucha',
-                            delay: 0,
-                          ),
-                          const SizedBox(height: 14),
-                          _FeatureRow(
-                            icon: Icons.favorite,
-                            text: 'Oraciones personalizadas',
-                            delay: 100,
-                          ),
-                          const SizedBox(height: 14),
-                          _FeatureRow(
-                            icon: Icons.school,
-                            text: 'Planes de estudio bíblico',
-                            delay: 200,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
 
-                SizedBox(height: MediaQuery.of(context).size.height * 0.06),
+                      const SizedBox(height: 24),
 
-                // CTA Button with shimmer
-                Transform.translate(
-                  offset: Offset(0, _slideUp.value * 1.6),
-                  child: Opacity(
-                    opacity: _fadeIn.value,
-                    child: Column(
-                      children: [
-                        _ShimmerButton(
-                          onPressed: widget.onGetStarted,
-                          controller: _shimmerController,
-                        ),
-
-                        const SizedBox(height: 24),
-
-                        // Terms
-                        Text(
-                          'Al continuar, aceptas nuestros Términos de Servicio\ny Política de Privacidad',
-                          textAlign: TextAlign.center,
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.textTertiary,
-                                    height: 1.5,
-                                  ),
-                        ),
-
-                        const SizedBox(height: 20),
-
-                        // Ya tengo cuenta
-                        if (widget.onLogin != null)
-                          TextButton(
-                            onPressed: widget.onLogin,
-                            child: Text(
-                              '¿Ya tienes cuenta? Inicia sesión',
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: AppTheme.primaryColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                      // Features card with glassmorphism
+                      Transform.translate(
+                        offset: Offset(0, _slideUp.value * 1.3),
+                        child: Opacity(
+                          opacity: _fadeIn.value,
+                          child: GlassContainer.card(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 20,
+                            ),
+                            child: Column(
+                              children: [
+                                _FeatureRow(
+                                  icon: Icons.chat_bubble_outline,
+                                  text: 'Un amigo que te escucha',
+                                  delay: 0,
+                                ),
+                                const SizedBox(height: 14),
+                                _FeatureRow(
+                                  icon: Icons.favorite,
+                                  text: 'Oraciones personalizadas',
+                                  delay: 100,
+                                ),
+                                const SizedBox(height: 14),
+                                _FeatureRow(
+                                  icon: Icons.school,
+                                  text: 'Planes de estudio bíblico',
+                                  delay: 200,
+                                ),
+                              ],
                             ),
                           ),
-                      ],
-                    ),
+                        ),
+                      ),
+
+                      SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+
+                      // CTA Button with shimmer
+                      Transform.translate(
+                        offset: Offset(0, _slideUp.value * 1.6),
+                        child: Opacity(
+                          opacity: _fadeIn.value,
+                          child: Column(
+                            children: [
+                              _ShimmerButton(
+                                onPressed: widget.onGetStarted,
+                                controller: _shimmerController,
+                              ),
+
+                              const SizedBox(height: 8),
+
+                              // Ya tengo cuenta
+                              if (widget.onLogin != null)
+                                TextButton(
+                                  onPressed: widget.onLogin,
+                                  child: Text(
+                                    '¿Ya tienes cuenta? Inicia sesión',
+                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                          color: AppTheme.primaryColor,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-
-                const SizedBox(height: 32),
-              ],
+              ),
             ),
-          ),
+
+            // Terms pinned at bottom
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+              child: Opacity(
+                opacity: _fadeIn.value,
+                child: Text.rich(
+                  TextSpan(
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textTertiary,
+                          height: 1.5,
+                        ),
+                    children: [
+                      const TextSpan(text: 'Al continuar, aceptas nuestros '),
+                      TextSpan(
+                        text: 'Términos de Servicio',
+                        style: TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontWeight: FontWeight.w500,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppTheme.primaryColor.withOpacity(0.5),
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = widget.onTermsConditions,
+                      ),
+                      const TextSpan(text: '\ny '),
+                      TextSpan(
+                        text: 'Política de Privacidad',
+                        style: TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontWeight: FontWeight.w500,
+                          decoration: TextDecoration.underline,
+                          decorationColor: AppTheme.primaryColor.withOpacity(0.5),
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = widget.onPrivacyPolicy,
+                      ),
+                    ],
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          ],
         );
       },
     );

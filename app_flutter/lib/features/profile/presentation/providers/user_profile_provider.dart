@@ -146,6 +146,10 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
   OnboardingNotifier(this._repository) : super(const OnboardingState());
 
+  void setName(String value) {
+    state = state.copyWith(name: value.trim().isEmpty ? null : value.trim());
+  }
+
   void setAgeGroup(String value) {
     state = state.copyWith(ageGroup: value);
   }
@@ -227,6 +231,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
 
       await _repository.completeOnboarding(
         userId: userId,
+        name: state.name,
         gender: state.genderEnum,
         origin: state.originEnum,
         countryCode: state.countryCode,

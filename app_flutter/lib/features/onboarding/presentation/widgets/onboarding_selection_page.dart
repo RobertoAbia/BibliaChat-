@@ -22,6 +22,7 @@ class OnboardingSelectionPage extends StatelessWidget {
   final String? verseReference;
   final String title;
   final String subtitle;
+  final String? hint;
   final List<SelectionOption> options;
   final String? selectedKey;
   final Set<String>? selectedKeys; // For multi-select
@@ -33,6 +34,7 @@ class OnboardingSelectionPage extends StatelessWidget {
     this.verseReference,
     required this.title,
     required this.subtitle,
+    this.hint,
     required this.options,
     this.selectedKey,
     this.selectedKeys,
@@ -61,6 +63,17 @@ class OnboardingSelectionPage extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                 ),
+
+                // Optional hint (e.g. for multi-select)
+                if (hint != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    hint!,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppTheme.textTertiary,
+                        ),
+                  ),
+                ],
 
                 const SizedBox(height: 24),
 
@@ -183,8 +196,9 @@ class _SelectionTileState extends State<_SelectionTile>
   @override
   void didUpdateWidget(_SelectionTile oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isSelected && !oldWidget.isSelected) {
-      _controller.forward().then((_) => _controller.reverse());
+    // If deselected while animation is in progress, reset immediately
+    if (!widget.isSelected && _controller.isAnimating) {
+      _controller.reset();
     }
   }
 
