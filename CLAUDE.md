@@ -74,7 +74,7 @@ BibliaChat/
 - `deleted_user_archives` (archivado pseudonimizado para GDPR, 3 años retención)
 - `liturgical_readings` (calendario litúrgico católico - 365 días/año)
 
-## Migraciones SQL (28 total)
+## Migraciones SQL (29 total)
 - 00001-00009: Tablas core, ENUMs, RLS, índices
 - 00010: `rc_app_user_id` para restaurar compras
 - 00011: `gender` + enum `gender_type`
@@ -1874,6 +1874,10 @@ BibliaChat/
 - [x] Fix: hasChanges incorrecto al auto-desactivar reminder - COMPLETADO
 - [x] Docs: Actualización completa de documentación (PRD, Backlog, Arquitectura, BBDD, Tickets) - COMPLETADO
 - [x] Feature: Rediseño onboarding (11 páginas) - Fe + Apoyo multi-select + Compromiso + renames BD - COMPLETADO
+- [x] Feature: Personalizar onboarding — nombre, género adaptado, links legales (11→12 páginas) - COMPLETADO
+- [x] Feature: Detalle de motivación — follow-up dinámico (12→13 páginas) - COMPLETADO
+- [x] Feature: Página introductoria de onboarding (13→14 páginas) - COMPLETADO
+- [x] Feature: Página motivacional de resumen (14→15 páginas) - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 - [ ] **Feature: Widget versículo en Lock Screen** (iOS) + Home Screen (Android) - PLANIFICADO
