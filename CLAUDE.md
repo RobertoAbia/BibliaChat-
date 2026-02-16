@@ -150,7 +150,7 @@ BibliaChat/
   - Tema Material 3 (light/dark)
   - Pantallas creadas:
     - SplashScreen (auth anónimo automático)
-    - OnboardingScreen (13 páginas: Welcome → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Analizando → ¡Todo listo!)
+    - OnboardingScreen (14 páginas: Welcome → Intro → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Analizando → ¡Todo listo!)
     - HomeScreen (racha, versículo, devoción, oración)
     - ChatListScreen (10 temas)
     - ChatScreen (interfaz de chat)
@@ -206,20 +206,21 @@ BibliaChat/
     - `userProfileStreamProvider` - Cambios en tiempo real
     - `hasCompletedOnboardingProvider` - Verificación onboarding
     - `onboardingProvider` - StateNotifier para formulario onboarding
-  - **Pantallas de onboarding (13 páginas):**
+  - **Pantallas de onboarding (14 páginas):**
     - 0: Welcome (CTA + links legales clickeables)
-    - 1: Nombre (¿Cómo te llamas? — requerido)
-    - 2: Edad (age_group) — personalizado con nombre si disponible
-    - 3: Género (gender) - Hombre/Mujer
-    - 4: País - Dropdown 21 países hispanohablantes → guarda `origin` (origin_group) + `country_code` (ISO)
-    - 5: Denominación
-    - 6: Fe - "¿Por qué es importante para ti trabajar en tu Fe ahora?" (4 opciones single-select, labels adaptados a género) → guarda key en `motive`
-    - 7: Detalle de motivación - Follow-up dinámico con 3 opciones según page 6 → guarda key en `motive_detail`
-    - 8: Apoyo - "¿Cómo quieres que te ayudemos?" (3 opciones multi-select, hint visible) → guarda keys separadas por coma en `features`
-    - 9: Compromiso - "¿Qué nivel de compromiso tienes?" (2 opciones, labels adaptados a género) → guarda en `persistence_self_report`
-    - 10: Recordatorio (reminder_enabled, reminder_time) - Toggle + Time picker
-    - 11: Analizando (animación)
-    - 12: ¡Todo listo! (confirmación + auto-detección timezone)
+    - 1: Intro — "Vamos a personalizar tu experiencia" (informativa, sin datos)
+    - 2: Nombre (¿Cómo te llamas? — requerido)
+    - 3: Edad (age_group) — personalizado con nombre si disponible
+    - 4: Género (gender) - Hombre/Mujer
+    - 5: País - Dropdown 21 países hispanohablantes → guarda `origin` (origin_group) + `country_code` (ISO)
+    - 6: Denominación
+    - 7: Fe - "¿Por qué es importante para ti trabajar en tu Fe ahora?" (4 opciones single-select, labels adaptados a género) → guarda key en `motive`
+    - 8: Detalle de motivación - Follow-up dinámico con 3 opciones según page 7 → guarda key en `motive_detail`
+    - 9: Apoyo - "¿Cómo quieres que te ayudemos?" (3 opciones multi-select, hint visible) → guarda keys separadas por coma en `features`
+    - 10: Compromiso - "¿Qué nivel de compromiso tienes?" (2 opciones, labels adaptados a género) → guarda en `persistence_self_report`
+    - 11: Recordatorio (reminder_enabled, reminder_time) - Toggle + Time picker
+    - 12: Analizando (animación)
+    - 13: ¡Todo listo! (confirmación + auto-detección timezone)
   - **Auto-detección de timezone:**
     - Usa `flutter_timezone` para detectar zona horaria del dispositivo
     - Se guarda en `user_profiles.timezone` al completar onboarding
@@ -1661,7 +1662,7 @@ BibliaChat/
     - "¿Qué nivel de compromiso tienes con cumplir tus objetivos?"
     - 2 opciones: `high` (Estoy totalmente comprometido/a), `low` (No estoy muy comprometido/a)
     - Guarda como boolean en `persistence_self_report` (`high` → true, `low` → false)
-  - **Total páginas:** 13 (Welcome → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Analizando → ¡Todo listo!)
+  - **Total páginas:** 14 (Welcome → Intro → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Analizando → ¡Todo listo!)
   - **Renames de columnas BD:**
     - `motive` (enum `motive_type`) → `features` (text) — migración 00027
     - `first_message` → `motive` — migración 00028
@@ -1685,20 +1686,20 @@ BibliaChat/
     - `supabase/migrations/00028_rename_first_message_to_motive.sql`
 
 - [x] Feature: Personalizar onboarding — nombre, género adaptado, links legales (11→12 páginas)
-  - **Nueva página Nombre (page 1):**
+  - **Nueva página Nombre (page 2, originalmente page 1):**
     - Página dedicada con TextField glassmorphism + icono persona
     - Pregunta: "¿Cómo te llamas?" — nombre requerido para continuar
     - Versículo: «Antes de formarte, ya te conocía.» — Jeremías 1:5
     - `TextCapitalization.words` + `textInputAction: TextInputAction.done`
     - `GestureDetector` con `HitTestBehavior.opaque` para cerrar teclado al tocar fuera
   - **Personalización con nombre en subtítulos:**
-    - Page 2 (Edad): `"${name}, ¿cuál es tu grupo de edad?"` (si hay nombre)
-    - Page 6 (Fe): `"${name}, ¿por qué es importante..."` (si hay nombre)
+    - Page 3 (Edad): `"${name}, ¿cuál es tu grupo de edad?"` (si hay nombre)
+    - Page 7 (Fe): `"${name}, ¿por qué es importante..."` (si hay nombre)
     - Resto de páginas sin nombre (evitar repetición excesiva)
-  - **Género adaptado en labels (después de page 3):**
+  - **Género adaptado en labels (después de page 4):**
     - `final isFemale = state.gender == 'female';`
-    - Page 6 (Fe): "alejada de Dios" (F) / "alejado de Dios" (M)
-    - Page 8 (Compromiso): "comprometida" (F) / "comprometido" (M)
+    - Page 7 (Fe): "alejada de Dios" (F) / "alejado de Dios" (M)
+    - Page 10 (Compromiso): "comprometida" (F) / "comprometido" (M)
     - Options dejan de ser `const` en estas páginas (se construyen dinámicamente)
   - **Welcome page — links legales clickeables:**
     - Footer con `Text.rich()` + `TextSpan` + `TapGestureRecognizer`
@@ -1711,7 +1712,7 @@ BibliaChat/
     - "¿Ya tienes cuenta?" movido debajo del botón (8px gap)
   - **Multi-select hint:**
     - `OnboardingSelectionPage` acepta parámetro `hint` opcional
-    - Page 7 (Apoyo) muestra "Puedes seleccionar más de una opción"
+    - Page 9 (Apoyo) muestra "Puedes seleccionar más de una opción"
   - **Fix animación selección:**
     - `_SelectionTile.didUpdateWidget` ya no reproduce forward→reverse (600ms)
     - Solo hace `_controller.reset()` si se deselecciona durante animación
@@ -1721,15 +1722,15 @@ BibliaChat/
   - **Archivos creados:**
     - `lib/features/onboarding/presentation/widgets/onboarding_name_page.dart` - Página dedicada nombre
   - **Archivos modificados:**
-    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 12 páginas, nombre, género, links
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 14 páginas, nombre, género, links, intro
     - `lib/features/onboarding/presentation/widgets/onboarding_welcome_page.dart` - Links + layout pinned
     - `lib/features/onboarding/presentation/widgets/onboarding_selection_page.dart` - Hint + fix animación
     - `lib/features/profile/presentation/providers/user_profile_provider.dart` - setName() + name en completeOnboarding
 
 - [x] Feature: Detalle de motivación — follow-up dinámico en onboarding (12→13 páginas)
-  - **Nueva página 7 — Detalle de motivación:**
-    - Follow-up a la pregunta de Fe (page 6) con 3 sub-opciones dinámicas
-    - Contenido cambia según la opción elegida en page 6:
+  - **Nueva página 8 — Detalle de motivación:**
+    - Follow-up a la pregunta de Fe (page 7) con 3 sub-opciones dinámicas
+    - Contenido cambia según la opción elegida en page 7:
       - `difficult_moment` → "¿Qué tipo de situación estás viviendo?" (familia, salud, económico)
       - `spiritual_growth` → "¿En qué área quieres crecer?" (oración, Biblia, día a día)
       - `feeling_distant` → "¿Qué te ha llevado a sentirte así?" (dejé de practicar, dudas, experiencia)
@@ -1752,6 +1753,19 @@ BibliaChat/
     - `lib/features/profile/presentation/providers/user_profile_provider.dart` - State + notifier + clearMotiveDetail
     - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 13 páginas + helper + analytics
     - `lib/core/services/analytics_service.dart` - motive + motive_detail user properties
+
+- [x] Feature: Página introductoria de onboarding (13→14 páginas)
+  - **Nueva página 1 — Intro:**
+    - Página informativa entre Welcome y Nombre
+    - Contenido: ✨ emoji en círculo, "Vamos a personalizar tu experiencia", subtítulo breve, botón "Continuar"
+    - Sin versículo bíblico (es una transición, no una pregunta)
+    - Sin datos que guardar (puramente informativa)
+    - Solo recibe `VoidCallback onNext`
+  - **Barra de progreso:** Oculta en pages 0 (Welcome) Y 1 (Intro): `_currentPage > 1`
+  - **Archivos creados:**
+    - `lib/features/onboarding/presentation/widgets/onboarding_intro_page.dart`
+  - **Archivos modificados:**
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 14 páginas, intro page insertada, _canProceed shifted
 
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)

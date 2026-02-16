@@ -12,6 +12,7 @@ import '../widgets/onboarding_selection_page.dart';
 import '../widgets/onboarding_country_page.dart';
 import '../widgets/onboarding_reminder_page.dart';
 import '../widgets/onboarding_analyzing_page.dart';
+import '../widgets/onboarding_intro_page.dart';
 import '../widgets/onboarding_ready_page.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -24,7 +25,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 13; // Welcome + Nombre + 9 preguntas + Analyzing + Ready
+  final int _totalPages = 14; // Welcome + Intro + Nombre + 9 preguntas + Analyzing + Ready
 
   @override
   void dispose() {
@@ -93,25 +94,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _canProceed() {
     final state = ref.watch(onboardingProvider);
     switch (_currentPage) {
-      case 1: // Name - required
+      case 2: // Name - required
         return state.name != null;
-      case 2: // Age
+      case 3: // Age
         return state.ageGroup != null;
-      case 3: // Gender
+      case 4: // Gender
         return state.gender != null;
-      case 4: // Country
+      case 5: // Country
         return state.origin != null;
-      case 5: // Denomination
+      case 6: // Denomination
         return state.denomination != null;
-      case 6: // Faith motivation - requires selection
+      case 7: // Faith motivation - requires selection
         return state.motive != null;
-      case 7: // Motive detail - requires selection
+      case 8: // Motive detail - requires selection
         return state.motiveDetail != null;
-      case 8: // Support type (multi-select)
+      case 9: // Support type (multi-select)
         return state.supportTypes.isNotEmpty;
-      case 9: // Commitment - requires selection
+      case 10: // Commitment - requires selection
         return state.commitmentLevel != null;
-      case 10: // Reminder - optional, always can proceed
+      case 11: // Reminder - optional, always can proceed
         return true;
       default:
         return true;
@@ -129,7 +130,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           child: Column(
             children: [
               // Progress indicator with back button (show only on question pages)
-              if (_currentPage > 0 && _currentPage < _totalPages - 2)
+              if (_currentPage > 1 && _currentPage < _totalPages - 2)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 24, 0),
                   child: Row(
@@ -173,7 +174,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       onTermsConditions: () => context.push(RouteConstants.termsConditions),
                     ),
 
-                    // Page 1: Name
+                    // Page 1: Intro
+                    OnboardingIntroPage(
+                      onNext: _nextPage,
+                    ),
+
+                    // Page 2: Name
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -186,7 +192,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 2: Age selection
+                    // Page 3: Age selection
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -212,7 +218,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 3: Gender selection
+                    // Page 4: Gender selection
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -232,7 +238,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 4: Country selection
+                    // Page 5: Country selection
                     Builder(
                       builder: (context) {
                         final notifier = ref.read(onboardingProvider.notifier);
@@ -244,7 +250,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 5: Denomination selection
+                    // Page 6: Denomination selection
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -287,7 +293,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 6: Faith motivation
+                    // Page 7: Faith motivation
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -331,7 +337,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 7: Motive detail (follow-up to Faith motivation)
+                    // Page 8: Motive detail (follow-up to Faith motivation)
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -349,7 +355,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 8: Support type
+                    // Page 9: Support type
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -383,7 +389,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 9: Commitment
+                    // Page 10: Commitment
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
