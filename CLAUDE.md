@@ -150,7 +150,7 @@ BibliaChat/
   - Tema Material 3 (light/dark)
   - Pantallas creadas:
     - SplashScreen (auth anónimo automático)
-    - OnboardingScreen (14 páginas: Welcome → Intro → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Analizando → ¡Todo listo!)
+    - OnboardingScreen (15 páginas: Welcome → Intro → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Resumen → Analizando → ¡Todo listo!)
     - HomeScreen (racha, versículo, devoción, oración)
     - ChatListScreen (10 temas)
     - ChatScreen (interfaz de chat)
@@ -206,7 +206,7 @@ BibliaChat/
     - `userProfileStreamProvider` - Cambios en tiempo real
     - `hasCompletedOnboardingProvider` - Verificación onboarding
     - `onboardingProvider` - StateNotifier para formulario onboarding
-  - **Pantallas de onboarding (14 páginas):**
+  - **Pantallas de onboarding (15 páginas):**
     - 0: Welcome (CTA + links legales clickeables)
     - 1: Intro — "Vamos a personalizar tu experiencia" (informativa, sin datos)
     - 2: Nombre (¿Cómo te llamas? — requerido)
@@ -219,8 +219,9 @@ BibliaChat/
     - 9: Apoyo - "¿Cómo quieres que te ayudemos?" (3 opciones multi-select, hint visible) → guarda keys separadas por coma en `features`
     - 10: Compromiso - "¿Qué nivel de compromiso tienes?" (2 opciones, labels adaptados a género) → guarda en `persistence_self_report`
     - 11: Recordatorio (reminder_enabled, reminder_time) - Toggle + Time picker
-    - 12: Analizando (animación)
-    - 13: ¡Todo listo! (confirmación + auto-detección timezone)
+    - 12: Resumen motivacional - Situación + plan + prueba social (dinámico según respuestas)
+    - 13: Analizando (animación)
+    - 14: ¡Todo listo! (confirmación + auto-detección timezone)
   - **Auto-detección de timezone:**
     - Usa `flutter_timezone` para detectar zona horaria del dispositivo
     - Se guarda en `user_profiles.timezone` al completar onboarding
@@ -1662,7 +1663,7 @@ BibliaChat/
     - "¿Qué nivel de compromiso tienes con cumplir tus objetivos?"
     - 2 opciones: `high` (Estoy totalmente comprometido/a), `low` (No estoy muy comprometido/a)
     - Guarda como boolean en `persistence_self_report` (`high` → true, `low` → false)
-  - **Total páginas:** 14 (Welcome → Intro → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Analizando → ¡Todo listo!)
+  - **Total páginas:** 15 (Welcome → Intro → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Resumen → Analizando → ¡Todo listo!)
   - **Renames de columnas BD:**
     - `motive` (enum `motive_type`) → `features` (text) — migración 00027
     - `first_message` → `motive` — migración 00028
@@ -1754,7 +1755,7 @@ BibliaChat/
     - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 13 páginas + helper + analytics
     - `lib/core/services/analytics_service.dart` - motive + motive_detail user properties
 
-- [x] Feature: Página introductoria de onboarding (13→14 páginas)
+- [x] Feature: Página introductoria de onboarding (13→14→15 páginas)
   - **Nueva página 1 — Intro:**
     - Página informativa entre Welcome y Nombre
     - Contenido: ✨ emoji en círculo, "Vamos a personalizar tu experiencia", subtítulo breve, botón "Continuar"
@@ -1766,6 +1767,23 @@ BibliaChat/
     - `lib/features/onboarding/presentation/widgets/onboarding_intro_page.dart`
   - **Archivos modificados:**
     - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 14 páginas, intro page insertada, _canProceed shifted
+
+- [x] Feature: Página motivacional de resumen en onboarding (14→15 páginas)
+  - **Nueva página 12 — Resumen motivacional:**
+    - Se muestra después de Recordatorio y antes de Analizando
+    - Página persuasiva, NO un resumen frío de datos
+    - Contenido dinámico basado en respuestas del usuario
+  - **Secciones:**
+    - Header: "{Name}, tu plan está listo"
+    - Card "Tu situación": mapea `motive` + `motiveDetail` a texto legible con barra dorada lateral
+    - Card "Lo que haremos juntos": lista `supportTypes` con checks dorados
+    - Prueba social: 2 stats dinámicos según `motive` y `supportTypes` (números, no testimonios)
+    - Botón "Continuar"
+  - **No incluye:** datos fríos (país, edad, denominación)
+  - **Archivos creados:**
+    - `lib/features/onboarding/presentation/widgets/onboarding_summary_page.dart`
+  - **Archivos modificados:**
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 15 páginas, summary page insertada
 
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)

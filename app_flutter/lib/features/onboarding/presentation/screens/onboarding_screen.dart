@@ -14,6 +14,7 @@ import '../widgets/onboarding_reminder_page.dart';
 import '../widgets/onboarding_analyzing_page.dart';
 import '../widgets/onboarding_intro_page.dart';
 import '../widgets/onboarding_ready_page.dart';
+import '../widgets/onboarding_summary_page.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -25,7 +26,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 14; // Welcome + Intro + Nombre + 9 preguntas + Analyzing + Ready
+  final int _totalPages = 15; // Welcome + Intro + Nombre + 9 preguntas + Summary + Analyzing + Ready
 
   @override
   void dispose() {
@@ -422,7 +423,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 10: Reminder
+                    // Page 11: Reminder
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -437,12 +438,27 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 11: Analyzing
+                    // Page 12: Motivational summary
+                    Builder(
+                      builder: (context) {
+                        final state = ref.watch(onboardingProvider);
+                        return OnboardingSummaryPage(
+                          name: state.name,
+                          motive: state.motive,
+                          motiveDetail: state.motiveDetail,
+                          supportTypes: state.supportTypes,
+                          gender: state.gender,
+                          onNext: _nextPage,
+                        );
+                      },
+                    ),
+
+                    // Page 13: Analyzing
                     OnboardingAnalyzingPage(
                       onComplete: _nextPage,
                     ),
 
-                    // Page 12: Ready
+                    // Page 14: Ready
                     OnboardingReadyPage(
                       onStart: _completeOnboarding,
                     ),
