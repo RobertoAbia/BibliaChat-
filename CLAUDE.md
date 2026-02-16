@@ -1723,7 +1723,7 @@ BibliaChat/
   - **Archivos creados:**
     - `lib/features/onboarding/presentation/widgets/onboarding_name_page.dart` - Página dedicada nombre
   - **Archivos modificados:**
-    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 14 páginas, nombre, género, links, intro
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 15 páginas, nombre, género, links, intro, resumen
     - `lib/features/onboarding/presentation/widgets/onboarding_welcome_page.dart` - Links + layout pinned
     - `lib/features/onboarding/presentation/widgets/onboarding_selection_page.dart` - Hint + fix animación
     - `lib/features/profile/presentation/providers/user_profile_provider.dart` - setName() + name en completeOnboarding
@@ -1752,7 +1752,7 @@ BibliaChat/
     - `lib/features/profile/domain/repositories/user_profile_repository.dart` - Param motiveDetail
     - `lib/features/profile/data/repositories/user_profile_repository_impl.dart` - Pass motiveDetail
     - `lib/features/profile/presentation/providers/user_profile_provider.dart` - State + notifier + clearMotiveDetail
-    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 13 páginas + helper + analytics
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 15 páginas + helper + analytics
     - `lib/core/services/analytics_service.dart` - motive + motive_detail user properties
 
 - [x] Feature: Página introductoria de onboarding (13→14→15 páginas)
@@ -1766,7 +1766,7 @@ BibliaChat/
   - **Archivos creados:**
     - `lib/features/onboarding/presentation/widgets/onboarding_intro_page.dart`
   - **Archivos modificados:**
-    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 14 páginas, intro page insertada, _canProceed shifted
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 15 páginas, intro page insertada, _canProceed shifted
 
 - [x] Feature: Página motivacional de resumen en onboarding (14→15 páginas)
   - **Nueva página 12 — Resumen motivacional:**
