@@ -12,6 +12,7 @@ class UserProfile {
   final DateTime? reminderTime;
   final bool? persistenceSelfReport;
   final String? motive;
+  final String? motiveDetail;
   final String bibleVersionCode;
   final Map<String, dynamic>? aiMemory;
   final String timezone;
@@ -34,6 +35,7 @@ class UserProfile {
     this.reminderTime,
     this.persistenceSelfReport,
     this.motive,
+    this.motiveDetail,
     this.bibleVersionCode = 'RVR1960',
     this.aiMemory,
     this.timezone = 'America/New_York',
@@ -57,6 +59,7 @@ class UserProfile {
     DateTime? reminderTime,
     bool? persistenceSelfReport,
     String? motive,
+    String? motiveDetail,
     String? bibleVersionCode,
     Map<String, dynamic>? aiMemory,
     String? timezone,
@@ -79,6 +82,7 @@ class UserProfile {
       reminderTime: reminderTime ?? this.reminderTime,
       persistenceSelfReport: persistenceSelfReport ?? this.persistenceSelfReport,
       motive: motive ?? this.motive,
+      motiveDetail: motiveDetail ?? this.motiveDetail,
       bibleVersionCode: bibleVersionCode ?? this.bibleVersionCode,
       aiMemory: aiMemory ?? this.aiMemory,
       timezone: timezone ?? this.timezone,

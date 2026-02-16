@@ -255,6 +255,8 @@ class AnalyticsService {
     String? ageGroup,
     String? gender,
     bool? isPremium,
+    String? motive,
+    String? motiveDetail,
   }) async {
     if (kIsWeb) return;
     if (denomination != null) {
@@ -276,6 +278,15 @@ class AnalyticsService {
       await _analytics.setUserProperty(
         name: 'is_premium',
         value: isPremium.toString(),
+      );
+    }
+    if (motive != null) {
+      await _analytics.setUserProperty(name: 'motive', value: motive);
+    }
+    if (motiveDetail != null) {
+      await _analytics.setUserProperty(
+        name: 'motive_detail',
+        value: motiveDetail,
       );
     }
   }

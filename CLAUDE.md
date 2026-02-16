@@ -60,7 +60,7 @@ BibliaChat/
 - Anual: $39.99/año
 
 ## Tablas Principales de la BD
-- `user_profiles` (incluye `ai_memory`, `rc_app_user_id`, `gender`, `country_code`)
+- `user_profiles` (incluye `ai_memory`, `rc_app_user_id`, `gender`, `country_code`, `motive_detail`)
 - `chats` + `chat_messages` (hilos por tema)
 - `saved_messages`
 - `plans` + `plan_days` + `user_plans` + `user_plan_days`
@@ -95,6 +95,7 @@ BibliaChat/
 - 00026: Fix `daily_activity.completed` sobrescrito por `message_limit_service` + arreglar datos corruptos
 - 00027: Columna `motive` (enum) → `features` (text) para multi-select de apoyo
 - 00028: Columna `first_message` → `motive` para key de motivación de fe
+- 00029: Columna `motive_detail` para detalle de motivación (follow-up de Fe, solo analytics)
 
 ## EPICs del Proyecto (12 total)
 - **EPIC 0-1:** Foundation + Base de datos + RLS
@@ -149,7 +150,7 @@ BibliaChat/
   - Tema Material 3 (light/dark)
   - Pantallas creadas:
     - SplashScreen (auth anónimo automático)
-    - OnboardingScreen (12 páginas: Welcome → Nombre → Edad → Género → País → Denominación → Fe → Apoyo → Compromiso → Recordatorio → Analizando → ¡Todo listo!)
+    - OnboardingScreen (13 páginas: Welcome → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Analizando → ¡Todo listo!)
     - HomeScreen (racha, versículo, devoción, oración)
     - ChatListScreen (10 temas)
     - ChatScreen (interfaz de chat)
@@ -205,7 +206,7 @@ BibliaChat/
     - `userProfileStreamProvider` - Cambios en tiempo real
     - `hasCompletedOnboardingProvider` - Verificación onboarding
     - `onboardingProvider` - StateNotifier para formulario onboarding
-  - **Pantallas de onboarding (12 páginas):**
+  - **Pantallas de onboarding (13 páginas):**
     - 0: Welcome (CTA + links legales clickeables)
     - 1: Nombre (¿Cómo te llamas? — requerido)
     - 2: Edad (age_group) — personalizado con nombre si disponible
@@ -213,11 +214,12 @@ BibliaChat/
     - 4: País - Dropdown 21 países hispanohablantes → guarda `origin` (origin_group) + `country_code` (ISO)
     - 5: Denominación
     - 6: Fe - "¿Por qué es importante para ti trabajar en tu Fe ahora?" (4 opciones single-select, labels adaptados a género) → guarda key en `motive`
-    - 7: Apoyo - "¿Cómo quieres que te ayudemos?" (3 opciones multi-select, hint visible) → guarda keys separadas por coma en `features`
-    - 8: Compromiso - "¿Qué nivel de compromiso tienes?" (2 opciones, labels adaptados a género) → guarda en `persistence_self_report`
-    - 9: Recordatorio (reminder_enabled, reminder_time) - Toggle + Time picker
-    - 10: Analizando (animación)
-    - 11: ¡Todo listo! (confirmación + auto-detección timezone)
+    - 7: Detalle de motivación - Follow-up dinámico con 3 opciones según page 6 → guarda key en `motive_detail`
+    - 8: Apoyo - "¿Cómo quieres que te ayudemos?" (3 opciones multi-select, hint visible) → guarda keys separadas por coma en `features`
+    - 9: Compromiso - "¿Qué nivel de compromiso tienes?" (2 opciones, labels adaptados a género) → guarda en `persistence_self_report`
+    - 10: Recordatorio (reminder_enabled, reminder_time) - Toggle + Time picker
+    - 11: Analizando (animación)
+    - 12: ¡Todo listo! (confirmación + auto-detección timezone)
   - **Auto-detección de timezone:**
     - Usa `flutter_timezone` para detectar zona horaria del dispositivo
     - Se guarda en `user_profiles.timezone` al completar onboarding
@@ -1659,7 +1661,7 @@ BibliaChat/
     - "¿Qué nivel de compromiso tienes con cumplir tus objetivos?"
     - 2 opciones: `high` (Estoy totalmente comprometido/a), `low` (No estoy muy comprometido/a)
     - Guarda como boolean en `persistence_self_report` (`high` → true, `low` → false)
-  - **Total páginas:** 12 (Welcome → Nombre → Edad → Género → País → Denominación → Fe → Apoyo → Compromiso → Recordatorio → Analizando → ¡Todo listo!)
+  - **Total páginas:** 13 (Welcome → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Analizando → ¡Todo listo!)
   - **Renames de columnas BD:**
     - `motive` (enum `motive_type`) → `features` (text) — migración 00027
     - `first_message` → `motive` — migración 00028
@@ -1723,6 +1725,33 @@ BibliaChat/
     - `lib/features/onboarding/presentation/widgets/onboarding_welcome_page.dart` - Links + layout pinned
     - `lib/features/onboarding/presentation/widgets/onboarding_selection_page.dart` - Hint + fix animación
     - `lib/features/profile/presentation/providers/user_profile_provider.dart` - setName() + name en completeOnboarding
+
+- [x] Feature: Detalle de motivación — follow-up dinámico en onboarding (12→13 páginas)
+  - **Nueva página 7 — Detalle de motivación:**
+    - Follow-up a la pregunta de Fe (page 6) con 3 sub-opciones dinámicas
+    - Contenido cambia según la opción elegida en page 6:
+      - `difficult_moment` → "¿Qué tipo de situación estás viviendo?" (familia, salud, económico)
+      - `spiritual_growth` → "¿En qué área quieres crecer?" (oración, Biblia, día a día)
+      - `feeling_distant` → "¿Qué te ha llevado a sentirte así?" (dejé de practicar, dudas, experiencia)
+      - `understand_bible` → "¿Qué te gustaría entender mejor?" (aplicar, contexto, denominaciones)
+    - Cada variante tiene versículo bíblico propio
+    - **Solo para Firebase Analytics** (segmentación), NO para prompts de IA
+  - **Migración 00029:** `motive_detail` (text, nullable) en `user_profiles`
+  - **Clean Architecture:** Entity, Model, Repository interface/impl actualizados
+  - **OnboardingState:** Campo `motiveDetail` con flag `clearMotiveDetail` en `copyWith`
+  - **Edge case:** Al cambiar `motive` (volver a page 6), `motiveDetail` se limpia automáticamente
+  - **Analytics:** `motive` y `motive_detail` como user properties en Firebase
+  - **Helper `_getMotiveDetailConfig()`:** Devuelve pregunta + opciones + versículo según cada motive
+  - **Archivos creados:**
+    - `supabase/migrations/00029_add_motive_detail_column.sql`
+  - **Archivos modificados:**
+    - `lib/features/profile/domain/entities/user_profile.dart` - motiveDetail field
+    - `lib/features/profile/data/models/user_profile_model.dart` - Serialización motive_detail
+    - `lib/features/profile/domain/repositories/user_profile_repository.dart` - Param motiveDetail
+    - `lib/features/profile/data/repositories/user_profile_repository_impl.dart` - Pass motiveDetail
+    - `lib/features/profile/presentation/providers/user_profile_provider.dart` - State + notifier + clearMotiveDetail
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 13 páginas + helper + analytics
+    - `lib/core/services/analytics_service.dart` - motive + motive_detail user properties
 
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)

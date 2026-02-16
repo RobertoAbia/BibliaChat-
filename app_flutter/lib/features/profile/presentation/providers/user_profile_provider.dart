@@ -66,6 +66,7 @@ class OnboardingState {
   final String? bibleVersionCode;
   final Set<String> supportTypes;
   final String? motive;
+  final String? motiveDetail;
   final String? commitmentLevel; // high, medium, low
   final bool reminderEnabled;
   final TimeOfDay reminderTime;
@@ -82,6 +83,7 @@ class OnboardingState {
     this.bibleVersionCode,
     this.supportTypes = const {},
     this.motive,
+    this.motiveDetail,
     this.commitmentLevel,
     this.reminderEnabled = false,
     this.reminderTime = const TimeOfDay(hour: 8, minute: 0),
@@ -99,6 +101,8 @@ class OnboardingState {
     String? bibleVersionCode,
     Set<String>? supportTypes,
     String? motive,
+    String? motiveDetail,
+    bool clearMotiveDetail = false,
     String? commitmentLevel,
     bool? reminderEnabled,
     TimeOfDay? reminderTime,
@@ -115,6 +119,7 @@ class OnboardingState {
       bibleVersionCode: bibleVersionCode ?? this.bibleVersionCode,
       supportTypes: supportTypes ?? this.supportTypes,
       motive: motive ?? this.motive,
+      motiveDetail: clearMotiveDetail ? null : (motiveDetail ?? this.motiveDetail),
       commitmentLevel: commitmentLevel ?? this.commitmentLevel,
       reminderEnabled: reminderEnabled ?? this.reminderEnabled,
       reminderTime: reminderTime ?? this.reminderTime,
@@ -185,7 +190,11 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   }
 
   void setMotive(String value) {
-    state = state.copyWith(motive: value);
+    state = state.copyWith(motive: value, clearMotiveDetail: true);
+  }
+
+  void setMotiveDetail(String value) {
+    state = state.copyWith(motiveDetail: value);
   }
 
   void setCommitmentLevel(String value) {
@@ -243,6 +252,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
             ? state.commitmentLevel != 'low'
             : null,
         motive: state.motive,
+        motiveDetail: state.motiveDetail,
         reminderEnabled: state.reminderEnabled,
         reminderTime: state.reminderEnabled
             ? _timeOfDayToDateTime(state.reminderTime)

@@ -24,7 +24,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 12; // Welcome + Nombre + 8 preguntas + Analyzing + Ready
+  final int _totalPages = 13; // Welcome + Nombre + 9 preguntas + Analyzing + Ready
 
   @override
   void dispose() {
@@ -69,6 +69,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         origin: state.origin,
         ageGroup: state.ageGroup,
         gender: state.gender,
+        motive: state.motive,
+        motiveDetail: state.motiveDetail,
       );
       // Invalidar el provider de perfil para que se recargue con los nuevos datos
       ref.invalidate(currentUserProfileProvider);
@@ -103,11 +105,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         return state.denomination != null;
       case 6: // Faith motivation - requires selection
         return state.motive != null;
-      case 7: // Support type (multi-select)
+      case 7: // Motive detail - requires selection
+        return state.motiveDetail != null;
+      case 8: // Support type (multi-select)
         return state.supportTypes.isNotEmpty;
-      case 8: // Commitment - requires selection
+      case 9: // Commitment - requires selection
         return state.commitmentLevel != null;
-      case 9: // Reminder - optional, always can proceed
+      case 10: // Reminder - optional, always can proceed
         return true;
       default:
         return true;
@@ -327,7 +331,25 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 7: Support type
+                    // Page 7: Motive detail (follow-up to Faith motivation)
+                    Builder(
+                      builder: (context) {
+                        final state = ref.watch(onboardingProvider);
+                        final notifier = ref.read(onboardingProvider.notifier);
+                        final config = _getMotiveDetailConfig(state.motive);
+                        return OnboardingSelectionPage(
+                          verseReference: config.verseReference,
+                          title: config.verseText,
+                          subtitle: config.question,
+                          options: config.options,
+                          selectedKey: state.motiveDetail,
+                          onSelect: (key) => notifier.setMotiveDetail(key),
+                          onNext: _canProceed() ? _nextPage : null,
+                        );
+                      },
+                    ),
+
+                    // Page 8: Support type
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -361,7 +383,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 8: Commitment
+                    // Page 9: Commitment
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -394,7 +416,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 9: Reminder
+                    // Page 10: Reminder
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -409,12 +431,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 10: Analyzing
+                    // Page 11: Analyzing
                     OnboardingAnalyzingPage(
                       onComplete: _nextPage,
                     ),
 
-                    // Page 11: Ready
+                    // Page 12: Ready
                     OnboardingReadyPage(
                       onStart: _completeOnboarding,
                     ),
@@ -426,6 +448,116 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ),
       ),
     );
+  }
+
+  _MotiveDetailConfig _getMotiveDetailConfig(String? motive) {
+    switch (motive) {
+      case 'difficult_moment':
+        return _MotiveDetailConfig(
+          question: '¿Qué tipo de situación estás viviendo?',
+          verseReference: 'Salmo 34:18',
+          verseText: 'Cercano está el Señor a los quebrantados de corazón.',
+          options: const [
+            SelectionOption(
+              key: 'family_issues',
+              label: 'Problemas familiares o de pareja',
+              icon: Icons.people,
+            ),
+            SelectionOption(
+              key: 'health_issues',
+              label: 'Problemas de salud',
+              icon: Icons.healing,
+            ),
+            SelectionOption(
+              key: 'financial_issues',
+              label: 'Problemas económicos o laborales',
+              icon: Icons.work,
+            ),
+          ],
+        );
+      case 'spiritual_growth':
+        return _MotiveDetailConfig(
+          question: '¿En qué área quieres crecer?',
+          verseReference: '2 Pedro 3:18',
+          verseText: 'Creced en la gracia y el conocimiento de nuestro Señor.',
+          options: const [
+            SelectionOption(
+              key: 'prayer_life',
+              label: 'Fortalecer mi vida de oración',
+              icon: Icons.self_improvement,
+            ),
+            SelectionOption(
+              key: 'bible_knowledge',
+              label: 'Conocer mejor la Biblia',
+              icon: Icons.menu_book,
+            ),
+            SelectionOption(
+              key: 'daily_faith',
+              label: 'Vivir mi fe en el día a día',
+              icon: Icons.wb_sunny,
+            ),
+          ],
+        );
+      case 'feeling_distant':
+        return _MotiveDetailConfig(
+          question: '¿Qué te ha llevado a sentirte así?',
+          verseReference: 'Santiago 4:8',
+          verseText: 'Acercaos a Dios, y Él se acercará a vosotros.',
+          options: const [
+            SelectionOption(
+              key: 'stopped_practicing',
+              label: 'He dejado de practicar mi fe',
+              icon: Icons.pause_circle,
+            ),
+            SelectionOption(
+              key: 'faith_doubts',
+              label: 'Tengo dudas sobre lo que creo',
+              icon: Icons.help_outline,
+            ),
+            SelectionOption(
+              key: 'painful_experience',
+              label: 'He pasado por algo que me alejó',
+              icon: Icons.heart_broken,
+            ),
+          ],
+        );
+      case 'understand_bible':
+        return _MotiveDetailConfig(
+          question: '¿Qué te gustaría entender mejor?',
+          verseReference: 'Salmo 119:105',
+          verseText: 'Lámpara es a mis pies tu palabra, y lumbrera a mi camino.',
+          options: const [
+            SelectionOption(
+              key: 'apply_teachings',
+              label: 'Cómo aplicar las enseñanzas a mi vida',
+              icon: Icons.lightbulb,
+            ),
+            SelectionOption(
+              key: 'historical_context',
+              label: 'El contexto histórico y los libros',
+              icon: Icons.history_edu,
+            ),
+            SelectionOption(
+              key: 'denomination_differences',
+              label: 'Las diferencias entre denominaciones',
+              icon: Icons.diversity_3,
+            ),
+          ],
+        );
+      default:
+        return _MotiveDetailConfig(
+          question: '¿Qué te gustaría profundizar?',
+          verseReference: 'Proverbios 2:6',
+          verseText: 'Porque el Señor da la sabiduría.',
+          options: const [
+            SelectionOption(
+              key: 'general',
+              label: 'Explorar mi fe',
+              icon: Icons.explore,
+            ),
+          ],
+        );
+    }
   }
 
   Widget _buildProgressBar() {
@@ -457,4 +589,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       ),
     );
   }
+}
+
+class _MotiveDetailConfig {
+  final String question;
+  final String verseReference;
+  final String verseText;
+  final List<SelectionOption> options;
+
+  const _MotiveDetailConfig({
+    required this.question,
+    required this.verseReference,
+    required this.verseText,
+    required this.options,
+  });
 }

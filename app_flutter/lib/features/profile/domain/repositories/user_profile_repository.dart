@@ -20,6 +20,7 @@ abstract class UserProfileRepository {
     String? bibleVersionCode,
     String? features,
     String? motive,
+    String? motiveDetail,
     bool? reminderEnabled,
     DateTime? reminderTime,
     bool? persistenceSelfReport,

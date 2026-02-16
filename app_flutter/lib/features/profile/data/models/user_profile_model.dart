@@ -15,6 +15,7 @@ class UserProfileModel extends UserProfile {
     super.reminderTime,
     super.persistenceSelfReport,
     super.motive,
+    super.motiveDetail,
     super.bibleVersionCode,
     super.aiMemory,
     super.timezone,
@@ -42,6 +43,7 @@ class UserProfileModel extends UserProfile {
           : null,
       persistenceSelfReport: json['persistence_self_report'] as bool?,
       motive: json['motive'] as String?,
+      motiveDetail: json['motive_detail'] as String?,
       bibleVersionCode: json['bible_version_code'] as String? ?? 'RVR1960',
       aiMemory: json['ai_memory'] as Map<String, dynamic>?,
       timezone: json['timezone'] as String? ?? 'America/New_York',
@@ -69,6 +71,7 @@ class UserProfileModel extends UserProfile {
       if (persistenceSelfReport != null)
         'persistence_self_report': persistenceSelfReport,
       if (motive != null) 'motive': motive,
+      if (motiveDetail != null) 'motive_detail': motiveDetail,
       'bible_version_code': bibleVersionCode,
       if (aiMemory != null) 'ai_memory': aiMemory,
       'timezone': timezone,
@@ -91,6 +94,7 @@ class UserProfileModel extends UserProfile {
     DateTime? reminderTime,
     bool? persistenceSelfReport,
     String? motive,
+    String? motiveDetail,
     String? bibleVersionCode,
     Map<String, dynamic>? aiMemory,
     String? timezone,
@@ -113,6 +117,7 @@ class UserProfileModel extends UserProfile {
       map['persistence_self_report'] = persistenceSelfReport;
     }
     if (motive != null) map['motive'] = motive;
+    if (motiveDetail != null) map['motive_detail'] = motiveDetail;
     if (bibleVersionCode != null) map['bible_version_code'] = bibleVersionCode;
     if (aiMemory != null) map['ai_memory'] = aiMemory;
     if (timezone != null) map['timezone'] = timezone;
@@ -140,6 +145,7 @@ class UserProfileModel extends UserProfile {
       reminderTime: entity.reminderTime,
       persistenceSelfReport: entity.persistenceSelfReport,
       motive: entity.motive,
+      motiveDetail: entity.motiveDetail,
       bibleVersionCode: entity.bibleVersionCode,
       aiMemory: entity.aiMemory,
       timezone: entity.timezone,
