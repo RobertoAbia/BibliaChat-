@@ -150,7 +150,7 @@ BibliaChat/
   - Tema Material 3 (light/dark)
   - Pantallas creadas:
     - SplashScreen (auth anónimo automático)
-    - OnboardingScreen (15 páginas: Welcome → Intro → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Resumen → Analizando → ¡Todo listo!)
+    - OnboardingScreen (15 páginas: Welcome → Intro → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Analizando → Resumen → ¡Todo listo!)
     - HomeScreen (racha, versículo, devoción, oración)
     - ChatListScreen (10 temas)
     - ChatScreen (interfaz de chat)
@@ -219,8 +219,8 @@ BibliaChat/
     - 9: Apoyo - "¿Cómo quieres que te ayudemos?" (3 opciones multi-select, hint visible) → guarda keys separadas por coma en `features`
     - 10: Compromiso - "¿Qué nivel de compromiso tienes?" (2 opciones, labels adaptados a género) → guarda en `persistence_self_report`
     - 11: Recordatorio (reminder_enabled, reminder_time) - Toggle + Time picker
-    - 12: Resumen motivacional - Situación + plan + prueba social (dinámico según respuestas)
-    - 13: Analizando (animación)
+    - 12: Analizando (animación)
+    - 13: Resumen motivacional - Situación + plan + prueba social (dinámico según respuestas)
     - 14: ¡Todo listo! (confirmación + auto-detección timezone)
   - **Auto-detección de timezone:**
     - Usa `flutter_timezone` para detectar zona horaria del dispositivo
@@ -1663,7 +1663,7 @@ BibliaChat/
     - "¿Qué nivel de compromiso tienes con cumplir tus objetivos?"
     - 2 opciones: `high` (Estoy totalmente comprometido/a), `low` (No estoy muy comprometido/a)
     - Guarda como boolean en `persistence_self_report` (`high` → true, `low` → false)
-  - **Total páginas:** 15 (Welcome → Intro → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Resumen → Analizando → ¡Todo listo!)
+  - **Total páginas:** 15 (Welcome → Intro → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Analizando → Resumen → ¡Todo listo!)
   - **Renames de columnas BD:**
     - `motive` (enum `motive_type`) → `features` (text) — migración 00027
     - `first_message` → `motive` — migración 00028
@@ -1769,8 +1769,8 @@ BibliaChat/
     - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 15 páginas, intro page insertada, _canProceed shifted
 
 - [x] Feature: Página motivacional de resumen en onboarding (14→15 páginas)
-  - **Nueva página 12 — Resumen motivacional:**
-    - Se muestra después de Recordatorio y antes de Analizando
+  - **Nueva página 13 — Resumen motivacional:**
+    - Se muestra después de Analizando y antes de ¡Todo listo!
     - Página persuasiva, NO un resumen frío de datos
     - Contenido dinámico basado en respuestas del usuario
   - **Secciones:**

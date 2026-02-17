@@ -131,7 +131,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           child: Column(
             children: [
               // Progress indicator with back button (show only on question pages)
-              if (_currentPage > 1 && _currentPage < _totalPages - 2)
+              if (_currentPage > 1 && _currentPage < _totalPages - 3)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 24, 0),
                   child: Row(
@@ -438,7 +438,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 12: Motivational summary
+                    // Page 12: Analyzing
+                    OnboardingAnalyzingPage(
+                      onComplete: _nextPage,
+                    ),
+
+                    // Page 13: Motivational summary
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -451,11 +456,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           onNext: _nextPage,
                         );
                       },
-                    ),
-
-                    // Page 13: Analyzing
-                    OnboardingAnalyzingPage(
-                      onComplete: _nextPage,
                     ),
 
                     // Page 14: Ready
