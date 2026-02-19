@@ -51,7 +51,7 @@ serve(async (req) => {
     // Obtener perfil (demografía)
     const { data: profile } = await adminClient
       .from('user_profiles')
-      .select('denomination, origin, age_group, created_at')
+      .select('denomination, origin, age_group, gender, country_code, motive, motive_detail, features, consent_terms_at, consent_data_at, created_at')
       .eq('user_id', userId)
       .single();
 
@@ -106,6 +106,13 @@ serve(async (req) => {
         denomination: profile?.denomination,
         origin_group: profile?.origin,
         age_group: profile?.age_group,
+        gender: profile?.gender,
+        country_code: profile?.country_code,
+        motive: profile?.motive,
+        motive_detail: profile?.motive_detail,
+        features: profile?.features,
+        consent_terms_at: profile?.consent_terms_at,
+        consent_data_at: profile?.consent_data_at,
         chat_messages: allMessages,
         plans_data: plansData,
         total_messages: totalMessages + allMessages.length,

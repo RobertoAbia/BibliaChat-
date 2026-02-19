@@ -74,7 +74,7 @@ BibliaChat/
 - `deleted_user_archives` (archivado pseudonimizado para GDPR, 3 años retención)
 - `liturgical_readings` (calendario litúrgico católico - 365 días/año)
 
-## Migraciones SQL (31 total)
+## Migraciones SQL (32 total)
 - 00001-00009: Tablas core, ENUMs, RLS, índices
 - 00010: `rc_app_user_id` para restaurar compras
 - 00011: `gender` + enum `gender_type`
@@ -98,6 +98,7 @@ BibliaChat/
 - 00029: Columna `motive_detail` para detalle de motivación (follow-up de Fe, solo analytics)
 - 00030: Columnas `consent_terms_at` y `consent_data_at` para tracking de consentimiento GDPR
 - 00031: Seed 12 planes de motivo (84 días de contenido), columna `title` en `plan_days`, 4 topic keys nuevos
+- 00032: Columnas demografía + consentimiento GDPR en `deleted_user_archives` (gender, country_code, motive, motive_detail, features, consent_terms_at, consent_data_at)
 
 ## EPICs del Proyecto (12 total)
 - **EPIC 0-1:** Foundation + Base de datos + RLS
@@ -1896,6 +1897,18 @@ BibliaChat/
     - `lib/features/onboarding/presentation/widgets/onboarding_country_page.dart` - Países reordenados
     - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - Keyboard unfocus en navegación
 
+- [x] Fix: Archivar datos completos al borrar cuenta (delete-account)
+  - **Problema:** La Edge Function `delete-account` solo archivaba denomination, origin_group y age_group
+  - **Campos nuevos no archivados:** gender, country_code, motive, motive_detail, features, consent_terms_at, consent_data_at
+  - **Solución:**
+    - Migración 00032: Añade 7 columnas a `deleted_user_archives`
+    - Edge Function actualizada para leer y archivar todos los campos del perfil
+  - **Importancia GDPR:** Los timestamps de consentimiento (`consent_terms_at`, `consent_data_at`) permiten demostrar cuándo el usuario dio consentimiento incluso después de borrar su cuenta
+  - **Archivos creados:**
+    - `supabase/migrations/00032_add_archive_columns.sql`
+  - **Archivos modificados:**
+    - `supabase/functions/delete-account/index.ts` - Select y archive de 7 campos adicionales
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
@@ -2130,7 +2143,9 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
   - `user_id_hash`: SHA256 del user_id original
   - `chat_messages`: JSON con todos los mensajes (role, content, created_at)
   - `plans_data`: Progreso de planes (nombre, status, días completados)
-  - Demografía: denomination, origin_group, age_group
+  - Demografía: denomination, origin_group, age_group, gender, country_code
+  - Motivación: motive, motive_detail, features
+  - Consentimiento GDPR: consent_terms_at, consent_data_at
   - Métricas: total_messages, streak_max, plans_started/completed
 - **Retención:** 3 años (expires_at = archived_at + 3 years)
 - **PII eliminada:** nombre, email, device tokens, rc_app_user_id
