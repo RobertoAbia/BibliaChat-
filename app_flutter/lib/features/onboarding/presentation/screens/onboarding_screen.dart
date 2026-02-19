@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
+import '../../../study/presentation/providers/study_provider.dart';
 import '../widgets/onboarding_welcome_page.dart';
 import '../widgets/onboarding_name_page.dart';
 import '../widgets/onboarding_selection_page.dart';
@@ -13,7 +15,8 @@ import '../widgets/onboarding_country_page.dart';
 import '../widgets/onboarding_reminder_page.dart';
 import '../widgets/onboarding_analyzing_page.dart';
 import '../widgets/onboarding_intro_page.dart';
-import '../widgets/onboarding_ready_page.dart';
+import '../widgets/onboarding_consent_page.dart';
+import '../widgets/onboarding_plan_preview_page.dart';
 import '../widgets/onboarding_summary_page.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
@@ -26,7 +29,7 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 15; // Welcome + Intro + Nombre + 9 preguntas + Summary + Analyzing + Ready
+  final int _totalPages = 16; // Welcome + Consent + Intro + Nombre + 9 preguntas + Analyzing + Summary + Ready
 
   @override
   void dispose() {
@@ -36,6 +39,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   void _nextPage() {
     if (_currentPage < _totalPages - 1) {
+      FocusScope.of(context).unfocus();
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
@@ -45,6 +49,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   void _previousPage() {
     if (_currentPage > 0) {
+      FocusScope.of(context).unfocus();
       _pageController.previousPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
@@ -76,6 +81,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       );
       // Invalidar el provider de perfil para que se recargue con los nuevos datos
       ref.invalidate(currentUserProfileProvider);
+      // Auto-assign recommended plan based on motive+detail
+      final planId = _getRecommendedPlanId(state.motive, state.motiveDetail);
+      if (planId != null) {
+        final userId = Supabase.instance.client.auth.currentUser?.id;
+        if (userId != null) {
+          try {
+            await ref.read(studyDatasourceProvider).startPlan(userId, planId);
+          } catch (_) {
+            // Non-critical: plan assignment can fail silently
+          }
+        }
+      }
       // Mostrar paywall después del onboarding
       context.go(RouteConstants.paywall);
     } else if (mounted) {
@@ -92,28 +109,48 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
+  static const _motiveDetailPlanMap = {
+    'difficult_moment:family_issues': 'b1000000-0000-0000-0000-000000000001',
+    'difficult_moment:health_issues': 'b1000000-0000-0000-0000-000000000002',
+    'difficult_moment:financial_issues': 'b1000000-0000-0000-0000-000000000003',
+    'spiritual_growth:prayer_life': 'b1000000-0000-0000-0000-000000000004',
+    'spiritual_growth:bible_knowledge': 'b1000000-0000-0000-0000-000000000005',
+    'spiritual_growth:daily_faith': 'b1000000-0000-0000-0000-000000000006',
+    'feeling_distant:stopped_practicing': 'b1000000-0000-0000-0000-000000000007',
+    'feeling_distant:doubts': 'b1000000-0000-0000-0000-000000000008',
+    'feeling_distant:painful_experience': 'b1000000-0000-0000-0000-000000000009',
+    'understand_bible:apply_life': 'b1000000-0000-0000-0000-000000000010',
+    'understand_bible:historical_context': 'b1000000-0000-0000-0000-000000000011',
+    'understand_bible:denomination_differences': 'b1000000-0000-0000-0000-000000000012',
+  };
+
+  String? _getRecommendedPlanId(String? motive, String? motiveDetail) {
+    if (motive == null || motiveDetail == null) return null;
+    return _motiveDetailPlanMap['$motive:$motiveDetail'];
+  }
+
   bool _canProceed() {
     final state = ref.watch(onboardingProvider);
     switch (_currentPage) {
-      case 2: // Name - required
+      case 3: // Name - required
         return state.name != null;
-      case 3: // Age
+      case 4: // Age
         return state.ageGroup != null;
-      case 4: // Gender
+      case 5: // Gender
         return state.gender != null;
-      case 5: // Country
+      case 6: // Country
         return state.origin != null;
-      case 6: // Denomination
+      case 7: // Denomination
         return state.denomination != null;
-      case 7: // Faith motivation - requires selection
+      case 8: // Faith motivation - requires selection
         return state.motive != null;
-      case 8: // Motive detail - requires selection
+      case 9: // Motive detail - requires selection
         return state.motiveDetail != null;
-      case 9: // Support type (multi-select)
+      case 10: // Support type (multi-select)
         return state.supportTypes.isNotEmpty;
-      case 10: // Commitment - requires selection
+      case 11: // Commitment - requires selection
         return state.commitmentLevel != null;
-      case 11: // Reminder - optional, always can proceed
+      case 12: // Reminder - optional, always can proceed
         return true;
       default:
         return true;
@@ -131,7 +168,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           child: Column(
             children: [
               // Progress indicator with back button (show only on question pages)
-              if (_currentPage > 1 && _currentPage < _totalPages - 3)
+              if (_currentPage > 2 && _currentPage < _totalPages - 3)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 24, 0),
                   child: Row(
@@ -171,16 +208,21 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     OnboardingWelcomePage(
                       onGetStarted: _nextPage,
                       onLogin: () => context.push(RouteConstants.login),
+                    ),
+
+                    // Page 1: Privacy consent
+                    OnboardingConsentPage(
+                      onNext: _nextPage,
                       onPrivacyPolicy: () => context.push(RouteConstants.privacyPolicy),
                       onTermsConditions: () => context.push(RouteConstants.termsConditions),
                     ),
 
-                    // Page 1: Intro
+                    // Page 2: Intro
                     OnboardingIntroPage(
                       onNext: _nextPage,
                     ),
 
-                    // Page 2: Name
+                    // Page 3: Name
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -193,7 +235,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 3: Age selection
+                    // Page 4: Age selection
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -219,7 +261,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 4: Gender selection
+                    // Page 5: Gender selection
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -239,7 +281,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 5: Country selection
+                    // Page 6: Country selection
                     Builder(
                       builder: (context) {
                         final notifier = ref.read(onboardingProvider.notifier);
@@ -251,7 +293,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 6: Denomination selection
+                    // Page 7: Denomination selection
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -294,7 +336,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 7: Faith motivation
+                    // Page 8: Faith motivation
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -338,7 +380,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 8: Motive detail (follow-up to Faith motivation)
+                    // Page 9: Motive detail (follow-up to Faith motivation)
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -356,7 +398,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 9: Support type
+                    // Page 10: Support type
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -390,7 +432,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 10: Commitment
+                    // Page 11: Commitment
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -423,7 +465,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 11: Reminder
+                    // Page 12: Reminder
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -438,12 +480,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 12: Analyzing
+                    // Page 13: Analyzing
                     OnboardingAnalyzingPage(
                       onComplete: _nextPage,
                     ),
 
-                    // Page 13: Motivational summary
+                    // Page 14: Motivational summary
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -458,9 +500,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 14: Ready
-                    OnboardingReadyPage(
-                      onStart: _completeOnboarding,
+                    // Page 15: Plan preview (replaces Ready page)
+                    Builder(
+                      builder: (context) {
+                        final state = ref.watch(onboardingProvider);
+                        return OnboardingPlanPreviewPage(
+                          motive: state.motive,
+                          motiveDetail: state.motiveDetail,
+                          onStart: _completeOnboarding,
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -584,7 +633,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   Widget _buildProgressBar() {
     // Progress from page 1 to page 5 (actual question pages)
-    final progress = (_currentPage) / (_totalPages - 3);
+    final progress = (_currentPage - 1) / (_totalPages - 4);
 
     return Container(
       height: 4,

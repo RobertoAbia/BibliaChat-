@@ -1,25 +1,18 @@
 import 'dart:ui';
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
-import '../../../../core/widgets/lottie_helper.dart';
 
 class OnboardingWelcomePage extends StatefulWidget {
   final VoidCallback onGetStarted;
   final VoidCallback? onLogin;
-  final VoidCallback? onPrivacyPolicy;
-  final VoidCallback? onTermsConditions;
 
   const OnboardingWelcomePage({
     super.key,
     required this.onGetStarted,
     this.onLogin,
-    this.onPrivacyPolicy,
-    this.onTermsConditions,
   });
 
   @override
@@ -245,48 +238,6 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
               ),
             ),
 
-            // Terms pinned at bottom
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-              child: Opacity(
-                opacity: _fadeIn.value,
-                child: Text.rich(
-                  TextSpan(
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: AppTheme.textTertiary,
-                          height: 1.5,
-                        ),
-                    children: [
-                      const TextSpan(text: 'Al continuar, aceptas nuestros '),
-                      TextSpan(
-                        text: 'Términos de Servicio',
-                        style: TextStyle(
-                          color: AppTheme.primaryColor,
-                          fontWeight: FontWeight.w500,
-                          decoration: TextDecoration.underline,
-                          decorationColor: AppTheme.primaryColor.withOpacity(0.5),
-                        ),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = widget.onTermsConditions,
-                      ),
-                      const TextSpan(text: '\ny '),
-                      TextSpan(
-                        text: 'Política de Privacidad',
-                        style: TextStyle(
-                          color: AppTheme.primaryColor,
-                          fontWeight: FontWeight.w500,
-                          decoration: TextDecoration.underline,
-                          decorationColor: AppTheme.primaryColor.withOpacity(0.5),
-                        ),
-                        recognizer: TapGestureRecognizer()
-                          ..onTap = widget.onPrivacyPolicy,
-                      ),
-                    ],
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ),
           ],
         );
       },

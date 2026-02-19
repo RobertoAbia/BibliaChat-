@@ -18,38 +18,30 @@ class HispanicCountry {
   });
 }
 
-/// Lista de países hispanohablantes
+/// Lista de países hispanohablantes ordenada por población hispana en EE.UU.
+/// Fuente: Pew Research Center / U.S. Census Bureau (2023)
 const hispanicCountries = [
-  // México y Centroamérica
-  HispanicCountry(code: 'MX', name: 'México', flag: '🇲🇽', originGroup: 'mexico_centroamerica'),
-  HispanicCountry(code: 'GT', name: 'Guatemala', flag: '🇬🇹', originGroup: 'mexico_centroamerica'),
-  HispanicCountry(code: 'HN', name: 'Honduras', flag: '🇭🇳', originGroup: 'mexico_centroamerica'),
-  HispanicCountry(code: 'SV', name: 'El Salvador', flag: '🇸🇻', originGroup: 'mexico_centroamerica'),
-  HispanicCountry(code: 'NI', name: 'Nicaragua', flag: '🇳🇮', originGroup: 'mexico_centroamerica'),
-  HispanicCountry(code: 'CR', name: 'Costa Rica', flag: '🇨🇷', originGroup: 'mexico_centroamerica'),
-  HispanicCountry(code: 'PA', name: 'Panamá', flag: '🇵🇦', originGroup: 'mexico_centroamerica'),
-
-  // Caribe
-  HispanicCountry(code: 'CU', name: 'Cuba', flag: '🇨🇺', originGroup: 'caribe'),
-  HispanicCountry(code: 'DO', name: 'República Dominicana', flag: '🇩🇴', originGroup: 'caribe'),
-  HispanicCountry(code: 'PR', name: 'Puerto Rico', flag: '🇵🇷', originGroup: 'caribe'),
-
-  // Sudamérica
-  HispanicCountry(code: 'CO', name: 'Colombia', flag: '🇨🇴', originGroup: 'sudamerica'),
-  HispanicCountry(code: 'VE', name: 'Venezuela', flag: '🇻🇪', originGroup: 'sudamerica'),
-  HispanicCountry(code: 'EC', name: 'Ecuador', flag: '🇪🇨', originGroup: 'sudamerica'),
-  HispanicCountry(code: 'PE', name: 'Perú', flag: '🇵🇪', originGroup: 'sudamerica'),
-  HispanicCountry(code: 'BO', name: 'Bolivia', flag: '🇧🇴', originGroup: 'sudamerica'),
-  HispanicCountry(code: 'CL', name: 'Chile', flag: '🇨🇱', originGroup: 'sudamerica'),
-  HispanicCountry(code: 'AR', name: 'Argentina', flag: '🇦🇷', originGroup: 'sudamerica'),
-  HispanicCountry(code: 'UY', name: 'Uruguay', flag: '🇺🇾', originGroup: 'sudamerica'),
-  HispanicCountry(code: 'PY', name: 'Paraguay', flag: '🇵🇾', originGroup: 'sudamerica'),
-
-  // España
-  HispanicCountry(code: 'ES', name: 'España', flag: '🇪🇸', originGroup: 'espana'),
-
-  // USA Hispano
-  HispanicCountry(code: 'US', name: 'Estados Unidos', flag: '🇺🇸', originGroup: 'usa_hispano'),
+  HispanicCountry(code: 'MX', name: 'México', flag: '🇲🇽', originGroup: 'mexico_centroamerica'),       // ~37M
+  HispanicCountry(code: 'PR', name: 'Puerto Rico', flag: '🇵🇷', originGroup: 'caribe'),                 // ~5.9M
+  HispanicCountry(code: 'US', name: 'Estados Unidos', flag: '🇺🇸', originGroup: 'usa_hispano'),         // ~4.5M (hispanos nacidos en EEUU sin origen específico)
+  HispanicCountry(code: 'SV', name: 'El Salvador', flag: '🇸🇻', originGroup: 'mexico_centroamerica'),   // ~2.5M
+  HispanicCountry(code: 'CU', name: 'Cuba', flag: '🇨🇺', originGroup: 'caribe'),                       // ~2.5M
+  HispanicCountry(code: 'DO', name: 'República Dominicana', flag: '🇩🇴', originGroup: 'caribe'),        // ~2.4M
+  HispanicCountry(code: 'GT', name: 'Guatemala', flag: '🇬🇹', originGroup: 'mexico_centroamerica'),     // ~1.8M
+  HispanicCountry(code: 'CO', name: 'Colombia', flag: '🇨🇴', originGroup: 'sudamerica'),                // ~1.4M
+  HispanicCountry(code: 'HN', name: 'Honduras', flag: '🇭🇳', originGroup: 'mexico_centroamerica'),      // ~1.1M
+  HispanicCountry(code: 'EC', name: 'Ecuador', flag: '🇪🇨', originGroup: 'sudamerica'),                 // ~800K
+  HispanicCountry(code: 'PE', name: 'Perú', flag: '🇵🇪', originGroup: 'sudamerica'),                    // ~700K
+  HispanicCountry(code: 'VE', name: 'Venezuela', flag: '🇻🇪', originGroup: 'sudamerica'),               // ~640K
+  HispanicCountry(code: 'NI', name: 'Nicaragua', flag: '🇳🇮', originGroup: 'mexico_centroamerica'),     // ~460K
+  HispanicCountry(code: 'AR', name: 'Argentina', flag: '🇦🇷', originGroup: 'sudamerica'),               // ~300K
+  HispanicCountry(code: 'PA', name: 'Panamá', flag: '🇵🇦', originGroup: 'mexico_centroamerica'),        // ~210K
+  HispanicCountry(code: 'ES', name: 'España', flag: '🇪🇸', originGroup: 'espana'),                      // ~170K
+  HispanicCountry(code: 'CR', name: 'Costa Rica', flag: '🇨🇷', originGroup: 'mexico_centroamerica'),    // ~160K
+  HispanicCountry(code: 'CL', name: 'Chile', flag: '🇨🇱', originGroup: 'sudamerica'),                   // ~150K
+  HispanicCountry(code: 'BO', name: 'Bolivia', flag: '🇧🇴', originGroup: 'sudamerica'),                 // ~120K
+  HispanicCountry(code: 'UY', name: 'Uruguay', flag: '🇺🇾', originGroup: 'sudamerica'),                 // ~65K
+  HispanicCountry(code: 'PY', name: 'Paraguay', flag: '🇵🇾', originGroup: 'sudamerica'),                // ~25K
 ];
 
 class OnboardingCountryPage extends StatefulWidget {

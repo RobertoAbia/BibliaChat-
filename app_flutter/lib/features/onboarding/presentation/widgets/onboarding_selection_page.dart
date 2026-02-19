@@ -66,12 +66,35 @@ class OnboardingSelectionPage extends StatelessWidget {
 
                 // Optional hint (e.g. for multi-select)
                 if (hint != null) ...[
-                  const SizedBox(height: 6),
-                  Text(
-                    hint!,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: AppTheme.textTertiary,
+                  const SizedBox(height: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: AppTheme.primaryColor.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.touch_app_outlined,
+                          color: AppTheme.primaryColor,
+                          size: 18,
                         ),
+                        const SizedBox(width: 8),
+                        Text(
+                          hint!,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: AppTheme.primaryColor,
+                                fontWeight: FontWeight.w500,
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
 
@@ -217,79 +240,80 @@ class _SelectionTileState extends State<_SelectionTile>
             child: child,
           );
         },
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(
-              sigmaX: widget.isSelected ? 12 : 8,
-              sigmaY: widget.isSelected ? 12 : 8,
-            ),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 280),
-              curve: Curves.easeOutCubic,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: widget.isSelected
-                    ? LinearGradient(
-                        colors: [
-                          AppTheme.primaryColor.withOpacity(0.2),
-                          AppTheme.primaryColor.withOpacity(0.08),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      )
-                    : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 350),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
                 color: widget.isSelected
-                    ? null
-                    : AppTheme.surfaceDark.withOpacity(0.4),
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(
-                  color: widget.isSelected
-                      ? AppTheme.primaryColor.withOpacity(0.6)
-                      : AppTheme.surfaceLight.withOpacity(0.3),
-                  width: widget.isSelected ? 1.5 : 1,
-                ),
-                boxShadow: widget.isSelected
-                    ? [
-                        BoxShadow(
-                          color: AppTheme.primaryColor.withOpacity(0.25),
-                          blurRadius: 20,
-                          offset: const Offset(0, 4),
-                          spreadRadius: 0,
-                        ),
-                      ]
-                    : null,
+                    ? AppTheme.primaryColor.withOpacity(0.25)
+                    : Colors.transparent,
+                blurRadius: widget.isSelected ? 20 : 0,
+                offset: const Offset(0, 4),
+                spreadRadius: 0,
               ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 350),
+                curve: Curves.easeOutCubic,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: widget.isSelected
+                      ? AppTheme.primaryColor.withOpacity(0.15)
+                      : AppTheme.surfaceDark.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: widget.isSelected
+                        ? AppTheme.primaryColor.withOpacity(0.6)
+                        : AppTheme.surfaceLight.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
               child: Row(
                 children: [
                   // Icon container
                   if (widget.option.icon != null) ...[
                     AnimatedContainer(
-                      duration: const Duration(milliseconds: 280),
+                      duration: const Duration(milliseconds: 350),
+                      curve: Curves.easeOutCubic,
                       width: 48,
                       height: 48,
                       decoration: BoxDecoration(
-                        gradient: widget.isSelected ? AppTheme.goldGradient : null,
                         color: widget.isSelected
-                            ? null
+                            ? AppTheme.primaryColor
                             : AppTheme.surfaceLight.withOpacity(0.5),
                         borderRadius: BorderRadius.circular(14),
-                        boxShadow: widget.isSelected
-                            ? [
-                                BoxShadow(
-                                  color: AppTheme.primaryColor.withOpacity(0.3),
-                                  blurRadius: 10,
-                                  spreadRadius: 0,
-                                ),
-                              ]
-                            : null,
+                        boxShadow: [
+                          BoxShadow(
+                            color: widget.isSelected
+                                ? AppTheme.primaryColor.withOpacity(0.3)
+                                : Colors.transparent,
+                            blurRadius: widget.isSelected ? 10 : 0,
+                            spreadRadius: 0,
+                          ),
+                        ],
                       ),
-                      child: Icon(
-                        widget.option.icon,
-                        color: widget.isSelected
-                            ? AppTheme.textOnPrimary
-                            : AppTheme.textSecondary,
-                        size: 24,
+                      child: AnimatedDefaultTextStyle(
+                        duration: const Duration(milliseconds: 350),
+                        style: TextStyle(
+                          color: widget.isSelected
+                              ? AppTheme.textOnPrimary
+                              : AppTheme.textSecondary,
+                        ),
+                        child: Icon(
+                          widget.option.icon,
+                          color: widget.isSelected
+                              ? AppTheme.textOnPrimary
+                              : AppTheme.textSecondary,
+                          size: 24,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -300,9 +324,10 @@ class _SelectionTileState extends State<_SelectionTile>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          widget.option.label,
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 350),
+                          curve: Curves.easeOutCubic,
+                          style: Theme.of(context).textTheme.titleMedium!.copyWith(
                                 color: widget.isSelected
                                     ? AppTheme.textPrimary
                                     : AppTheme.textSecondary,
@@ -310,6 +335,7 @@ class _SelectionTileState extends State<_SelectionTile>
                                     ? FontWeight.w600
                                     : FontWeight.w500,
                               ),
+                          child: Text(widget.option.label),
                         ),
                         if (widget.option.subtitle != null) ...[
                           const SizedBox(height: 4),
@@ -326,43 +352,46 @@ class _SelectionTileState extends State<_SelectionTile>
 
                   // Check indicator
                   AnimatedContainer(
-                    duration: const Duration(milliseconds: 280),
+                    duration: const Duration(milliseconds: 350),
+                    curve: Curves.easeOutCubic,
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      gradient: widget.isSelected ? AppTheme.goldGradient : null,
                       color: widget.isSelected
-                          ? null
+                          ? AppTheme.primaryColor
                           : AppTheme.surfaceLight.withOpacity(0.4),
                       shape: BoxShape.circle,
-                      border: !widget.isSelected
-                          ? Border.all(
-                              color: AppTheme.textTertiary.withOpacity(0.3),
-                              width: 2,
-                            )
-                          : null,
-                      boxShadow: widget.isSelected
-                          ? [
-                              BoxShadow(
-                                color: AppTheme.primaryColor.withOpacity(0.3),
-                                blurRadius: 8,
-                                spreadRadius: 0,
-                              ),
-                            ]
-                          : null,
+                      border: Border.all(
+                        color: widget.isSelected
+                            ? AppTheme.primaryColor
+                            : AppTheme.textTertiary.withOpacity(0.3),
+                        width: widget.isSelected ? 0 : 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: widget.isSelected
+                              ? AppTheme.primaryColor.withOpacity(0.3)
+                              : Colors.transparent,
+                          blurRadius: widget.isSelected ? 8 : 0,
+                          spreadRadius: 0,
+                        ),
+                      ],
                     ),
-                    child: widget.isSelected
-                        ? const Icon(
-                            Icons.check,
-                            color: AppTheme.textOnPrimary,
-                            size: 16,
-                          )
-                        : null,
+                    child: AnimatedOpacity(
+                      duration: const Duration(milliseconds: 250),
+                      opacity: widget.isSelected ? 1.0 : 0.0,
+                      child: const Icon(
+                        Icons.check,
+                        color: AppTheme.textOnPrimary,
+                        size: 16,
+                      ),
+                    ),
                   ),
                 ],
               ),
             ),
           ),
+        ),
         ),
       ),
     );

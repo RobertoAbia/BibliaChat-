@@ -63,6 +63,10 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
       onboardingCompleted: true,
     );
 
+    // Record GDPR consent timestamps
+    updateData['consent_terms_at'] = DateTime.now().toUtc().toIso8601String();
+    updateData['consent_data_at'] = DateTime.now().toUtc().toIso8601String();
+
     return await _remoteDatasource.updateProfile(userId, updateData);
   }
 

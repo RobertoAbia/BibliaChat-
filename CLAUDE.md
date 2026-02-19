@@ -60,7 +60,7 @@ BibliaChat/
 - Anual: $39.99/año
 
 ## Tablas Principales de la BD
-- `user_profiles` (incluye `ai_memory`, `rc_app_user_id`, `gender`, `country_code`, `motive_detail`)
+- `user_profiles` (incluye `ai_memory`, `rc_app_user_id`, `gender`, `country_code`, `motive_detail`, `consent_terms_at`, `consent_data_at`)
 - `chats` + `chat_messages` (hilos por tema)
 - `saved_messages`
 - `plans` + `plan_days` + `user_plans` + `user_plan_days`
@@ -74,7 +74,7 @@ BibliaChat/
 - `deleted_user_archives` (archivado pseudonimizado para GDPR, 3 años retención)
 - `liturgical_readings` (calendario litúrgico católico - 365 días/año)
 
-## Migraciones SQL (29 total)
+## Migraciones SQL (31 total)
 - 00001-00009: Tablas core, ENUMs, RLS, índices
 - 00010: `rc_app_user_id` para restaurar compras
 - 00011: `gender` + enum `gender_type`
@@ -96,6 +96,8 @@ BibliaChat/
 - 00027: Columna `motive` (enum) → `features` (text) para multi-select de apoyo
 - 00028: Columna `first_message` → `motive` para key de motivación de fe
 - 00029: Columna `motive_detail` para detalle de motivación (follow-up de Fe, solo analytics)
+- 00030: Columnas `consent_terms_at` y `consent_data_at` para tracking de consentimiento GDPR
+- 00031: Seed 12 planes de motivo (84 días de contenido), columna `title` en `plan_days`, 4 topic keys nuevos
 
 ## EPICs del Proyecto (12 total)
 - **EPIC 0-1:** Foundation + Base de datos + RLS
@@ -150,7 +152,7 @@ BibliaChat/
   - Tema Material 3 (light/dark)
   - Pantallas creadas:
     - SplashScreen (auth anónimo automático)
-    - OnboardingScreen (15 páginas: Welcome → Intro → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Analizando → Resumen → ¡Todo listo!)
+    - OnboardingScreen (16 páginas: Welcome → Consentimiento → Intro → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Analizando → Resumen → Plan Preview)
     - HomeScreen (racha, versículo, devoción, oración)
     - ChatListScreen (10 temas)
     - ChatScreen (interfaz de chat)
@@ -206,22 +208,23 @@ BibliaChat/
     - `userProfileStreamProvider` - Cambios en tiempo real
     - `hasCompletedOnboardingProvider` - Verificación onboarding
     - `onboardingProvider` - StateNotifier para formulario onboarding
-  - **Pantallas de onboarding (15 páginas):**
-    - 0: Welcome (CTA + links legales clickeables)
-    - 1: Intro — "Vamos a personalizar tu experiencia" (informativa, sin datos)
-    - 2: Nombre (¿Cómo te llamas? — requerido)
-    - 3: Edad (age_group) — personalizado con nombre si disponible
-    - 4: Género (gender) - Hombre/Mujer
-    - 5: País - Dropdown 21 países hispanohablantes → guarda `origin` (origin_group) + `country_code` (ISO)
-    - 6: Denominación
-    - 7: Fe - "¿Por qué es importante para ti trabajar en tu Fe ahora?" (4 opciones single-select, labels adaptados a género) → guarda key en `motive`
-    - 8: Detalle de motivación - Follow-up dinámico con 3 opciones según page 7 → guarda key en `motive_detail`
-    - 9: Apoyo - "¿Cómo quieres que te ayudemos?" (3 opciones multi-select, hint visible) → guarda keys separadas por coma en `features`
-    - 10: Compromiso - "¿Qué nivel de compromiso tienes?" (2 opciones, labels adaptados a género) → guarda en `persistence_self_report`
-    - 11: Recordatorio (reminder_enabled, reminder_time) - Toggle + Time picker
-    - 12: Analizando (animación)
-    - 13: Resumen motivacional - Situación + plan + prueba social (dinámico según respuestas)
-    - 14: ¡Todo listo! (confirmación + auto-detección timezone)
+  - **Pantallas de onboarding (16 páginas):**
+    - 0: Welcome (CTA + login link)
+    - 1: Consentimiento — 2 checkboxes obligatorios (Términos+Privacidad, datos religiosos GDPR Art. 9) + "Aceptar todo"
+    - 2: Intro — "Vamos a personalizar tu experiencia" (informativa, sin datos)
+    - 3: Nombre (¿Cómo te llamas? — requerido)
+    - 4: Edad (age_group) — personalizado con nombre si disponible
+    - 5: Género (gender) - Hombre/Mujer
+    - 6: País - Dropdown 21 países hispanohablantes → guarda `origin` (origin_group) + `country_code` (ISO)
+    - 7: Denominación
+    - 8: Fe - "¿Por qué es importante para ti trabajar en tu Fe ahora?" (4 opciones single-select, labels adaptados a género) → guarda key en `motive`
+    - 9: Detalle de motivación - Follow-up dinámico con 3 opciones según page 8 → guarda key en `motive_detail`
+    - 10: Apoyo - "¿Cómo quieres que te ayudemos?" (3 opciones multi-select, hint visible) → guarda keys separadas por coma en `features`
+    - 11: Compromiso - "¿Qué nivel de compromiso tienes?" (2 opciones, labels adaptados a género) → guarda en `persistence_self_report`
+    - 12: Recordatorio (reminder_enabled, reminder_time) - Toggle + Time picker
+    - 13: Analizando (animación)
+    - 14: Resumen motivacional - Situación + plan + prueba social (dinámico según respuestas)
+    - 15: Plan Preview (plan personalizado 7 días + auto-assign al completar)
   - **Auto-detección de timezone:**
     - Usa `flutter_timezone` para detectar zona horaria del dispositivo
     - Se guarda en `user_profiles.timezone` al completar onboarding
@@ -1663,7 +1666,7 @@ BibliaChat/
     - "¿Qué nivel de compromiso tienes con cumplir tus objetivos?"
     - 2 opciones: `high` (Estoy totalmente comprometido/a), `low` (No estoy muy comprometido/a)
     - Guarda como boolean en `persistence_self_report` (`high` → true, `low` → false)
-  - **Total páginas:** 15 (Welcome → Intro → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Analizando → Resumen → ¡Todo listo!)
+  - **Total páginas:** 16 (Welcome → Consentimiento → Intro → Nombre → Edad → Género → País → Denominación → Fe → Detalle → Apoyo → Compromiso → Recordatorio → Analizando → Resumen → Plan Preview)
   - **Renames de columnas BD:**
     - `motive` (enum `motive_type`) → `features` (text) — migración 00027
     - `first_message` → `motive` — migración 00028
@@ -1785,6 +1788,114 @@ BibliaChat/
   - **Archivos modificados:**
     - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 15 páginas, summary page insertada
 
+- [x] Feature: Pantalla de consentimiento de privacidad GDPR (15→16 páginas)
+  - **Nueva página 1 — Consentimiento de privacidad:**
+    - Se muestra después de Welcome y antes de Intro
+    - GDPR Artículo 9: consentimiento explícito para datos religiosos (denominación)
+    - Empresa en Estonia (UE) → GDPR directamente aplicable
+  - **Contenido de la página:**
+    - Icono escudo dorado + título "Tu privacidad es lo primero"
+    - Checkbox 1: "Acepto los Términos de Servicio y la Política de Privacidad" (links clickeables)
+    - Checkbox 2: "Consiento el tratamiento de mis datos de creencias religiosas"
+    - Botón "Aceptar todo" (marca ambos de golpe)
+    - Botón "Continuar" deshabilitado hasta que ambos estén marcados
+  - **Consentimiento registrado en BD:**
+    - `consent_terms_at` (TIMESTAMPTZ) — cuándo aceptó términos + privacidad
+    - `consent_data_at` (TIMESTAMPTZ) — cuándo consintió tratamiento datos religiosos
+    - Se guardan al completar onboarding en `user_profile_repository_impl.dart`
+  - **Welcome page simplificada:**
+    - Eliminado footer "Al continuar, aceptas nuestros Términos..." (redundante con consent page)
+    - Eliminados parámetros `onPrivacyPolicy` y `onTermsConditions`
+    - Eliminados imports `flutter/gestures.dart`, `lottie`, `lottie_helper` (ya no usados)
+  - **Migración 00030:** `consent_terms_at` y `consent_data_at` en `user_profiles`
+  - **Archivos creados:**
+    - `lib/features/onboarding/presentation/widgets/onboarding_consent_page.dart`
+    - `supabase/migrations/00030_add_consent_columns.sql`
+  - **Archivos modificados:**
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - 16 páginas, consent page insertada, cases +1
+    - `lib/features/onboarding/presentation/widgets/onboarding_welcome_page.dart` - Eliminado footer legal
+    - `lib/features/profile/data/repositories/user_profile_repository_impl.dart` - Consent timestamps
+
+- [x] Feature: Plan preview personalizado en onboarding (reemplaza "¡Todo listo!")
+  - **Objetivo:** Reemplazar la genérica página "¡Todo listo!" con un plan de 7 días personalizado según motive+motiveDetail
+  - **OnboardingPlanPreviewPage (NUEVA):**
+    - Timeline visual con 7 day cards + conectores curvos punteados (CustomPainter)
+    - Cards alternan posición de icono (izquierda/derecha)
+    - Info bar: "7 Sesiones | < 5 min/día"
+    - Contenido hardcodeado para las 12 combinaciones motive+detail
+    - CTA "Comenzar mi viaje →" (full-width, pinned abajo)
+  - **12 planes de estudio personalizados en BD:**
+    - 3 para `difficult_moment` (family_issues, health_issues, financial_issues)
+    - 3 para `spiritual_growth` (prayer_life, bible_knowledge, daily_faith)
+    - 3 para `feeling_distant` (stopped_practicing, doubts, painful_experience)
+    - 3 para `understand_bible` (apply_life, historical_context, denomination_differences)
+    - Cada plan: 7 días con versículos, reflexión, ejercicio práctico, pregunta
+    - UUIDs: `b1000000-0000-0000-0000-000000000001` hasta `...000000000012`
+  - **Auto-assign plan al completar onboarding:**
+    - `_getRecommendedPlanId(motive, motiveDetail)` mapea 12 combinaciones → plan UUID
+    - Llama `startPlan(userId, planId)` después de `completeOnboarding()` exitoso
+    - Error silenciado (non-critical)
+  - **4 nuevos TOPIC_PROMPTS en Edge Function:**
+    - `plan_momento_dificil`, `plan_crecimiento`, `plan_reconexion`, `plan_entender_biblia`
+    - Agrupan 3 planes de detalle bajo cada motivo para contexto IA
+  - **4 nuevos topic keys en chat_topics:**
+    - Migración 00031 los inserta para foreign key de chats
+  - **Topic key mapping actualizado en StudyRemoteDatasource:**
+    - 12 nuevas entradas en `getPlanTopicKey()` (b1..001 → plan_momento_dificil, etc.)
+  - **Migración 00031:** `title` column en plan_days + 4 chat_topics + 12 plans + 84 plan_days
+  - **OnboardingReadyPage ELIMINADA** (reemplazada por OnboardingPlanPreviewPage)
+  - **Archivos creados:**
+    - `lib/features/onboarding/presentation/widgets/onboarding_plan_preview_page.dart`
+    - `supabase/migrations/00031_seed_motive_plans.sql`
+  - **Archivos modificados:**
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - Plan preview + auto-assign + UUID mapping
+    - `lib/features/study/data/datasources/study_remote_datasource.dart` - 12 topic key mappings
+    - `supabase/functions/chat-send-message/combined.ts` - 4 TOPIC_PROMPTS
+  - **Archivos eliminados:**
+    - `lib/features/onboarding/presentation/widgets/onboarding_ready_page.dart`
+
+- [x] Feature: Pulido UX del onboarding — animaciones, hint, conectores, teclado, países
+  - **Animación suave de selection tiles:**
+    - Fondo del tile: reemplazado `LinearGradient` vs `null` (no interpolable) por colores planos (`primaryColor.withOpacity(0.15)` ↔ `surfaceDark.withOpacity(0.4)`)
+    - Borde: ancho fijo a `1` (antes 1→1.5, causaba salto)
+    - Icon container: `color: primaryColor` ↔ `surfaceLight` (flat, interpolable)
+    - boxShadow: siempre presente con `Colors.transparent` como "off" (antes `null` vs lista)
+    - Text label: envuelto en `AnimatedDefaultTextStyle` para transición suave de color/peso
+    - Check icon: envuelto en `AnimatedOpacity` (250ms) en vez de ternario widget/null
+    - BackdropFilter sigma fijo a 10 (no interpolable, antes cambiaba 8↔12)
+    - Todas las duraciones: 350ms con `Curves.easeOutCubic`
+  - **Hint multi-select más visible:**
+    - Antes: texto gris (`textTertiary`) que pasaba desapercibido
+    - Después: pill dorada con fondo `primaryColor.withOpacity(0.1)`, borde dorado, icono `touch_app_outlined` y texto dorado `fontWeight: w500`
+  - **Conectores del plan preview en blanco:**
+    - Líneas punteadas: `Colors.white.withOpacity(0.25)` (antes `textTertiary.withOpacity(0.35)`)
+    - Puntos extremos: `Colors.white.withOpacity(0.4)` (antes `textTertiary.withOpacity(0.5)`)
+    - Mucho más visibles sobre el fondo azul noche
+  - **Teclado se cierra al navegar:**
+    - `FocusScope.of(context).unfocus()` añadido a `_nextPage()` y `_previousPage()`
+    - Resuelve: teclado quedaba abierto al pulsar Continuar o flecha atrás desde página de nombre
+  - **Países reordenados por población hispana en EE.UU.:**
+    - Orden descendente: México (~37M), Puerto Rico (~5.9M), EE.UU. (~4.5M), El Salvador (~2.5M), Cuba (~2.5M), Rep. Dominicana (~2.4M), Guatemala (~1.8M), Colombia (~1.4M), Honduras (~1.1M), Ecuador (~800K), Perú (~700K), Venezuela (~640K), Nicaragua (~460K), Argentina (~300K), Panamá (~210K), España (~170K), Costa Rica (~160K), Chile (~150K), Bolivia (~120K), Uruguay (~65K), Paraguay (~25K)
+    - Fuente: Pew Research Center / U.S. Census Bureau (2023)
+  - **Logo de la app en pantallas clave del onboarding:**
+    - Analizando (page 13): `splash_logo.png` 100x100 con sombra dorada (reemplaza emoji genérico)
+    - Plan Preview (page 15): `splash_logo.png` 80x80 con sombra dorada (reemplaza emoji)
+    - Intro (page 2): se mantiene emoji ✨ (comunica mejor "personalización")
+  - **Resumen motivacional personalizado (page 14):**
+    - Título cambiado de "Lo que haremos juntos" a "Tu plan personalizado"
+    - Items personalizados con `_getPlanItems()`: incluyen nombre del plan de 7 días, texto de conversación adaptado al motivo
+    - `_getPlanName()`: 12 mappings motive:detail → nombre del plan
+    - `_getTalkText()`: texto de acompañamiento específico por motivo
+    - Cada item tiene icono propio (auto_stories, chat_bubble, wb_sunny, favorite)
+    - Stat "19%" cambiado a "69% de lectores habituales reportan mayor paz interior"
+  - **Archivos modificados:**
+    - `lib/features/onboarding/presentation/widgets/onboarding_selection_page.dart` - Animación suave + hint pill dorada
+    - `lib/features/onboarding/presentation/widgets/onboarding_plan_preview_page.dart` - Conectores blancos + logo app
+    - `lib/features/onboarding/presentation/widgets/onboarding_analyzing_page.dart` - Logo app
+    - `lib/features/onboarding/presentation/widgets/onboarding_summary_page.dart` - Plan personalizado + stats
+    - `lib/features/onboarding/presentation/widgets/onboarding_country_page.dart` - Países reordenados
+    - `lib/features/onboarding/presentation/screens/onboarding_screen.dart` - Keyboard unfocus en navegación
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
@@ -1878,6 +1989,9 @@ BibliaChat/
 - [x] Feature: Detalle de motivación — follow-up dinámico (12→13 páginas) - COMPLETADO
 - [x] Feature: Página introductoria de onboarding (13→14 páginas) - COMPLETADO
 - [x] Feature: Página motivacional de resumen (14→15 páginas) - COMPLETADO
+- [x] Feature: Pantalla de consentimiento GDPR (15→16 páginas) - COMPLETADO
+- [x] Feature: Plan preview personalizado en onboarding + 12 planes de motivo en BD - COMPLETADO
+- [x] Feature: Pulido UX onboarding — animaciones suaves, hint visible, conectores blancos, teclado, países - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 - [ ] **Feature: Widget versículo en Lock Screen** (iOS) + Home Screen (Android) - PLANIFICADO
@@ -1959,9 +2073,10 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
 - **Modelo principal:** GPT-4o (`role: "developer"`, `max_completion_tokens: 400`, `temperature: 0.8`)
 - **Modelo para memorias y títulos:** GPT-4o-mini (resúmenes, ai_memory, títulos)
 - **Secrets requeridos:** `OPENAI_API_KEY`
-- **Topics soportados (19):**
+- **Topics soportados (23):**
   - *Generales (12):* `familia_separada`, `desempleo`, `solteria`, `ansiedad_miedo`, `identidad_bicultural`, `reconciliacion`, `sacramentos`, `oracion`, `preguntas_biblia`, `evangelio_del_dia`, `lectura_del_dia`, `otro`
-  - *Planes de estudio (7):* `plan_soberbia`, `plan_avaricia`, `plan_lujuria`, `plan_ira`, `plan_gula`, `plan_envidia`, `plan_pereza`
+  - *Planes pecados capitales (7):* `plan_soberbia`, `plan_avaricia`, `plan_lujuria`, `plan_ira`, `plan_gula`, `plan_envidia`, `plan_pereza`
+  - *Planes de motivo (4):* `plan_momento_dificil`, `plan_crecimiento`, `plan_reconexion`, `plan_entender_biblia`
 - **Request actualizado:** `{ topic_key?, user_message, chat_id?, system_message? }`
   - `system_message`: Contenido de Story, se guarda como mensaje 'assistant' en BD
 - **BASE_PROMPT (estilo WhatsApp corto):**
@@ -2402,6 +2517,13 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
     ```
   - `HitTestBehavior.opaque` es necesario para que el gesto se detecte en espacio vacío (sin widgets)
   - Aplicar en todas las pantallas con formularios (auth screens, etc.)
+- **AnimatedContainer NO interpola entre gradient y null:**
+  - `AnimatedContainer` puede interpolar entre dos `Color` pero NO entre un `LinearGradient` y `null` — hace snap instantáneo
+  - Solución: usar `color:` plano en ambos estados (ej: `primaryColor.withOpacity(0.15)` ↔ `surfaceDark.withOpacity(0.4)`)
+  - Lo mismo aplica a `boxShadow`: no interpola entre lista y null — siempre proveer un `BoxShadow` con `Colors.transparent` como "off"
+  - Para widgets que aparecen/desaparecen: NO usar ternario `widget : null` — usar `AnimatedOpacity` envolviendo el widget siempre presente
+  - Para texto con cambio de color/peso: envolver en `AnimatedDefaultTextStyle`
+  - `BackdropFilter` sigma no se puede animar — usar valor fijo
 - **Verificar permisos de notificaciones sin mostrar diálogo del sistema:**
   - `FirebaseMessaging.instance.getNotificationSettings()` es solo lectura (no solicita permiso)
   - Útil para detectar permisos revocados desde ajustes del dispositivo

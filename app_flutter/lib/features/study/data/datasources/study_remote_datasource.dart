@@ -256,6 +256,7 @@ class StudyRemoteDatasource {
   /// Maps plan IDs to topic_keys like 'plan_soberbia', 'plan_avaricia', etc.
   String? getPlanTopicKey(String planId) {
     const planTopicKeys = {
+      // 7 pecados capitales
       'a1000000-0000-0000-0000-000000000001': 'plan_soberbia',
       'a1000000-0000-0000-0000-000000000002': 'plan_avaricia',
       'a1000000-0000-0000-0000-000000000003': 'plan_lujuria',
@@ -263,6 +264,19 @@ class StudyRemoteDatasource {
       'a1000000-0000-0000-0000-000000000005': 'plan_gula',
       'a1000000-0000-0000-0000-000000000006': 'plan_envidia',
       'a1000000-0000-0000-0000-000000000007': 'plan_pereza',
+      // 12 planes de motivo (onboarding)
+      'b1000000-0000-0000-0000-000000000001': 'plan_momento_dificil',
+      'b1000000-0000-0000-0000-000000000002': 'plan_momento_dificil',
+      'b1000000-0000-0000-0000-000000000003': 'plan_momento_dificil',
+      'b1000000-0000-0000-0000-000000000004': 'plan_crecimiento',
+      'b1000000-0000-0000-0000-000000000005': 'plan_crecimiento',
+      'b1000000-0000-0000-0000-000000000006': 'plan_crecimiento',
+      'b1000000-0000-0000-0000-000000000007': 'plan_reconexion',
+      'b1000000-0000-0000-0000-000000000008': 'plan_reconexion',
+      'b1000000-0000-0000-0000-000000000009': 'plan_reconexion',
+      'b1000000-0000-0000-0000-000000000010': 'plan_entender_biblia',
+      'b1000000-0000-0000-0000-000000000011': 'plan_entender_biblia',
+      'b1000000-0000-0000-0000-000000000012': 'plan_entender_biblia',
     };
     return planTopicKeys[planId];
   }

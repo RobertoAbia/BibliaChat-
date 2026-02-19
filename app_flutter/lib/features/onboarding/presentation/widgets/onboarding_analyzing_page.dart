@@ -78,12 +78,11 @@ class _OnboardingAnalyzingPageState extends State<OnboardingAnalyzingPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // App icon
+          // App logo
           Container(
             width: 100,
             height: 100,
             decoration: BoxDecoration(
-              gradient: AppTheme.goldGradient,
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
@@ -93,11 +92,13 @@ class _OnboardingAnalyzingPageState extends State<OnboardingAnalyzingPage>
                 ),
               ],
             ),
-            child: Center(
-              child: Icon(
-                Icons.add_rounded,
-                size: 50,
-                color: AppTheme.backgroundDark.withOpacity(0.9),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Image.asset(
+                'assets/images/splash_logo.png',
+                width: 100,
+                height: 100,
+                fit: BoxFit.cover,
               ),
             ),
           ),
