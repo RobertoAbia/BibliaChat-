@@ -1926,6 +1926,14 @@ BibliaChat/
   - **Archivos modificados:**
     - `supabase/functions/delete-account/index.ts` - SHA256 del email + función genérica `sha256()`
 
+- [x] Fix: Auto-detectar verificación de email al volver a la app
+  - **Problema:** Después de verificar el email en el navegador, el usuario volvía manualmente a la app y seguía viendo VerifyEmailScreen sin navegación automática a Home
+  - **Causa raíz:** La detección dependía del deep link (`com.bibliachats://login-callback`) que dispara `AuthChangeEvent.userUpdated`. Cuando el deep link no se procesa (el usuario vuelve manualmente), ningún evento se dispara
+  - **Solución:** Añadir `WidgetsBindingObserver` a `VerifyEmailScreen` para detectar cuando la app vuelve al primer plano (`AppLifecycleState.resumed`). Al detectarlo, llama `refreshSession()` y verifica si `emailConfirmedAt != null`. Si lo está, navega a Home automáticamente
+  - **Fallback robusto:** Si el deep link funciona, la navegación ocurre por el listener existente. Si no funciona, el observer detecta el resume y navega
+  - **Archivo modificado:**
+    - `lib/features/auth/presentation/screens/verify_email_screen.dart` - WidgetsBindingObserver + didChangeAppLifecycleState + _checkEmailVerifiedOnResume
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)

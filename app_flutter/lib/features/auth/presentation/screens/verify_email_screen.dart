@@ -18,7 +18,8 @@ class VerifyEmailScreen extends ConsumerStatefulWidget {
   ConsumerState<VerifyEmailScreen> createState() => _VerifyEmailScreenState();
 }
 
-class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
+class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
+    with WidgetsBindingObserver {
   StreamSubscription<AuthState>? _authSubscription;
   bool _canResend = true;
   int _resendCooldown = 0;
@@ -27,7 +28,28 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _listenToAuthChanges();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkEmailVerifiedOnResume();
+    }
+  }
+
+  /// Al volver a la app (desde el navegador/email), verificar si el email ya fue confirmado
+  Future<void> _checkEmailVerifiedOnResume() async {
+    try {
+      await Supabase.instance.client.auth.refreshSession();
+      final user = Supabase.instance.client.auth.currentUser;
+      if (user?.emailConfirmedAt != null && mounted) {
+        context.go(RouteConstants.home);
+      }
+    } catch (_) {
+      // Silenciar errores — el usuario puede usar los botones manuales
+    }
   }
 
   void _listenToAuthChanges() {
@@ -68,6 +90,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _authSubscription?.cancel();
     _cooldownTimer?.cancel();
     super.dispose();
