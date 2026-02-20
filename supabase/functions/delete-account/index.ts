@@ -8,9 +8,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Genera SHA256 hash del user_id para pseudonimización
-async function hashUserId(userId: string): Promise<string> {
-  const data = new TextEncoder().encode(userId);
+// Genera SHA256 hash para pseudonimización
+async function sha256(input: string): Promise<string> {
+  const data = new TextEncoder().encode(input);
   const hashBuffer = await crypto.subtle.digest('SHA-256', data);
   return encodeHex(new Uint8Array(hashBuffer));
 }
@@ -36,7 +36,8 @@ serve(async (req) => {
     if (userError || !user) throw new Error('Invalid user token');
 
     const userId = user.id;
-    const userIdHash = await hashUserId(userId);
+    const userIdHash = await sha256(userId);
+    const emailHash = user.email ? await sha256(user.email) : null;
     console.log(`Processing account deletion for user: ${userId}`);
 
     // Admin client para operaciones privilegiadas
@@ -102,6 +103,7 @@ serve(async (req) => {
       .from('deleted_user_archives')
       .insert({
         user_id_hash: userIdHash,
+        email_hash: emailHash,
         original_user_created_at: profile?.created_at,
         denomination: profile?.denomination,
         origin_group: profile?.origin,

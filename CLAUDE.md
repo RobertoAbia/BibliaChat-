@@ -74,7 +74,7 @@ BibliaChat/
 - `deleted_user_archives` (archivado pseudonimizado para GDPR, 3 años retención)
 - `liturgical_readings` (calendario litúrgico católico - 365 días/año)
 
-## Migraciones SQL (32 total)
+## Migraciones SQL (33 total)
 - 00001-00009: Tablas core, ENUMs, RLS, índices
 - 00010: `rc_app_user_id` para restaurar compras
 - 00011: `gender` + enum `gender_type`
@@ -99,6 +99,7 @@ BibliaChat/
 - 00030: Columnas `consent_terms_at` y `consent_data_at` para tracking de consentimiento GDPR
 - 00031: Seed 12 planes de motivo (84 días de contenido), columna `title` en `plan_days`, 4 topic keys nuevos
 - 00032: Columnas demografía + consentimiento GDPR en `deleted_user_archives` (gender, country_code, motive, motive_detail, features, consent_terms_at, consent_data_at)
+- 00033: `email_hash` en `deleted_user_archives` para búsqueda por email en juicios (SHA256)
 
 ## EPICs del Proyecto (12 total)
 - **EPIC 0-1:** Foundation + Base de datos + RLS
@@ -1909,6 +1910,22 @@ BibliaChat/
   - **Archivos modificados:**
     - `supabase/functions/delete-account/index.ts` - Select y archive de 7 campos adicionales
 
+- [x] Feature: email_hash para búsqueda legal por email en deleted_user_archives
+  - **Problema:** Solo existía `user_id_hash` como clave de búsqueda, pero en un juicio el usuario se identifica por email, no por UUID
+  - **Solución:** Añadir `email_hash` (SHA256 del email) como segundo identificador pseudonimizado
+  - **Migración 00033:** Columna `email_hash TEXT` en `deleted_user_archives`
+  - **Edge Function:** Calcula `SHA256(user.email)` antes de borrar y lo guarda en `email_hash`
+  - **Función `hashUserId` renombrada a `sha256`** (genérica, reutilizada para user_id y email)
+  - **Búsqueda en juicios:**
+    ```sql
+    SELECT * FROM deleted_user_archives
+    WHERE email_hash = encode(digest('pepe@gmail.com', 'sha256'), 'hex');
+    ```
+  - **Archivos creados:**
+    - `supabase/migrations/00033_add_email_hash_to_archives.sql`
+  - **Archivos modificados:**
+    - `supabase/functions/delete-account/index.ts` - SHA256 del email + función genérica `sha256()`
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
@@ -2137,10 +2154,11 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
   2. Archiva datos pseudonimizados en `deleted_user_archives`
   3. Borra usuario de `auth.users` (CASCADE elimina todo lo demás)
 - **Pseudonimización:**
-  - Usa SHA256 hash del user_id (no reversible, pero buscable)
-  - Si usuario se identifica después, puedes calcular su hash y buscar sus conversaciones
+  - Usa SHA256 hash del user_id y del email (no reversibles, pero buscables)
+  - Si usuario se identifica (email en juicio), se calcula SHA256 del email y se busca en `email_hash`
 - **Datos archivados:**
-  - `user_id_hash`: SHA256 del user_id original
+  - `user_id_hash`: SHA256 del user_id original (búsqueda por UUID)
+  - `email_hash`: SHA256 del email (búsqueda por email en juicios)
   - `chat_messages`: JSON con todos los mensajes (role, content, created_at)
   - `plans_data`: Progreso de planes (nombre, status, días completados)
   - Demografía: denomination, origin_group, age_group, gender, country_code
