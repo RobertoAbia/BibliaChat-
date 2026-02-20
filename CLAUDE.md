@@ -550,7 +550,7 @@ BibliaChat/
     - Providers: `isAnonymousProvider`, `authStatusProvider`, `currentEmailProvider`, `isEmailVerifiedProvider`
   - **Pantallas nuevas:**
     - `LinkEmailScreen` - Formulario para vincular email/password
-    - `VerifyEmailScreen` - "Revisa tu correo" con countdown para reenvío + botón "Ya verifiqué"
+    - `VerifyEmailScreen` - "Revisa tu correo" con countdown para reenvío + botón "Ya verifiqué" + auto-detección al volver a la app (WidgetsBindingObserver)
     - `LoginScreen` - Para usuarios que reinstalen la app + "¿Olvidaste tu contraseña?"
     - `ResetPasswordScreen` - Nueva contraseña después de recovery link
   - **Deep Links configurados:**
@@ -2570,3 +2570,10 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
   - Útil para detectar permisos revocados desde ajustes del dispositivo
   - `requestPermission()` muestra el diálogo del sistema (solo la primera vez en iOS, puede repetir en Android)
   - Paquete `app_settings` para abrir ajustes de notificaciones: `AppSettings.openAppSettings(type: AppSettingsType.notification)`
+- **Detectar verificación de email al volver a la app (WidgetsBindingObserver):**
+  - El deep link (`com.bibliachats://login-callback`) no siempre se procesa al verificar email
+  - Fallback: `WidgetsBindingObserver` en `VerifyEmailScreen` detecta `AppLifecycleState.resumed`
+  - Al volver al primer plano: `Supabase.instance.client.auth.refreshSession()` + verificar `emailConfirmedAt != null`
+  - Si verificado → `context.go(RouteConstants.home)`
+  - Dos capas de detección: deep link (listener `onAuthStateChange`) + resume observer (fallback)
+  - IMPORTANTE: añadir `removeObserver(this)` en `dispose()` para evitar memory leaks
