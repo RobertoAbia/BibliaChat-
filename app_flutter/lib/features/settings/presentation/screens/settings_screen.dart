@@ -10,6 +10,7 @@ import '../../../../core/constants/route_constants.dart';
 import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../home/presentation/providers/daily_progress_provider.dart';
+import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../../study/presentation/providers/study_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 
@@ -23,6 +24,8 @@ class SettingsScreen extends ConsumerWidget {
     final isEmailUnverified = authStatus == AuthStatus.emailUnverified;
     final email = ref.watch(currentEmailProvider);
     final isPremium = ref.watch(isPremiumProvider);
+    final profileAsync = ref.watch(currentUserProfileProvider);
+    final profileName = profileAsync.valueOrNull?.name;
 
     return Scaffold(
       appBar: AppBar(
@@ -41,7 +44,7 @@ class SettingsScreen extends ConsumerWidget {
                     radius: 48,
                     backgroundColor: AppTheme.primaryColor,
                     child: Text(
-                      _getInitial(email),
+                      _getInitial(profileName ?? email),
                       style: const TextStyle(
                         fontSize: 32,
                         color: AppTheme.textOnPrimary,
@@ -51,7 +54,7 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'Usuario',
+                    profileName ?? 'Usuario',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 4),
@@ -88,18 +91,33 @@ class SettingsScreen extends ConsumerWidget {
               ),
             ),
 
-            // Stats
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+            // Stats pills
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildStat(context, ref.watch(streakDaysDisplayProvider).toString(), 'Racha'),
-                  _buildStat(context, ref.watch(allUserPlansProvider).when(
-                    data: (plans) => plans.where((p) => p.isCompleted).length.toString(),
-                    loading: () => '-',
-                    error: (_, __) => '-',
-                  ), 'Planes\nCompletados'),
+                  Flexible(
+                    child: _buildStatPill(
+                      context,
+                      '🔥',
+                      ref.watch(streakDaysDisplayProvider).toString(),
+                      'Racha',
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Flexible(
+                    child: _buildStatPill(
+                      context,
+                      '📚',
+                      ref.watch(allUserPlansProvider).when(
+                        data: (plans) => plans.where((p) => p.isCompleted).length.toString(),
+                        loading: () => '-',
+                        error: (_, __) => '-',
+                      ),
+                      'Planes completados',
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -253,21 +271,40 @@ class SettingsScreen extends ConsumerWidget {
     return email[0].toUpperCase();
   }
 
-  Widget _buildStat(BuildContext context, String value, String label) {
-    return Column(
-      children: [
-        Text(
-          value,
-          style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                color: AppTheme.primaryColor,
-              ),
+  Widget _buildStatPill(BuildContext context, String emoji, String value, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceLight.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppTheme.primaryColor.withOpacity(0.3),
         ),
-        Text(
-          label,
-          style: Theme.of(context).textTheme.bodySmall,
-          textAlign: TextAlign.center,
-        ),
-      ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 16)),
+          const SizedBox(width: 6),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppTheme.primaryColor,
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textSecondary,
+                  ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

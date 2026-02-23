@@ -1963,6 +1963,21 @@ BibliaChat/
     - `lib/features/settings/presentation/screens/settings_screen.dart` - 3 estados + isWarning + badge Pendiente
     - `lib/features/auth/presentation/screens/link_email_screen.dart` - redirect a VerifyEmailScreen en same_password
 
+- [x] Feature: Nombre real y pill badges en pantalla de Perfil
+  - **Nombre del usuario:**
+    - Header muestra `profileName` de `currentUserProfileProvider` en vez de "Usuario" hardcodeado
+    - Fallback a "Usuario" si no hay nombre (ej: perfil incompleto)
+    - Inicial del avatar usa nombre (fallback a email)
+  - **Stats como pill badges:**
+    - Antes: números grandes con labels debajo (estilo dashboard)
+    - Después: pills horizontales compactas con emoji + número + label
+    - `🔥 0 Racha` y `📚 0 Planes completados`
+    - Estilo glass: fondo `surfaceLight`, borde dorado sutil, `borderRadius: 20`, padding horizontal 8px
+    - Responsive: `Flexible` en cada pill + `TextOverflow.ellipsis` en label
+    - Padding exterior reducido a 16px para dar más espacio a los pills
+  - **Archivo modificado:**
+    - `lib/features/settings/presentation/screens/settings_screen.dart` - profileName, avatar initial, pill badges
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
