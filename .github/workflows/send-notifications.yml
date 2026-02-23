@@ -1,121 +1,105 @@
-name: Send Push Notifications                                                                                                                                               
-  on:                                                                                  
-    schedule:
-      # Every hour to cover all timezones
-      - cron: '0 * * * *'
-    workflow_dispatch:
-      inputs:
-        notification_type:
-          description: 'Type of notification to send'
-          required: false
-          type: choice
-          options:
-            - all
-            - stories_missed
-            - daily_reminder
-            - plan_abandoned
-            - streak_lost
+name: Send Push Notifications
 
-  env:
-    SUPABASE_URL: https://popqvhrgsokuviwtscid.supabase.co
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+    inputs:
+      notification_type:
+        description: 'Type of notification to send'
+        required: false
+        type: choice
+        options:
+          - all
+          - stories_missed
+          - daily_reminder
+          - plan_abandoned
+          - streak_lost
 
-  jobs:
-    send-daily-reminder:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Send Daily Reminder Notifications
-          if: github.event_name == 'schedule' || github.event.inputs.notification_type 
-  == 'all' || github.event.inputs.notification_type == 'daily_reminder'
-          run: |
-            echo "Sending daily_reminder notifications..."
-            response=$(curl -s -w "\n%{http_code}" -X POST \
-              '${{ env.SUPABASE_URL }}/functions/v1/send-daily-reminders' \
-              -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \    
-              -H 'Content-Type: application/json' \
-              -d '{"type": "daily_reminder"}')
+env:
+  SUPABASE_URL: https://popqvhrgsokuviwtscid.supabase.co
 
-            http_code=$(echo "$response" | tail -n1)
-            body=$(echo "$response" | sed '$d')
+jobs:
+  send-daily-reminder:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Daily Reminder Notifications
+        if: github.event_name == 'schedule' || github.event.inputs.notification_type == 'all' || github.event.inputs.notification_type == 'daily_reminder'
+        run: |
+          echo "Sending daily_reminder notifications..."
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            '${{ env.SUPABASE_URL }}/functions/v1/send-daily-reminders' \
+            -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \
+            -H 'Content-Type: application/json' \
+            -d '{"type": "daily_reminder"}')
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          echo "Response: $body"
+          echo "HTTP Code: $http_code"
+          if [ "$http_code" -ge 400 ]; then
+            echo "::error::Edge Function returned HTTP $http_code"
+            exit 1
+          fi
 
-            echo "Response: $body"
-            echo "HTTP Code: $http_code"
+  send-stories-missed:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Stories Missed Notifications
+        if: github.event_name == 'schedule' || github.event.inputs.notification_type == 'all' || github.event.inputs.notification_type == 'stories_missed'
+        run: |
+          echo "Sending stories_missed notifications..."
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            '${{ env.SUPABASE_URL }}/functions/v1/send-daily-reminders' \
+            -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \
+            -H 'Content-Type: application/json' \
+            -d '{"type": "stories_missed"}')
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          echo "Response: $body"
+          echo "HTTP Code: $http_code"
+          if [ "$http_code" -ge 400 ]; then
+            echo "::error::Edge Function returned HTTP $http_code"
+            exit 1
+          fi
 
-            if [ "$http_code" -ge 400 ]; then
-              echo "::error::Edge Function returned HTTP $http_code"
-              exit 1
-            fi
+  send-plan-abandoned:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Plan Abandoned Notifications
+        if: github.event_name == 'schedule' || github.event.inputs.notification_type == 'all' || github.event.inputs.notification_type == 'plan_abandoned'
+        run: |
+          echo "Sending plan_abandoned notifications..."
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            '${{ env.SUPABASE_URL }}/functions/v1/send-daily-reminders' \
+            -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \
+            -H 'Content-Type: application/json' \
+            -d '{"type": "plan_abandoned"}')
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          echo "Response: $body"
+          echo "HTTP Code: $http_code"
+          if [ "$http_code" -ge 400 ]; then
+            echo "::error::Edge Function returned HTTP $http_code"
+            exit 1
+          fi
 
-    send-stories-missed:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Send Stories Missed Notifications
-          if: github.event_name == 'schedule' || github.event.inputs.notification_type 
-  == 'all' || github.event.inputs.notification_type == 'stories_missed'
-          run: |
-            echo "Sending stories_missed notifications..."
-            response=$(curl -s -w "\n%{http_code}" -X POST \
-              '${{ env.SUPABASE_URL }}/functions/v1/send-daily-reminders' \
-              -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \    
-              -H 'Content-Type: application/json' \
-              -d '{"type": "stories_missed"}')
-
-            http_code=$(echo "$response" | tail -n1)
-            body=$(echo "$response" | sed '$d')
-
-            echo "Response: $body"
-            echo "HTTP Code: $http_code"
-
-            if [ "$http_code" -ge 400 ]; then
-              echo "::error::Edge Function returned HTTP $http_code"
-              exit 1
-            fi
-
-    send-plan-abandoned:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Send Plan Abandoned Notifications
-          if: github.event_name == 'schedule' || github.event.inputs.notification_type 
-  == 'all' || github.event.inputs.notification_type == 'plan_abandoned'
-          run: |
-            echo "Sending plan_abandoned notifications..."
-            response=$(curl -s -w "\n%{http_code}" -X POST \
-              '${{ env.SUPABASE_URL }}/functions/v1/send-daily-reminders' \
-              -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \    
-              -H 'Content-Type: application/json' \
-              -d '{"type": "plan_abandoned"}')
-
-            http_code=$(echo "$response" | tail -n1)
-            body=$(echo "$response" | sed '$d')
-
-            echo "Response: $body"
-            echo "HTTP Code: $http_code"
-
-            if [ "$http_code" -ge 400 ]; then
-              echo "::error::Edge Function returned HTTP $http_code"
-              exit 1
-            fi
-
-    send-streak-lost:
-      runs-on: ubuntu-latest
-      steps:
-        - name: Send Streak Lost Notifications
-          if: github.event_name == 'schedule' || github.event.inputs.notification_type 
-  == 'all' || github.event.inputs.notification_type == 'streak_lost'
-          run: |
-            echo "Sending streak_lost notifications..."
-            response=$(curl -s -w "\n%{http_code}" -X POST \
-              '${{ env.SUPABASE_URL }}/functions/v1/send-daily-reminders' \
-              -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \    
-              -H 'Content-Type: application/json' \
-              -d '{"type": "streak_lost"}')
-
-            http_code=$(echo "$response" | tail -n1)
-            body=$(echo "$response" | sed '$d')
-
-            echo "Response: $body"
-            echo "HTTP Code: $http_code"
-
-            if [ "$http_code" -ge 400 ]; then
-              echo "::error::Edge Function returned HTTP $http_code"
-              exit 1
-            fi
+  send-streak-lost:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Streak Lost Notifications
+        if: github.event_name == 'schedule' || github.event.inputs.notification_type == 'all' || github.event.inputs.notification_type == 'streak_lost'
+        run: |
+          echo "Sending streak_lost notifications..."
+          response=$(curl -s -w "\n%{http_code}" -X POST \
+            '${{ env.SUPABASE_URL }}/functions/v1/send-daily-reminders' \
+            -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \
+            -H 'Content-Type: application/json' \
+            -d '{"type": "streak_lost"}')
+          http_code=$(echo "$response" | tail -n1)
+          body=$(echo "$response" | sed '$d')
+          echo "Response: $body"
+          echo "HTTP Code: $http_code"
+          if [ "$http_code" -ge 400 ]; then
+            echo "::error::Edge Function returned HTTP $http_code"
+            exit 1
+          fi
