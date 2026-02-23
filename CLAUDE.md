@@ -1984,6 +1984,28 @@ BibliaChat/
   - **Archivo modificado:**
     - `lib/features/profile/presentation/screens/profile_edit_screen.dart` - pop on save + dismiss keyboard
 
+- [x] Fix: Notificaciones push no llegaban (token FCM no se guardaba)
+  - **Problema raíz:** Los usuarios reales (con onboarding completado y reminder activado) NO tenían token FCM en `user_devices`. Los únicos tokens eran de cuentas anónimas de prueba. Cero overlap entre usuarios con `reminder_enabled = true` y usuarios con token.
+  - **Causa:** `NotificationService.init()` solo guardaba el token si el permiso de notificaciones ya estaba concedido. En Android 13+, el permiso no se concede hasta que el usuario lo acepta explícitamente, pero `getToken()` funciona sin permiso.
+  - **Diagnóstico realizado:**
+    - GitHub Actions workflow: ejecutándose correctamente cada hora (4 jobs verdes)
+    - Edge Function `send-daily-reminders`: respondía `total_users: 0` (correcto, nadie tenía token)
+    - `FIREBASE_SERVICE_ACCOUNT` secret: configurado correctamente
+    - Query `user_devices`: 8 tokens de cuentas anónimas, 0 de usuarios reales
+    - Query `user_profiles WHERE reminder_enabled = true`: 8 usuarios, ninguno con token
+  - **Fix `notification_service.dart`:**
+    - `init()` ahora SIEMPRE intenta guardar el token (`_saveToken()`) sin esperar permiso
+    - `requestPermissionIfNeeded()` ahora también guarda el token como safety net (incluso si ya tiene permiso)
+    - `onTokenRefresh` se registra una sola vez en `init()` (antes se duplicaba en `_setupAfterPermission()`)
+    - Nuevo método `_saveToken()` centralizado con error handling
+  - **Fix `send-notifications.yml` (GitHub Actions):**
+    - Añadido error handling: `if [ "$http_code" -ge 400 ]; then exit 1; fi`
+    - Ahora el workflow muestra rojo si la Edge Function devuelve error (antes siempre verde)
+    - NOTA: El PAT de GitHub no tiene scope `workflow`, los cambios al .yml se hacen manualmente en GitHub
+  - **Archivos modificados:**
+    - `lib/core/services/notification_service.dart` - Guardar token siempre + safety net + centralizar
+    - `.github/workflows/send-notifications.yml` - Error handling (actualizado manualmente en GitHub)
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
@@ -2634,3 +2656,15 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
   - Siempre comprobar ambos campos: `user.email` (confirmado) y `user.newEmail` (pendiente)
   - `currentEmail` debe priorizar `user.email ?? user.newEmail` para mostrar el email correcto en la UI
   - Propiedad `newEmail` está en `gotrue-dart` User class (campo JSON `new_email`)
+- **FCM token en Android: guardar siempre, no esperar permiso:**
+  - En Android, `FirebaseMessaging.instance.getToken()` funciona SIN permiso de notificaciones
+  - El permiso solo controla si la notificación se MUESTRA, no si el token existe
+  - En iOS, `getToken()` puede devolver null sin permiso
+  - **Patrón correcto:** Guardar token en `init()` siempre + guardar de nuevo en `requestPermissionIfNeeded()` como safety net
+  - **Patrón incorrecto:** Solo guardar token dentro de `_setupAfterPermission()` que se ejecuta condicionalmente
+  - Si el token se guarda sin permiso, FCM puede enviar mensajes pero el dispositivo no los muestra hasta que el usuario conceda permiso
+- **GitHub Actions: PAT sin scope `workflow`:**
+  - El Personal Access Token de GitHub no puede pushear cambios a `.github/workflows/`
+  - Error: "refusing to allow a Personal Access Token to create or update workflow without `workflow` scope"
+  - **Workaround:** Editar los archivos de workflow directamente en GitHub (lápiz → Edit)
+  - Al copiar YAML desde el chat, se introducen espacios invisibles → copiar siempre desde archivo local
