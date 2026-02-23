@@ -144,14 +144,11 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
     // Escuchar cambios de guardado
     ref.listen<ProfileEditState>(profileEditProvider, (prev, next) {
       if (next.isSaved) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Cambios guardados'),
-            backgroundColor: AppTheme.successColor,
-          ),
-        );
         notifier.resetSavedFlag();
         ref.invalidate(currentUserProfileProvider);
+        if (context.mounted) {
+          context.pop();
+        }
       }
       if (next.error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -181,7 +178,10 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Stack(
               children: [
-                SingleChildScrollView(
+                GestureDetector(
+                  onTap: () => FocusScope.of(context).unfocus(),
+                  behavior: HitTestBehavior.opaque,
+                  child: SingleChildScrollView(
                   padding: const EdgeInsets.only(bottom: 100),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -207,6 +207,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                       const SizedBox(height: 32),
                     ],
                   ),
+                ),
                 ),
                 // Loading overlay
                 if (editState.isLoading)

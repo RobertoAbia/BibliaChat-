@@ -1978,6 +1978,12 @@ BibliaChat/
   - **Archivo modificado:**
     - `lib/features/settings/presentation/screens/settings_screen.dart` - profileName, avatar initial, pill badges
 
+- [x] Fix: Editar Perfil — pop al guardar + cerrar teclado al tocar fuera
+  - **Pop al guardar:** Al guardar cambios, vuelve automáticamente al tab de Perfil (`context.pop()`) en vez de quedarse en la pantalla de edición. Patrón estándar (Instagram, Twitter, Spotify)
+  - **Cerrar teclado:** `GestureDetector` con `HitTestBehavior.opaque` + `FocusScope.unfocus()` envolviendo el `SingleChildScrollView`
+  - **Archivo modificado:**
+    - `lib/features/profile/presentation/screens/profile_edit_screen.dart` - pop on save + dismiss keyboard
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
