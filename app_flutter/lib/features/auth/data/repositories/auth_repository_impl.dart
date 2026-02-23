@@ -20,8 +20,10 @@ class AuthRepositoryImpl implements AuthRepository {
   bool get isAnonymous {
     final user = currentUser;
     if (user == null) return true;
-    // Usuario es anónimo si no tiene email
-    return user.email == null || user.email!.isEmpty;
+    // Usuario es anónimo si no tiene email ni email pendiente (newEmail)
+    final hasEmail = user.email != null && user.email!.isNotEmpty;
+    final hasPendingEmail = user.newEmail != null && user.newEmail!.isNotEmpty;
+    return !hasEmail && !hasPendingEmail;
   }
 
   @override
@@ -33,14 +35,22 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  String? get currentEmail => currentUser?.email;
+  String? get currentEmail {
+    final user = currentUser;
+    if (user == null) return null;
+    // Priorizar email confirmado, sino el pendiente (newEmail)
+    if (user.email != null && user.email!.isNotEmpty) return user.email;
+    return user.newEmail;
+  }
 
   @override
   AuthStatus get authStatus {
     final user = currentUser;
     if (user == null) return AuthStatus.anonymous;
-    if (user.email == null || user.email!.isEmpty) return AuthStatus.anonymous;
-    if (user.emailConfirmedAt == null) return AuthStatus.emailUnverified;
+    final hasEmail = user.email != null && user.email!.isNotEmpty;
+    final hasPendingEmail = user.newEmail != null && user.newEmail!.isNotEmpty;
+    if (!hasEmail && !hasPendingEmail) return AuthStatus.anonymous;
+    if (hasPendingEmail || user.emailConfirmedAt == null) return AuthStatus.emailUnverified;
     return AuthStatus.emailVerified;
   }
 
@@ -250,6 +260,14 @@ class AuthRepositoryImpl implements AuthRepository {
       return AuthResult.error(
         'Ingresa un email válido',
         'invalid_email',
+      );
+    }
+
+    // Misma contraseña (email ya vinculado, falta verificar)
+    if (message.contains('new password should be different')) {
+      return AuthResult.error(
+        'Ya vinculaste este email. Revisa tu correo para verificar.',
+        'same_password',
       );
     }
 

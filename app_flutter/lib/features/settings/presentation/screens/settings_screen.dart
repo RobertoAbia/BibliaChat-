@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 import '../../../../app.dart' show dialogContextProvider;
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/route_constants.dart';
+import '../../../auth/domain/repositories/auth_repository.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../home/presentation/providers/daily_progress_provider.dart';
 import '../../../study/presentation/providers/study_provider.dart';
@@ -17,7 +18,9 @@ class SettingsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isAnonymous = ref.watch(isAnonymousProvider);
+    final authStatus = ref.watch(authStatusProvider);
+    final isAnonymous = authStatus == AuthStatus.anonymous;
+    final isEmailUnverified = authStatus == AuthStatus.emailUnverified;
     final email = ref.watch(currentEmailProvider);
     final isPremium = ref.watch(isPremiumProvider);
 
@@ -55,7 +58,7 @@ class SettingsScreen extends ConsumerWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      if (isAnonymous)
+                      if (isAnonymous || isEmailUnverified)
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -66,9 +69,9 @@ class SettingsScreen extends ConsumerWidget {
                             color: AppTheme.warningColor.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Text(
-                            'Sin guardar',
-                            style: TextStyle(
+                          child: Text(
+                            isEmailUnverified ? 'Pendiente' : 'Sin guardar',
+                            style: const TextStyle(
                               color: AppTheme.warningColor,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -113,7 +116,7 @@ class SettingsScreen extends ConsumerWidget {
                   title: 'Editar Perfil',
                   onTap: () => context.push(RouteConstants.profileEdit),
                 ),
-                // Solo mostrar "Guardar mi cuenta" si es anónimo
+                // Estado 1: Anónimo — vincular email
                 if (isAnonymous)
                   SettingsItem(
                     icon: Icons.shield_outlined,
@@ -124,8 +127,20 @@ class SettingsScreen extends ConsumerWidget {
                       context.push(RouteConstants.linkEmail);
                     },
                   ),
-                // Mostrar email vinculado si no es anónimo
-                if (!isAnonymous)
+                // Estado 2: Email pendiente de verificación
+                if (isEmailUnverified)
+                  SettingsItem(
+                    icon: Icons.mark_email_unread_outlined,
+                    title: 'Verificar tu email',
+                    subtitle: email ?? 'Revisa tu correo',
+                    isWarning: true,
+                    onTap: () {
+                      final encodedEmail = Uri.encodeComponent(email ?? '');
+                      context.push('${RouteConstants.verifyEmail}?email=$encodedEmail');
+                    },
+                  ),
+                // Estado 3: Email verificado
+                if (!isAnonymous && !isEmailUnverified)
                   SettingsItem(
                     icon: Icons.verified_user_outlined,
                     title: 'Cuenta vinculada',
@@ -279,35 +294,35 @@ class SettingsScreen extends ConsumerWidget {
   }
 
   Widget _buildSettingsItem(BuildContext context, SettingsItem item) {
+    final Color? accentColor = item.isDestructive
+        ? AppTheme.errorColor
+        : item.isWarning
+            ? AppTheme.warningColor
+            : item.isHighlighted
+                ? AppTheme.primaryColor
+                : null;
+
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
-      decoration: item.isHighlighted
+      decoration: (item.isHighlighted || item.isWarning)
           ? BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.1),
+              color: (accentColor ?? AppTheme.primaryColor).withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppTheme.primaryColor.withOpacity(0.3),
+                color: (accentColor ?? AppTheme.primaryColor).withOpacity(0.3),
               ),
             )
           : null,
       child: ListTile(
         leading: Icon(
           item.icon,
-          color: item.isDestructive
-              ? AppTheme.errorColor
-              : item.isHighlighted
-                  ? AppTheme.primaryColor
-                  : null,
+          color: accentColor,
         ),
         title: Text(
           item.title,
           style: TextStyle(
-            color: item.isDestructive
-                ? AppTheme.errorColor
-                : item.isHighlighted
-                    ? AppTheme.primaryColor
-                    : null,
-            fontWeight: item.isHighlighted ? FontWeight.w600 : null,
+            color: accentColor,
+            fontWeight: (item.isHighlighted || item.isWarning) ? FontWeight.w600 : null,
           ),
         ),
         subtitle: item.subtitle != null ? Text(item.subtitle!) : null,
@@ -461,6 +476,7 @@ class SettingsItem {
   final String? subtitle;
   final bool isDestructive;
   final bool isHighlighted;
+  final bool isWarning;
   final VoidCallback onTap;
 
   SettingsItem({
@@ -469,6 +485,7 @@ class SettingsItem {
     this.subtitle,
     this.isDestructive = false,
     this.isHighlighted = false,
+    this.isWarning = false,
     required this.onTap,
   });
 }

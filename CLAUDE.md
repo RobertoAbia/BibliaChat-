@@ -1934,6 +1934,35 @@ BibliaChat/
   - **Archivo modificado:**
     - `lib/features/auth/presentation/screens/verify_email_screen.dart` - WidgetsBindingObserver + didChangeAppLifecycleState + _checkEmailVerifiedOnResume
 
+- [x] Feature: Mejorar flujo de vinculación de email (3 estados en Settings)
+  - **Problema:** Después de vincular email y volver a Settings sin verificar, la app seguía mostrando "Guardar mi cuenta" como si no hubiera pasado nada. Al intentar vincular de nuevo con la misma contraseña → error en inglés "New password should be different from the old password"
+  - **Causa raíz:** Supabase guarda el email en `user.newEmail` (no en `user.email`) hasta que se verifica. Los getters `isAnonymous`, `currentEmail` y `authStatus` solo miraban `user.email`
+  - **Solución (3 partes):**
+  - **`auth_repository_impl.dart` — Detectar `user.newEmail`:**
+    - `isAnonymous`: Ahora comprueba tanto `user.email` como `user.newEmail`
+    - `currentEmail`: Devuelve `user.email` si existe, sino `user.newEmail`
+    - `authStatus`: Detecta `emailUnverified` si hay `newEmail` pendiente
+    - Nuevo caso en `_handleAuthException`: "New password should be different" → mensaje en español + código `same_password`
+  - **`settings_screen.dart` — 3 estados de cuenta:**
+    - `anonymous` → "Guardar mi cuenta" (dorado) → push a LinkEmailScreen
+    - `emailUnverified` → "Verificar tu email" + email (naranja/warning) → push a VerifyEmailScreen
+    - `emailVerified` → "Cuenta vinculada" + email
+    - Badge en header: "Sin guardar" (anónimo) o "Pendiente" (email sin verificar)
+    - Nuevo campo `isWarning` en `SettingsItem` con estilo naranja (fondo + borde)
+    - Usa `authStatusProvider` + `AuthStatus` enum en vez de solo `isAnonymousProvider`
+  - **`link_email_screen.dart` — Redirect en error `same_password`:**
+    - Si el error es `same_password`, redirige automáticamente a VerifyEmailScreen
+  - **Flujo de `user.email` vs `user.newEmail` en Supabase:**
+    ```
+    Anónimo:     email=null,            newEmail=null             → anonymous
+    Vinculado:   email=null,            newEmail="pepe@gmail.com" → emailUnverified
+    Verificado:  email="pepe@gmail.com", newEmail=null            → emailVerified
+    ```
+  - **Archivos modificados:**
+    - `lib/features/auth/data/repositories/auth_repository_impl.dart` - isAnonymous, currentEmail, authStatus usan newEmail + error same_password
+    - `lib/features/settings/presentation/screens/settings_screen.dart` - 3 estados + isWarning + badge Pendiente
+    - `lib/features/auth/presentation/screens/link_email_screen.dart` - redirect a VerifyEmailScreen en same_password
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
@@ -2577,3 +2606,10 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
   - Si verificado → `context.go(RouteConstants.home)`
   - Dos capas de detección: deep link (listener `onAuthStateChange`) + resume observer (fallback)
   - IMPORTANTE: añadir `removeObserver(this)` en `dispose()` para evitar memory leaks
+- **Supabase `user.email` vs `user.newEmail` (vinculación de cuenta anónima):**
+  - Al llamar `updateUser(email, password)` en un usuario anónimo, Supabase pone el email en `user.newEmail` (NO en `user.email`) hasta que se verifica
+  - `user.email` permanece null hasta confirmar → `isAnonymous` basado solo en `user.email` dará resultado incorrecto
+  - Después de verificar: `user.email` se llena y `user.newEmail` se limpia
+  - Siempre comprobar ambos campos: `user.email` (confirmado) y `user.newEmail` (pendiente)
+  - `currentEmail` debe priorizar `user.email ?? user.newEmail` para mostrar el email correcto en la UI
+  - Propiedad `newEmail` está en `gotrue-dart` User class (campo JSON `new_email`)

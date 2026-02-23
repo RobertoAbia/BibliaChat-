@@ -42,6 +42,11 @@ class _LinkEmailScreenState extends ConsumerState<LinkEmailScreen> {
         final encodedEmail = Uri.encodeComponent(_emailController.text);
         context.pushReplacement('${RouteConstants.verifyEmail}?email=$encodedEmail');
       }
+      // Si el error es "same_password", redirigir a verificación
+      if (next.errorCode == 'same_password') {
+        final encodedEmail = Uri.encodeComponent(_emailController.text);
+        context.pushReplacement('${RouteConstants.verifyEmail}?email=$encodedEmail');
+      }
     });
 
     return Scaffold(
