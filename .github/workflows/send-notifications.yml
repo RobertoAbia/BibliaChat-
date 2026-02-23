@@ -1,7 +1,7 @@
-name: Send Push Notifications
-
-  on:
+name: Send Push Notifications                                                                                                                                               
+  on:                                                                                  
     schedule:
+      # Every hour to cover all timezones
       - cron: '0 * * * *'
     workflow_dispatch:
       inputs:
@@ -33,10 +33,13 @@ name: Send Push Notifications
               -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \    
               -H 'Content-Type: application/json' \
               -d '{"type": "daily_reminder"}')
+
             http_code=$(echo "$response" | tail -n1)
             body=$(echo "$response" | sed '$d')
+
             echo "Response: $body"
             echo "HTTP Code: $http_code"
+
             if [ "$http_code" -ge 400 ]; then
               echo "::error::Edge Function returned HTTP $http_code"
               exit 1
@@ -55,10 +58,13 @@ name: Send Push Notifications
               -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \    
               -H 'Content-Type: application/json' \
               -d '{"type": "stories_missed"}')
+
             http_code=$(echo "$response" | tail -n1)
             body=$(echo "$response" | sed '$d')
+
             echo "Response: $body"
             echo "HTTP Code: $http_code"
+
             if [ "$http_code" -ge 400 ]; then
               echo "::error::Edge Function returned HTTP $http_code"
               exit 1
@@ -77,10 +83,13 @@ name: Send Push Notifications
               -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \    
               -H 'Content-Type: application/json' \
               -d '{"type": "plan_abandoned"}')
+
             http_code=$(echo "$response" | tail -n1)
             body=$(echo "$response" | sed '$d')
+
             echo "Response: $body"
             echo "HTTP Code: $http_code"
+
             if [ "$http_code" -ge 400 ]; then
               echo "::error::Edge Function returned HTTP $http_code"
               exit 1
@@ -99,10 +108,13 @@ name: Send Push Notifications
               -H 'Authorization: Bearer ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}' \    
               -H 'Content-Type: application/json' \
               -d '{"type": "streak_lost"}')
+
             http_code=$(echo "$response" | tail -n1)
             body=$(echo "$response" | sed '$d')
+
             echo "Response: $body"
             echo "HTTP Code: $http_code"
+
             if [ "$http_code" -ge 400 ]; then
               echo "::error::Edge Function returned HTTP $http_code"
               exit 1
