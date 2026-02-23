@@ -30,8 +30,8 @@ class NotificationService {
   String? _currentUserId;
 
   /// Inicializa el servicio de notificaciones.
-  /// NO muestra diálogo de permisos - solo configura listeners y token si ya autorizado.
-  /// Para pedir permiso, llamar requestPermissionIfNeeded() después.
+  /// Siempre guarda el token FCM (en Android funciona sin permiso).
+  /// Para pedir permiso de mostrar notificaciones, llamar requestPermissionIfNeeded().
   Future<void> init(String userId, GoRouter router) async {
     if (kIsWeb) return;
 
@@ -40,11 +40,7 @@ class NotificationService {
     // Si ya está inicializado pero cambió el usuario, solo actualizamos el token
     if (_isInitialized && _currentUserId != userId) {
       _currentUserId = userId;
-      final token = await _messaging.getToken();
-      if (token != null) {
-        await _saveTokenToSupabase(token, userId);
-        debugPrint('FCM token updated for new user: $userId');
-      }
+      await _saveToken(userId);
       return;
     }
 
@@ -55,22 +51,31 @@ class NotificationService {
     // 1. Configurar handler para mensajes en background
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // 2. Verificar si YA tiene permiso (sin mostrar diálogo)
+    // 2. SIEMPRE intentar guardar el token (en Android funciona sin permiso)
+    await _saveToken(userId);
+
+    // 3. Verificar si YA tiene permiso para configurar local notifications
     final settings = await _messaging.getNotificationSettings();
     final alreadyAuthorized =
         settings.authorizationStatus == AuthorizationStatus.authorized ||
         settings.authorizationStatus == AuthorizationStatus.provisional;
 
-    // 3. Si ya autorizado, configurar local notifications + token
     if (alreadyAuthorized) {
-      await _setupAfterPermission(userId);
+      await _setupLocalNotifications();
     }
 
-    // 4. Configurar handlers para mensajes (funcionan sin permiso)
+    // 4. Escuchar cambios de token
+    _messaging.onTokenRefresh.listen((newToken) {
+      if (_currentUserId != null) {
+        _saveTokenToSupabase(newToken, _currentUserId!);
+      }
+    });
+
+    // 5. Configurar handlers para mensajes (funcionan sin permiso)
     FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
     FirebaseMessaging.onMessageOpenedApp.listen(_handleMessageTap);
 
-    // 5. Verificar si la app se abrió desde una notificación
+    // 6. Verificar si la app se abrió desde una notificación
     final initialMessage = await _messaging.getInitialMessage();
     if (initialMessage != null) {
       Future.delayed(const Duration(milliseconds: 500), () {
@@ -79,7 +84,7 @@ class NotificationService {
     }
 
     _isInitialized = true;
-    debugPrint('NotificationService initialized');
+    debugPrint('NotificationService initialized for user: $userId');
   }
 
   /// Pide permiso de notificaciones si aún no lo tiene.
@@ -91,29 +96,34 @@ class NotificationService {
     final settings = await _messaging.getNotificationSettings();
     if (settings.authorizationStatus == AuthorizationStatus.authorized ||
         settings.authorizationStatus == AuthorizationStatus.provisional) {
-      return; // Ya tiene permiso
+      // Ya tiene permiso — asegurar que local notifications están configuradas
+      await _setupLocalNotifications();
+      // Asegurar que el token está guardado (por si init() falló)
+      await _saveToken(_currentUserId!);
+      return;
     }
 
     // Mostrar diálogo del sistema
     final hasPermission = await requestPermission();
     if (hasPermission && _currentUserId != null) {
-      await _setupAfterPermission(_currentUserId!);
+      await _setupLocalNotifications();
+      await _saveToken(_currentUserId!);
     }
   }
 
-  /// Configura local notifications, obtiene token y escucha cambios.
-  Future<void> _setupAfterPermission(String userId) async {
-    await _setupLocalNotifications();
-
-    final token = await _messaging.getToken();
-    if (token != null) {
-      await _saveTokenToSupabase(token, userId);
-      debugPrint('FCM Token: $token');
+  /// Obtiene el token FCM y lo guarda en Supabase.
+  Future<void> _saveToken(String userId) async {
+    try {
+      final token = await _messaging.getToken();
+      if (token != null) {
+        await _saveTokenToSupabase(token, userId);
+        debugPrint('FCM token saved for user: $userId');
+      } else {
+        debugPrint('FCM token is null (permission may be required on iOS)');
+      }
+    } catch (e) {
+      debugPrint('Error getting/saving FCM token: $e');
     }
-
-    _messaging.onTokenRefresh.listen((newToken) {
-      _saveTokenToSupabase(newToken, userId);
-    });
   }
 
   /// Solicita permiso para notificaciones
