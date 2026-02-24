@@ -41,7 +41,10 @@
                     android:host="login-callback" />
             </intent-filter>
         </activity>
-        <!-- Firebase Cloud Messaging default notification channel -->
+        <!-- Firebase Cloud Messaging default notification icon and channel -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="biblia_chat_channel" />

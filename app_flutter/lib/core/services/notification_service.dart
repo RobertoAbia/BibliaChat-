@@ -191,20 +191,16 @@ class NotificationService {
         ?.createNotificationChannel(channel);
   }
 
-  /// Guarda el token FCM en Supabase
+  /// Guarda el token FCM en Supabase usando función SECURITY DEFINER
+  /// (resuelve RLS violation cuando el mismo dispositivo cambia de usuario)
   Future<void> _saveTokenToSupabase(String token, String userId) async {
     try {
       final platform = Platform.isIOS ? 'ios' : 'android';
 
-      await Supabase.instance.client.from('user_devices').upsert(
-        {
-          'user_id': userId,
-          'device_token': token,
-          'platform': platform,
-          'last_seen_at': DateTime.now().toUtc().toIso8601String(),
-        },
-        onConflict: 'device_token',
-      );
+      await Supabase.instance.client.rpc('register_device_token', params: {
+        'p_token': token,
+        'p_platform': platform,
+      });
 
       debugPrint('FCM token saved to Supabase');
     } catch (e) {

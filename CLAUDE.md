@@ -74,7 +74,7 @@ BibliaChat/
 - `deleted_user_archives` (archivado pseudonimizado para GDPR, 3 años retención)
 - `liturgical_readings` (calendario litúrgico católico - 365 días/año)
 
-## Migraciones SQL (33 total)
+## Migraciones SQL (34 total)
 - 00001-00009: Tablas core, ENUMs, RLS, índices
 - 00010: `rc_app_user_id` para restaurar compras
 - 00011: `gender` + enum `gender_type`
@@ -100,6 +100,7 @@ BibliaChat/
 - 00031: Seed 12 planes de motivo (84 días de contenido), columna `title` en `plan_days`, 4 topic keys nuevos
 - 00032: Columnas demografía + consentimiento GDPR en `deleted_user_archives` (gender, country_code, motive, motive_detail, features, consent_terms_at, consent_data_at)
 - 00033: `email_hash` en `deleted_user_archives` para búsqueda por email en juicios (SHA256)
+- 00034: Función SQL `register_device_token()` con SECURITY DEFINER para evitar RLS violation al reusar dispositivo
 
 ## EPICs del Proyecto (12 total)
 - **EPIC 0-1:** Foundation + Base de datos + RLS
@@ -2006,6 +2007,46 @@ BibliaChat/
     - `lib/core/services/notification_service.dart` - Guardar token siempre + safety net + centralizar
     - `.github/workflows/send-notifications.yml` - Error handling (actualizado manualmente en GitHub)
 
+- [x] Fix: RLS violation al guardar token FCM (device reuse)
+  - **Problema:** Al reusar un dispositivo con otra cuenta, el upsert de token FCM fallaba con RLS violation porque la fila existente en `user_devices` pertenecía al usuario anterior
+  - **Causa:** RLS bloquea UPDATE de filas de otros usuarios, y el upsert con `onConflict` intenta hacer UPDATE sobre la fila existente
+  - **Solución:** Función SQL `register_device_token()` con `SECURITY DEFINER` que bypasea RLS
+    - Borra el token viejo (de cualquier usuario) e inserta uno nuevo para el usuario actual
+    - Flutter usa `supabase.rpc('register_device_token')` en vez de upsert directo
+  - **Migración:** `00034_register_device_token_function.sql`
+  - **Archivos creados:**
+    - `supabase/migrations/00034_register_device_token_function.sql`
+  - **Archivos modificados:**
+    - `lib/core/services/notification_service.dart` - Usa `rpc('register_device_token')` en vez de upsert
+
+- [x] Feature: Icono personalizado en notificaciones Android
+  - **Objetivo:** Mostrar el icono de la app (cruz+burbuja) en las notificaciones push en vez del icono genérico de Android
+  - **Requisitos Android:** El small icon debe ser monocromo (silueta blanca sobre fondo transparente). Android aplica tinting automáticamente según el tema del dispositivo
+  - **5 densidades generadas:**
+    - `drawable-mdpi/ic_notification.png` (24x24px)
+    - `drawable-hdpi/ic_notification.png` (36x36px)
+    - `drawable-xhdpi/ic_notification.png` (48x48px)
+    - `drawable-xxhdpi/ic_notification.png` (72x72px)
+    - `drawable-xxxhdpi/ic_notification.png` (96x96px)
+  - **Configuración:** `com.google.firebase.messaging.default_notification_icon` en AndroidManifest.xml
+  - **Archivos creados:**
+    - `app_flutter/android/app/src/main/res/drawable-mdpi/ic_notification.png`
+    - `app_flutter/android/app/src/main/res/drawable-hdpi/ic_notification.png`
+    - `app_flutter/android/app/src/main/res/drawable-xhdpi/ic_notification.png`
+    - `app_flutter/android/app/src/main/res/drawable-xxhdpi/ic_notification.png`
+    - `app_flutter/android/app/src/main/res/drawable-xxxhdpi/ic_notification.png`
+  - **Archivos modificados:**
+    - `android/app/src/main/AndroidManifest.xml` - `default_notification_icon` meta-data
+
+- [x] Fix: Paywall muestra mock data cuando RevenueCat no disponible
+  - **Problema:** En Android (sin RevenueCat configurado), el paywall mostraba error "No se pudieron cargar los planes" en vez de mostrar precios
+  - **Antes:** Solo mostraba mock data en web (`kIsWeb`)
+  - **Después:** Muestra mock data ($14.99 mensual / $39.99 anual) en cualquier plataforma cuando RevenueCat no devuelve offerings
+  - **Comportamiento:** Cuando RevenueCat esté configurado con productos reales, automáticamente usará datos reales en vez de mock
+  - **Eliminado:** Banner "Vista previa (Web)" que solo aparecía en web
+  - **Archivo modificado:**
+    - `lib/features/subscription/presentation/screens/paywall_screen.dart` - Mock data universal + eliminar banner web
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
@@ -2102,6 +2143,9 @@ BibliaChat/
 - [x] Feature: Pantalla de consentimiento GDPR (15→16 páginas) - COMPLETADO
 - [x] Feature: Plan preview personalizado en onboarding + 12 planes de motivo en BD - COMPLETADO
 - [x] Feature: Pulido UX onboarding — animaciones suaves, hint visible, conectores blancos, teclado, países - COMPLETADO
+- [x] Fix: RLS violation al guardar token FCM (device reuse) - COMPLETADO
+- [x] Feature: Icono personalizado en notificaciones Android - COMPLETADO
+- [x] Fix: Paywall muestra mock data cuando RevenueCat no disponible - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 - [ ] **Feature: Widget versículo en Lock Screen** (iOS) + Home Screen (Android) - PLANIFICADO
@@ -2668,3 +2712,17 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
   - Error: "refusing to allow a Personal Access Token to create or update workflow without `workflow` scope"
   - **Workaround:** Editar los archivos de workflow directamente en GitHub (lápiz → Edit)
   - Al copiar YAML desde el chat, se introducen espacios invisibles → copiar siempre desde archivo local
+- **Icono de notificación Android (small icon):**
+  - Debe ser monocromo (blanco sobre transparente). Android aplica tinting automáticamente según tema del dispositivo
+  - Se configura con `com.google.firebase.messaging.default_notification_icon` en AndroidManifest.xml
+  - Generarlo en 5 densidades: mdpi (24px), hdpi (36px), xhdpi (48px), xxhdpi (72px), xxxhdpi (96px)
+  - El nombre del recurso (ej: `ic_notification`) se referencia con `@drawable/ic_notification`
+  - Si no se configura, Android usa el icono de la app que puede verse como un cuadrado blanco
+- **RLS y device token reuse (upsert cross-user):**
+  - Cuando el mismo dispositivo cambia de usuario (logout + login con otra cuenta), un upsert con `onConflict` en `user_devices` falla
+  - **Causa:** RLS bloquea UPDATE de filas que pertenecen a otro usuario (la fila existente tiene el `user_id` anterior)
+  - **Solución:** Función SQL con `SECURITY DEFINER` que bypasea RLS:
+    1. Borra la fila existente con ese token (de cualquier usuario)
+    2. Inserta nueva fila con el usuario actual
+  - Flutter llama `supabase.rpc('register_device_token', params: {...})` en vez de `.upsert()`
+  - Este patrón aplica a cualquier tabla donde un recurso físico (dispositivo, token) puede cambiar de dueño

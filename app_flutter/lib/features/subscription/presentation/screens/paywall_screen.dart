@@ -33,7 +33,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final monthlyPackage = ref.watch(monthlyPackageProvider);
     final annualPackage = ref.watch(annualPackageProvider);
 
-    final showMockData = kIsWeb && monthlyPackage == null && annualPackage == null;
+    final showMockData = monthlyPackage == null && annualPackage == null && !subscriptionState.isLoading;
 
     return Scaffold(
       extendBodyBehindAppBar: true,
@@ -280,28 +280,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     return SingleChildScrollView(
       child: Column(
       children: [
-        // Banner web
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppTheme.infoColor.withOpacity(0.15),
-            borderRadius: BorderRadius.circular(6),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.visibility, size: 14, color: AppTheme.infoColor),
-              SizedBox(width: 6),
-              Text(
-                'Vista previa (Web)',
-                style: TextStyle(fontSize: 11, color: AppTheme.infoColor),
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 16),
-
         // Plan mensual mock con toggle
         _MockMonthlyPlanCard(
           trialEnabled: _trialEnabled,
