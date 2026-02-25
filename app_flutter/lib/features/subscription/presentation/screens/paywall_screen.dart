@@ -7,7 +7,8 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/theme/app_theme.dart';
-import '../../../../core/widgets/glass_container.dart';
+import '../../../legal/presentation/screens/privacy_policy_screen.dart';
+import '../../../legal/presentation/screens/terms_conditions_screen.dart';
 import '../providers/subscription_provider.dart';
 
 class PaywallScreen extends ConsumerStatefulWidget {
@@ -18,13 +19,16 @@ class PaywallScreen extends ConsumerStatefulWidget {
 }
 
 class _PaywallScreenState extends ConsumerState<PaywallScreen> {
-  bool _trialEnabled = true; // Toggle para prueba gratis en plan mensual
+  bool _trialEnabled = true; // true = mensual con trial, false = anual
+  bool _canClose = false;
 
   @override
   void initState() {
     super.initState();
-    // Log analytics event when paywall is viewed
     AnalyticsService().logPaywallViewed(source: 'onboarding');
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _canClose = true);
+    });
   }
 
   @override
@@ -33,65 +37,244 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final monthlyPackage = ref.watch(monthlyPackageProvider);
     final annualPackage = ref.watch(annualPackageProvider);
 
-    final showMockData = monthlyPackage == null && annualPackage == null && !subscriptionState.isLoading;
+    final showMockData =
+        monthlyPackage == null && annualPackage == null && !subscriptionState.isLoading;
+
+    final monthlyPrice = monthlyPackage?.storeProduct.priceString ?? '\$14.99';
+    final annualPrice = annualPackage?.storeProduct.priceString ?? '\$39.99';
+    final isPurchasing = subscriptionState.isPurchasing;
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
       body: Container(
         decoration: const BoxDecoration(
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: Stack(
+          child: Column(
             children: [
-              // Contenido principal
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 48), // Espacio para el botón X
+              // Contenido scrollable
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 64),
 
-                    // Header
-                    _buildHeader(),
-
-                    const SizedBox(height: 24),
-
-                    // Features
-                    _buildFeatures(),
-
-                    const SizedBox(height: 24),
-
-                    // Planes
-                    if (subscriptionState.isLoading && !kIsWeb)
-                      const Expanded(
-                        child: Center(child: CircularProgressIndicator()),
-                      )
-                    else if (showMockData)
-                      Expanded(child: _buildMockPlans(context))
-                    else if (annualPackage != null || monthlyPackage != null)
-                      Expanded(
-                        child: _buildRealPlans(
-                          context,
-                          monthlyPackage,
-                          annualPackage,
-                          subscriptionState,
+                      // Logo centrado
+                      Center(
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.asset(
+                            'assets/images/splash_logo.png',
+                            width: 80,
+                            height: 80,
+                          ),
                         ),
-                      )
-                    else
-                      _buildErrorState(),
-                  ],
+                      ),
+
+                      const SizedBox(height: 28),
+
+                      // Titulo grande
+                      const Text(
+                        'No pierdas ni un\nsolo momento de fe',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textPrimary,
+                          height: 1.15,
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Features - lista vertical
+                      _buildFeatureItem('Chat ilimitado con IA'),
+                      const SizedBox(height: 12),
+                      _buildFeatureItem('Planes de estudio personalizados'),
+                      const SizedBox(height: 12),
+                      _buildFeatureItem('Reflexiones y devocionales diarios'),
+
+                      const SizedBox(height: 24),
+
+                      // Toggle trial (siempre visible)
+                      _buildTrialToggle(),
+
+                      const SizedBox(height: 12),
+
+                      // Loading
+                      if (subscriptionState.isLoading && !kIsWeb && !showMockData)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: Center(child: CircularProgressIndicator()),
+                        )
+                      else ...[
+                        // Plan mensual
+                        _buildMonthlyCard(monthlyPrice),
+
+                        const SizedBox(height: 10),
+
+                        // Plan anual
+                        _buildAnnualCard(annualPrice),
+                      ],
+
+                      const SizedBox(height: 16),
+
+                      // Texto legal
+                      const Center(
+                        child: Text(
+                          'Cancela en cualquier momento, sin compromiso.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textSecondary,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+                    ],
+                  ),
                 ),
               ),
 
-              // Botón X discreto (esquina superior izquierda)
-              Positioned(
-                top: 8,
-                left: 8,
-                child: IconButton(
+              // Error
+              if (subscriptionState.error != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8, left: 24, right: 24),
+                  child: Text(
+                    subscriptionState.error!,
+                    style: const TextStyle(color: AppTheme.errorColor, fontSize: 13),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+
+              // CTA grande
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: isPurchasing
+                      ? const Center(
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : Container(
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.goldGradient,
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryColor.withOpacity(0.3),
+                                blurRadius: 12,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: () => _handleCTA(monthlyPackage, annualPackage),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 0,
+                              minimumSize: Size.zero,
+                              padding: EdgeInsets.zero,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _trialEnabled
+                                      ? 'Pruebalo gratis'
+                                      : 'Continuar',
+                                  style: const TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.backgroundDark,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Icon(Icons.chevron_right, size: 22, color: AppTheme.backgroundDark),
+                              ],
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              // Footer: Terminos · Privacidad · Restaurar
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const TermsConditionsScreen()),
+                    ),
+                    child: const Text(
+                      'Terminos y condiciones',
+                      style: TextStyle(fontSize: 11, color: AppTheme.textTertiary),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      '\u00b7',
+                      style: TextStyle(fontSize: 11, color: AppTheme.textTertiary),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
+                    ),
+                    child: const Text(
+                      'Politica de privacidad',
+                      style: TextStyle(fontSize: 11, color: AppTheme.textTertiary),
+                    ),
+                  ),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      '\u00b7',
+                      style: TextStyle(fontSize: 11, color: AppTheme.textTertiary),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => _handleRestore(),
+                    child: const Text(
+                      'Restaurar',
+                      style: TextStyle(fontSize: 11, color: AppTheme.textTertiary),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 12),
+            ],
+          ),
+        ),
+      ),
+      // Boton X flotante
+      floatingActionButtonLocation: FloatingActionButtonLocation.miniStartTop,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 300),
+          child: _canClose
+              ? IconButton(
+                  key: const ValueKey('close'),
                   icon: Icon(
                     Icons.close,
-                    size: 20,
-                    color: AppTheme.textTertiary.withOpacity(0.5),
+                    size: 22,
+                    color: AppTheme.textTertiary.withOpacity(0.6),
                   ),
                   onPressed: () {
                     if (context.canPop()) {
@@ -100,253 +283,205 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                       context.go(RouteConstants.home);
                     }
                   },
+                )
+              : SizedBox(
+                  key: const ValueKey('loading'),
+                  width: 48,
+                  height: 48,
+                  child: Padding(
+                    padding: const EdgeInsets.all(13),
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.0, end: 1.0),
+                      duration: const Duration(seconds: 3),
+                      builder: (context, value, _) {
+                        return CircularProgressIndicator(
+                          value: value,
+                          strokeWidth: 2,
+                          color: AppTheme.textTertiary.withOpacity(0.6),
+                          backgroundColor: AppTheme.textTertiary.withOpacity(0.15),
+                        );
+                      },
+                    ),
+                  ),
                 ),
-              ),
-            ],
-          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Column(
+  Widget _buildFeatureItem(String text) {
+    return Row(
       children: [
-        // Icono premium
-        Container(
-          width: 72,
-          height: 72,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            gradient: AppTheme.goldGradient,
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.primaryColor.withOpacity(0.3),
-                blurRadius: 20,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.auto_awesome,
-            size: 36,
-            color: AppTheme.backgroundDark,
-          ),
+        Icon(
+          Icons.check_circle_outline,
+          size: 22,
+          color: AppTheme.primaryColor,
         ),
-        const SizedBox(height: 16),
-        const Text(
-          'Biblia Chat Premium',
-          style: TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.w700,
-            color: AppTheme.textPrimary,
-          ),
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          'Tu companero espiritual sin limites',
-          style: TextStyle(
-            fontSize: 15,
-            color: AppTheme.textSecondary,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildFeatures() {
-    final features = [
-      'Chat ilimitado con IA',
-      'Devocionales personalizados',
-      'Planes de estudio',
-      'Sin anuncios',
-    ];
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      alignment: WrapAlignment.center,
-      children: features.map((feature) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppTheme.primaryColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: AppTheme.primaryColor.withOpacity(0.3),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.check_circle,
-                size: 14,
-                color: AppTheme.primaryColor,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                feature,
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.textPrimary,
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildRealPlans(
-    BuildContext context,
-    Package? monthlyPackage,
-    Package? annualPackage,
-    SubscriptionState subscriptionState,
-  ) {
-    return SingleChildScrollView(
-      child: Column(
-      children: [
-        // Plan mensual con toggle de trial
-        if (monthlyPackage != null)
-          _MonthlyPlanCard(
-            package: monthlyPackage,
-            trialEnabled: _trialEnabled,
-            onTrialToggled: (value) => setState(() => _trialEnabled = value),
-            isPurchasing: subscriptionState.isPurchasing,
-            onTap: () => _handlePurchase(monthlyPackage),
-          ),
-
-        const SizedBox(height: 12),
-
-        // Plan anual (sin trial)
-        if (annualPackage != null)
-          _AnnualPlanCard(
-            package: annualPackage,
-            isPurchasing: subscriptionState.isPurchasing,
-            onTap: () => _handlePurchase(annualPackage),
-          ),
-
-        const SizedBox(height: 24),
-
-        // Error
-        if (subscriptionState.error != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: Text(
-              subscriptionState.error!,
-              style: const TextStyle(color: AppTheme.errorColor, fontSize: 13),
-              textAlign: TextAlign.center,
-            ),
-          ),
-
-        // Restaurar compras
-        TextButton(
-          onPressed: () => _handleRestore(),
-          child: const Text(
-            'Restaurar compras',
-            style: TextStyle(
-              color: AppTheme.textTertiary,
-              fontSize: 13,
-            ),
-          ),
-        ),
-
-        const SizedBox(height: 4),
-
-        // Terminos
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+        const SizedBox(width: 12),
+        Expanded(
           child: Text(
-            _trialEnabled
-                ? 'Al activar la prueba gratis, se te cobrara \$14.99/mes despues de 3 dias. Puedes cancelar en cualquier momento.'
-                : 'La suscripcion se renueva automaticamente. Puedes cancelar en cualquier momento.',
+            text,
             style: const TextStyle(
-              fontSize: 10,
-              color: AppTheme.textTertiary,
+              fontSize: 15,
+              color: AppTheme.textPrimary,
             ),
-            textAlign: TextAlign.center,
           ),
         ),
-
-        const SizedBox(height: 16),
       ],
-      ),
     );
   }
 
-  Widget _buildMockPlans(BuildContext context) {
-    return SingleChildScrollView(
-      child: Column(
-      children: [
-        // Plan mensual mock con toggle
-        _MockMonthlyPlanCard(
-          trialEnabled: _trialEnabled,
-          onTrialToggled: (value) => setState(() => _trialEnabled = value),
+  Widget _buildTrialToggle() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceDark.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppTheme.textPrimary.withOpacity(0.12),
         ),
-
-        const SizedBox(height: 12),
-
-        // Plan anual mock
-        _MockAnnualPlanCard(),
-
-        const SizedBox(height: 24),
-
-        // Restaurar
-        TextButton(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Compras solo disponibles en iOS/Android'),
-                backgroundColor: AppTheme.warningColor,
-              ),
-            );
-          },
-          child: const Text(
-            'Restaurar compras',
-            style: TextStyle(color: AppTheme.textTertiary, fontSize: 13),
-          ),
-        ),
-
-        const SizedBox(height: 4),
-
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            _trialEnabled
-                ? 'Al activar la prueba gratis, se te cobrara \$14.99/mes despues de 3 dias.'
-                : 'La suscripcion se renueva automaticamente.',
-            style: const TextStyle(fontSize: 10, color: AppTheme.textTertiary),
-            textAlign: TextAlign.center,
-          ),
-        ),
-
-        const SizedBox(height: 16),
-      ],
       ),
-    );
-  }
-
-  Widget _buildErrorState() {
-    return Expanded(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Row(
         children: [
-          Icon(Icons.cloud_off, size: 40, color: AppTheme.textTertiary),
-          const SizedBox(height: 12),
-          const Text(
-            'No se pudieron cargar los planes',
-            style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+          Expanded(
+            child: Text(
+              'Quiero probar la aplicacion gratis',
+              style: TextStyle(
+                fontSize: 15,
+                color: _trialEnabled ? AppTheme.textPrimary : AppTheme.textSecondary,
+              ),
+            ),
           ),
-          const SizedBox(height: 8),
-          TextButton(
-            onPressed: () => ref.read(subscriptionProvider.notifier).refresh(),
-            child: const Text('Reintentar'),
+          Transform.scale(
+            scale: 0.85,
+            child: Switch(
+              value: _trialEnabled,
+              onChanged: (value) => setState(() => _trialEnabled = value),
+              activeColor: Colors.white,
+              activeTrackColor: AppTheme.primaryColor,
+              inactiveThumbColor: Colors.white.withOpacity(0.7),
+              inactiveTrackColor: AppTheme.textPrimary.withOpacity(0.12),
+            ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildMonthlyCard(String price) {
+    final isSelected = _trialEnabled;
+
+    return GestureDetector(
+      onTap: () => setState(() => _trialEnabled = true),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceDark.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected
+                ? AppTheme.primaryColor.withOpacity(0.9)
+                : AppTheme.textPrimary.withOpacity(0.12),
+            width: isSelected ? 2.5 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Prueba gratuita de 3 dias',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Despues, $price cada mes. Sin cobros ahora',
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppTheme.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnnualCard(String price) {
+    final isSelected = !_trialEnabled;
+
+    return GestureDetector(
+      onTap: () => setState(() => _trialEnabled = false),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceDark.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isSelected
+                ? AppTheme.primaryColor.withOpacity(0.9)
+                : AppTheme.textPrimary.withOpacity(0.12),
+            width: isSelected ? 2.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Acceso Anualmente',
+                    style: TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'pagaras $price anualmente',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppTheme.errorColor,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: const Text(
+                'AHORRA 78%',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _handleCTA(Package? monthlyPackage, Package? annualPackage) {
+    if (_trialEnabled && monthlyPackage != null) {
+      _handlePurchase(monthlyPackage);
+    } else if (!_trialEnabled && annualPackage != null) {
+      _handlePurchase(annualPackage);
+    }
+    // Si es mock data (packages null), no hace nada
   }
 
   Future<void> _handlePurchase(Package package) async {
@@ -366,399 +501,5 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         ),
       );
     }
-  }
-}
-
-/// Card del plan mensual con toggle de trial
-class _MonthlyPlanCard extends StatelessWidget {
-  final Package package;
-  final bool trialEnabled;
-  final ValueChanged<bool> onTrialToggled;
-  final bool isPurchasing;
-  final VoidCallback onTap;
-
-  const _MonthlyPlanCard({
-    required this.package,
-    required this.trialEnabled,
-    required this.onTrialToggled,
-    required this.isPurchasing,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassContainer.selection(
-      isSelected: trialEnabled,
-      padding: const EdgeInsets.all(16),
-      onTap: isPurchasing ? null : onTap,
-      child: Column(
-        children: [
-          // Toggle de trial
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Plan Mensual',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      package.storeProduct.priceString + '/mes',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Toggle
-              Transform.scale(
-                scale: 0.85,
-                child: Switch(
-                  value: trialEnabled,
-                  onChanged: onTrialToggled,
-                  activeColor: AppTheme.primaryColor,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 8),
-
-          // Texto del trial
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            decoration: BoxDecoration(
-              color: trialEnabled
-                  ? AppTheme.primaryColor.withOpacity(0.1)
-                  : AppTheme.surfaceLight.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              trialEnabled
-                  ? '3 dias gratis, luego ${package.storeProduct.priceString}/mes'
-                  : 'Sin prueba gratis',
-              style: TextStyle(
-                fontSize: 13,
-                color: trialEnabled ? AppTheme.primaryColor : AppTheme.textTertiary,
-                fontWeight: trialEnabled ? FontWeight.w500 : FontWeight.w400,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Boton
-          SizedBox(
-            width: double.infinity,
-            child: isPurchasing
-                ? const Center(
-                    child: SizedBox(
-                      width: 22,
-                      height: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  )
-                : Container(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                    decoration: BoxDecoration(
-                      gradient: trialEnabled ? AppTheme.goldGradient : null,
-                      color: trialEnabled ? null : AppTheme.surfaceLight,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      trialEnabled ? 'Comenzar prueba gratis' : 'Suscribirse',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: trialEnabled
-                            ? AppTheme.backgroundDark
-                            : AppTheme.textPrimary,
-                      ),
-                    ),
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Card del plan anual (sin trial)
-class _AnnualPlanCard extends StatelessWidget {
-  final Package package;
-  final bool isPurchasing;
-  final VoidCallback onTap;
-
-  const _AnnualPlanCard({
-    required this.package,
-    required this.isPurchasing,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassContainer(
-      padding: const EdgeInsets.all(16),
-      onTap: isPurchasing ? null : onTap,
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Text(
-                      'Plan Anual',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppTheme.successColor.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        'Ahorra 50%',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.successColor,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  package.storeProduct.priceString + '/ano',
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AppTheme.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          isPurchasing
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: AppTheme.surfaceLight,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Text(
-                    'Elegir',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.textPrimary,
-                    ),
-                  ),
-                ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Mock mensual para web
-class _MockMonthlyPlanCard extends StatelessWidget {
-  final bool trialEnabled;
-  final ValueChanged<bool> onTrialToggled;
-
-  const _MockMonthlyPlanCard({
-    required this.trialEnabled,
-    required this.onTrialToggled,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GlassContainer.selection(
-      isSelected: trialEnabled,
-      padding: const EdgeInsets.all(16),
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Compras solo disponibles en iOS/Android'),
-            backgroundColor: AppTheme.warningColor,
-          ),
-        );
-      },
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Plan Mensual',
-                      style: TextStyle(
-                        fontSize: 17,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    SizedBox(height: 2),
-                    Text(
-                      '\$14.99/mes',
-                      style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
-                    ),
-                  ],
-                ),
-              ),
-              Transform.scale(
-                scale: 0.85,
-                child: Switch(
-                  value: trialEnabled,
-                  onChanged: onTrialToggled,
-                  activeColor: AppTheme.primaryColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            decoration: BoxDecoration(
-              color: trialEnabled
-                  ? AppTheme.primaryColor.withOpacity(0.1)
-                  : AppTheme.surfaceLight.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              trialEnabled ? '3 dias gratis, luego \$14.99/mes' : 'Sin prueba gratis',
-              style: TextStyle(
-                fontSize: 13,
-                color: trialEnabled ? AppTheme.primaryColor : AppTheme.textTertiary,
-                fontWeight: trialEnabled ? FontWeight.w500 : FontWeight.w400,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              gradient: trialEnabled ? AppTheme.goldGradient : null,
-              color: trialEnabled ? null : AppTheme.surfaceLight,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              trialEnabled ? 'Comenzar prueba gratis' : 'Suscribirse',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: trialEnabled ? AppTheme.backgroundDark : AppTheme.textPrimary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Mock anual para web
-class _MockAnnualPlanCard extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return GlassContainer(
-      padding: const EdgeInsets.all(16),
-      onTap: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Compras solo disponibles en iOS/Android'),
-            backgroundColor: AppTheme.warningColor,
-          ),
-        );
-      },
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Text(
-                      'Plan Anual',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppTheme.successColor.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        'Ahorra 50%',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.successColor,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 2),
-                const Text(
-                  '\$39.99/ano',
-                  style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppTheme.surfaceLight,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Text(
-              'Elegir',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

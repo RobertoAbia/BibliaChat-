@@ -2047,6 +2047,30 @@ BibliaChat/
   - **Archivo modificado:**
     - `lib/features/subscription/presentation/screens/paywall_screen.dart` - Mock data universal + eliminar banner web
 
+- [x] Feature: Rediseño completo Paywall estilo Bible Chat
+  - **Objetivo:** Paywall visualmente idéntica al competidor Bible Chat, adaptada a nuestra paleta de colores
+  - **Layout (de arriba a abajo):**
+    - Spinner countdown 3s → crossfade a botón X (TweenAnimationBuilder con CircularProgressIndicator determinado)
+    - Logo app centrado (splash_logo.png 80x80, sin opacity)
+    - Título: "No pierdas ni un solo momento de fe"
+    - 3 features con checks dorados: Chat ilimitado, Planes de estudio, Reflexiones diarios
+    - Toggle trial (siempre visible): "Quiero probar la aplicacion gratis"
+    - Card mensual: "Prueba gratuita de 3 dias" (siempre muestra trial)
+    - Card anual: "Acceso Anualmente" + badge rojo "AHORRA 78%"
+    - Texto legal fijo: "Cancela en cualquier momento, sin compromiso."
+    - CTA dorado (goldGradient): "Pruebalo gratis" (toggle ON) / "Continuar" (toggle OFF)
+    - Footer: "Terminos y condiciones · Politica de privacidad · Restaurar"
+  - **Toggle behavior:**
+    - `_trialEnabled = true` → mensual con trial seleccionado
+    - `_trialEnabled = false` → anual seleccionado
+    - Tap en card también cambia selección
+  - **Spinner countdown:** `_canClose = false` durante 3s, TweenAnimationBuilder llena círculo de 0→1, AnimatedSwitcher crossfade a X
+  - **Bordes:** Seleccionado = dorado (0.9 opacity, 2.5px) / No seleccionado = blanco sutil (0.12 opacity, 1px)
+  - **Switch:** Bolita blanca, track dorado (ON) / track gris (OFF)
+  - **Fix crash navegación legal:** `Navigator.of(context).push(MaterialPageRoute(...))` en vez de `context.push()` (paywall fuera del ShellRoute → duplicate page keys con GoRouter)
+  - **Archivo modificado:**
+    - `lib/features/subscription/presentation/screens/paywall_screen.dart` - Reescritura completa
+
 ### Configuración Android Build (actualizado)
 - **AGP:** 8.7.0 (Android Gradle Plugin)
 - **Kotlin:** 2.1.0 (actualizado para compatibilidad con Firebase)
@@ -2146,6 +2170,7 @@ BibliaChat/
 - [x] Fix: RLS violation al guardar token FCM (device reuse) - COMPLETADO
 - [x] Feature: Icono personalizado en notificaciones Android - COMPLETADO
 - [x] Fix: Paywall muestra mock data cuando RevenueCat no disponible - COMPLETADO
+- [x] Feature: Rediseño completo Paywall estilo Bible Chat - COMPLETADO
 - [ ] T-0403: Purchase flow (requiere build iOS/Android)
 - [ ] RevenueCat Android (pospuesto - requiere subir APK a Play Console primero)
 - [ ] **Feature: Widget versículo en Lock Screen** (iOS) + Home Screen (Android) - PLANIFICADO
@@ -2726,3 +2751,9 @@ cat supabase/migrations/liturgical_data/liturgical_readings_2027.sql
     2. Inserta nueva fila con el usuario actual
   - Flutter llama `supabase.rpc('register_device_token', params: {...})` en vez de `.upsert()`
   - Este patrón aplica a cualquier tabla donde un recurso físico (dispositivo, token) puede cambiar de dueño
+- **Navegación desde rutas fuera del ShellRoute (GoRouter duplicate page keys):**
+  - Rutas como `/paywall` que están fuera del ShellRoute NO pueden usar `context.push()` para navegar a rutas dentro del ShellRoute (ej: `/settings/terms-conditions`)
+  - **Error:** `!keyReservation.contains(key)` — GoRouter intenta crear páginas duplicadas
+  - **Solución:** Usar `Navigator.of(context).push(MaterialPageRoute(builder: (_) => Screen()))` para navegación directa sin GoRouter
+  - Esto bypasea GoRouter completamente, pero es seguro para pantallas standalone (legales, etc.)
+  - El botón atrás nativo funciona correctamente con `Navigator.pop()`
