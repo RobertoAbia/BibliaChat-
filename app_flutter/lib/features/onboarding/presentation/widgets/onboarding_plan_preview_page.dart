@@ -146,34 +146,51 @@ class OnboardingPlanPreviewPage extends StatelessWidget {
         ),
 
         // Bottom button
-        Container(
-          width: double.infinity,
+        Padding(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
-          child: ElevatedButton(
-            onPressed: onStart,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: AppTheme.textOnPrimary,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              elevation: 8,
-              shadowColor: AppTheme.primaryColor.withOpacity(0.4),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: const [
-                Text(
-                  'Comenzar mi viaje',
-                  style: TextStyle(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w600,
+          child: SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: AppTheme.goldGradient,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withOpacity(0.3),
+                    blurRadius: 12,
+                    spreadRadius: 0,
                   ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: onStart,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                  minimumSize: Size.zero,
+                  padding: EdgeInsets.zero,
                 ),
-                SizedBox(width: 8),
-                Icon(Icons.arrow_forward, size: 20),
-              ],
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Comenzar mi viaje',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.backgroundDark,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Icon(Icons.chevron_right, size: 22, color: AppTheme.backgroundDark),
+                  ],
+                ),
+              ),
             ),
           ),
         ),

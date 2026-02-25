@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
@@ -23,7 +21,6 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
     with TickerProviderStateMixin {
   late AnimationController _controller;
   late AnimationController _pulseController;
-  late AnimationController _shimmerController;
   late Animation<double> _fadeIn;
   late Animation<double> _slideUp;
   late Animation<double> _scale;
@@ -39,11 +36,6 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
 
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 2000),
-      vsync: this,
-    );
-
-    _shimmerController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
       vsync: this,
     );
 
@@ -77,14 +69,12 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
 
     _controller.forward();
     _pulseController.repeat(reverse: true);
-    _shimmerController.repeat();
   }
 
   @override
   void dispose() {
     _controller.dispose();
     _pulseController.dispose();
-    _shimmerController.dispose();
     super.dispose();
   }
 
@@ -201,39 +191,85 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
                       ),
 
                       SizedBox(height: MediaQuery.of(context).size.height * 0.04),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
-                      // CTA Button with shimmer
-                      Transform.translate(
-                        offset: Offset(0, _slideUp.value * 1.6),
-                        child: Opacity(
-                          opacity: _fadeIn.value,
-                          child: Column(
-                            children: [
-                              _ShimmerButton(
-                                onPressed: widget.onGetStarted,
-                                controller: _shimmerController,
+            // CTA Button pinned at bottom
+            Transform.translate(
+              offset: Offset(0, _slideUp.value * 1.6),
+              child: Opacity(
+                opacity: _fadeIn.value,
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.goldGradient,
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryColor.withOpacity(0.3),
+                                blurRadius: 12,
+                                spreadRadius: 0,
                               ),
-
-                              const SizedBox(height: 8),
-
-                              // Ya tengo cuenta
-                              if (widget.onLogin != null)
-                                TextButton(
-                                  onPressed: widget.onLogin,
-                                  child: Text(
-                                    '¿Ya tienes cuenta? Inicia sesión',
-                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                          color: AppTheme.primaryColor,
-                                          fontWeight: FontWeight.w600,
-                                        ),
+                            ],
+                          ),
+                          child: ElevatedButton(
+                            onPressed: widget.onGetStarted,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              elevation: 0,
+                              minimumSize: Size.zero,
+                              padding: EdgeInsets.zero,
+                            ),
+                            child: const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Comenzar mi viaje',
+                                  style: TextStyle(
+                                    fontSize: 17,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.backgroundDark,
                                   ),
                                 ),
-                            ],
+                                SizedBox(width: 8),
+                                Icon(Icons.chevron_right, size: 22, color: AppTheme.backgroundDark),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+
+                    const SizedBox(height: 8),
+
+                    // Ya tengo cuenta
+                    if (widget.onLogin != null)
+                      TextButton(
+                        onPressed: widget.onLogin,
+                        child: Text(
+                          '¿Ya tienes cuenta? Inicia sesión',
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                color: AppTheme.primaryColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+
+                    const SizedBox(height: 16),
+                  ],
                 ),
               ),
             ),
@@ -382,49 +418,3 @@ class _FeatureRowState extends State<_FeatureRow>
   }
 }
 
-class _ShimmerButton extends StatelessWidget {
-  final VoidCallback onPressed;
-  final AnimationController controller;
-
-  const _ShimmerButton({
-    required this.onPressed,
-    required this.controller,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ElevatedButton(
-          onPressed: onPressed,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryColor,
-            foregroundColor: AppTheme.textOnPrimary,
-            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-            minimumSize: Size.zero,
-            elevation: 8,
-            shadowColor: AppTheme.primaryColor.withOpacity(0.4),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: const [
-              Text(
-                'Comenzar mi viaje',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              SizedBox(width: 8),
-              Icon(Icons.arrow_forward, size: 22),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}

@@ -28,6 +28,7 @@ class RouteConstants {
   static const String planDay = '/study/day/:userPlanId';
 
   // Subscription
+  static const String prePaywall = '/pre-paywall';
   static const String paywall = '/paywall';
 
   // Fullscreen overlays (inside ShellRoute but with hidden bottom nav)

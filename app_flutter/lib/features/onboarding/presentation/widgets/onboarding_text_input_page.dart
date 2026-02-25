@@ -98,32 +98,49 @@ class _OnboardingTextInputPageState extends State<OnboardingTextInputPage> {
           const Spacer(),
 
           // Continue button
-          Center(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ElevatedButton(
-                  onPressed: widget.onNext,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppTheme.primaryColor,
-                    foregroundColor: AppTheme.textOnPrimary,
-                    padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                    minimumSize: Size.zero,
-                    elevation: 8,
-                    shadowColor: AppTheme.primaryColor.withOpacity(0.4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+          SizedBox(
+            width: double.infinity,
+            height: 56,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: AppTheme.goldGradient,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryColor.withOpacity(0.3),
+                    blurRadius: 12,
+                    spreadRadius: 0,
                   ),
-                  child: const Text(
-                    'Continuar',
-                    style: TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w600,
-                    ),
+                ],
+              ),
+              child: ElevatedButton(
+                onPressed: widget.onNext,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.transparent,
+                  shadowColor: Colors.transparent,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
                   ),
+                  elevation: 0,
+                  minimumSize: Size.zero,
+                  padding: EdgeInsets.zero,
                 ),
-              ],
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Continuar',
+                      style: TextStyle(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.backgroundDark,
+                      ),
+                    ),
+                    SizedBox(width: 8),
+                    Icon(Icons.chevron_right, size: 22, color: AppTheme.backgroundDark),
+                  ],
+                ),
+              ),
             ),
           ),
 

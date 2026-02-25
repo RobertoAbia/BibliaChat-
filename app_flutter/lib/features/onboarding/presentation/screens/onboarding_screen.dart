@@ -93,8 +93,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           }
         }
       }
-      // Mostrar paywall después del onboarding
-      context.go(RouteConstants.paywall);
+      // Mostrar pantallas intro antes del paywall
+      context.go(RouteConstants.prePaywall);
     } else if (mounted) {
       // Mostrar error
       final state = ref.read(onboardingProvider);

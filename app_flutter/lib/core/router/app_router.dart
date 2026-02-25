@@ -26,6 +26,7 @@ import '../../features/study/presentation/screens/plan_day_screen.dart';
 import '../../features/study/presentation/screens/plan_detail_screen.dart';
 import '../../features/study/presentation/screens/study_screen.dart';
 import '../../features/subscription/presentation/screens/paywall_screen.dart';
+import '../../features/subscription/presentation/screens/pre_paywall_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -70,6 +71,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RouteConstants.resetPassword,
         name: 'resetPassword',
         builder: (context, state) => const ResetPasswordScreen(),
+      ),
+
+      // Pre-paywall intro (sin bottom navigation)
+      GoRoute(
+        path: RouteConstants.prePaywall,
+        name: 'prePaywall',
+        builder: (context, state) => const PrePaywallScreen(),
       ),
 
       // Paywall (sin bottom navigation)

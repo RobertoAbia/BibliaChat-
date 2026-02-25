@@ -171,59 +171,60 @@ class _OnboardingCountryPageState extends State<OnboardingCountryPage> {
             ),
           ),
 
-          // Fixed bottom button with gradient fade
-          Center(
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(0, 16, 0, 24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    AppTheme.backgroundDark.withOpacity(0),
-                    AppTheme.backgroundDark,
-                  ],
-                ),
-              ),
-              child: SafeArea(
-                top: false,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ElevatedButton(
-                    onPressed: _selectedCode != null ? widget.onNext : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _selectedCode != null ? AppTheme.primaryColor : AppTheme.surfaceDark,
-                      foregroundColor: _selectedCode != null ? AppTheme.textOnPrimary : AppTheme.textTertiary,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                      minimumSize: Size.zero,
-                      elevation: _selectedCode != null ? 8 : 0,
-                      shadowColor: AppTheme.primaryColor.withOpacity(0.4),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'Continuar',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                          ),
+          // Fixed bottom button
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 12, 0, 24),
+            child: SafeArea(
+              top: false,
+              child: Opacity(
+                opacity: _selectedCode != null ? 1.0 : 0.4,
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.goldGradient,
+                      borderRadius: BorderRadius.circular(14),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withOpacity(0.3),
+                          blurRadius: 12,
+                          spreadRadius: 0,
                         ),
-                        if (_selectedCode != null) ...[
-                          const SizedBox(width: 8),
-                          const Icon(Icons.arrow_forward, size: 20),
-                        ],
                       ],
                     ),
+                    child: ElevatedButton(
+                      onPressed: _selectedCode != null ? widget.onNext : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        elevation: 0,
+                        minimumSize: Size.zero,
+                        padding: EdgeInsets.zero,
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'Continuar',
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.backgroundDark,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Icon(Icons.chevron_right, size: 22, color: AppTheme.backgroundDark),
+                        ],
+                      ),
+                    ),
                   ),
-                ],
+                ),
               ),
             ),
-          ),
           ),
         ],
       ),

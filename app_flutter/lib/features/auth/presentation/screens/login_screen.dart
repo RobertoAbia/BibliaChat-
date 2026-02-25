@@ -52,159 +52,157 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           child: GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
             behavior: HitTestBehavior.opaque,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Back button
-                    IconButton(
-                      onPressed: () => context.pop(),
-                      icon: const Icon(
-                        Icons.arrow_back,
-                        color: AppTheme.textPrimary,
-                      ),
-                      style: IconButton.styleFrom(
-                        backgroundColor: AppTheme.surfaceDark.withOpacity(0.5),
-                        padding: const EdgeInsets.all(12),
-                      ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight - 48, // 24 padding top + 24 bottom
                     ),
-
-                    const SizedBox(height: 40),
-
-                    // Icono
-                    Center(child: _buildIcon()),
-
-                    const SizedBox(height: 32),
-
-                    // Título
-                    Center(
-                      child: Text(
-                        'Bienvenido de vuelta',
-                        style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                              color: AppTheme.textPrimary,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Subtítulo
-                    Center(
-                      child: Text(
-                        'Inicia sesión para recuperar tus conversaciones y progreso',
-                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: AppTheme.textSecondary,
-                            ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-
-                    const SizedBox(height: 48),
-
-                    // Campo Email
-                    _buildEmailField(),
-
-                    const SizedBox(height: 20),
-
-                    // Campo Password
-                    _buildPasswordField(),
-
-                    const SizedBox(height: 12),
-
-                    // Olvidé contraseña
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: _onForgotPassword,
-                        child: const Text(
-                          '¿Olvidaste tu contraseña?',
-                          style: TextStyle(
-                            color: AppTheme.primaryColor,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // Mensaje de error
-                    if (authState.errorMessage != null)
-                      _buildErrorMessage(authState.errorMessage!),
-
-                    const SizedBox(height: 24),
-
-                    // Botón Login
-                    _buildLoginButton(authState.isLoading),
-
-                    const SizedBox(height: 32),
-
-                    // Divider
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Divider(
-                            color: AppTheme.surfaceLight.withOpacity(0.3),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            'o',
-                            style: TextStyle(
-                              color: AppTheme.textTertiary,
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Back button (alineado a la izquierda)
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: IconButton(
+                              onPressed: () => context.pop(),
+                              icon: const Icon(
+                                Icons.arrow_back,
+                                color: AppTheme.textPrimary,
+                              ),
+                              style: IconButton.styleFrom(
+                                backgroundColor: AppTheme.surfaceDark.withOpacity(0.5),
+                                padding: const EdgeInsets.all(12),
+                              ),
                             ),
                           ),
-                        ),
-                        Expanded(
-                          child: Divider(
-                            color: AppTheme.surfaceLight.withOpacity(0.3),
+
+                          // Contenido central
+                          Column(
+                            children: [
+                              const SizedBox(height: 8),
+
+                              // Logo
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(20),
+                                child: Image.asset(
+                                  'assets/images/splash_logo.png',
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+
+                              const SizedBox(height: 20),
+
+                              // Título
+                              Text(
+                                'Bienvenido de vuelta',
+                                style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                                      color: AppTheme.textPrimary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+
+                              const SizedBox(height: 8),
+
+                              // Subtítulo
+                              Text(
+                                'Inicia sesión para recuperar tus\nconversaciones y progreso',
+                                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      color: AppTheme.textSecondary,
+                                    ),
+                                textAlign: TextAlign.center,
+                              ),
+
+                              const SizedBox(height: 28),
+
+                              // Campo Email
+                              _buildEmailField(),
+
+                              const SizedBox(height: 16),
+
+                              // Campo Password
+                              _buildPasswordField(),
+
+                              const SizedBox(height: 4),
+
+                              // Olvidé contraseña
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: _onForgotPassword,
+                                  child: const Text(
+                                    '¿Olvidaste tu contraseña?',
+                                    style: TextStyle(
+                                      color: AppTheme.primaryColor,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              // Mensaje de error
+                              if (authState.errorMessage != null)
+                                _buildErrorMessage(authState.errorMessage!),
+                            ],
                           ),
-                        ),
-                      ],
+
+                          // Botones abajo
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 40),
+                            child: Column(
+                              children: [
+                                // Botón Login
+                                _buildLoginButton(authState.isLoading),
+
+                                const SizedBox(height: 20),
+
+                                // Divider
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Divider(
+                                        color: AppTheme.surfaceLight.withOpacity(0.3),
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                                      child: Text(
+                                        'o',
+                                        style: TextStyle(
+                                          color: AppTheme.textTertiary,
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Divider(
+                                        color: AppTheme.surfaceLight.withOpacity(0.3),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+
+                                const SizedBox(height: 20),
+
+                                // Botón Empezar de nuevo
+                                _buildStartFreshButton(),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-
-                    const SizedBox(height: 32),
-
-                    // Botón Empezar de nuevo
-                    _buildStartFreshButton(),
-                  ],
-                ),
-              ),
+                  ),
+                );
+              },
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildIcon() {
-    return Container(
-      width: 100,
-      height: 100,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppTheme.surfaceDark,
-        border: Border.all(
-          color: AppTheme.primaryColor.withOpacity(0.3),
-          width: 2,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryColor.withOpacity(0.2),
-            blurRadius: 30,
-            spreadRadius: 5,
-          ),
-        ],
-      ),
-      child: const Icon(
-        Icons.person_outline,
-        size: 50,
-        color: AppTheme.primaryColor,
       ),
     );
   }
@@ -360,7 +358,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           ),
         ),
         child: const Text(
-          'Empezar de nuevo',
+          'Crear cuenta',
           style: TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.w500,
