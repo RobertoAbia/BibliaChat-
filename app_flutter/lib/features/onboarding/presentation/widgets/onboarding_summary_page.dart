@@ -351,46 +351,27 @@ class OnboardingSummaryPage extends StatelessWidget {
   }
 
   Widget _buildStatCard(BuildContext context, _ResearchStat stat) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.primaryColor.withOpacity(0.10),
-            AppTheme.surfaceDark,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppTheme.primaryColor.withOpacity(0.15),
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(stat.icon, color: AppTheme.primaryColor, size: 22),
-          const SizedBox(height: 10),
-          Text(
-            stat.value,
-            style: const TextStyle(
-              color: AppTheme.primaryColor,
-              fontWeight: FontWeight.w700,
-              fontSize: 28,
-            ),
+    return Column(
+      children: [
+        Text(
+          stat.value,
+          style: const TextStyle(
+            color: AppTheme.primaryColor,
+            fontWeight: FontWeight.w700,
+            fontSize: 28,
           ),
-          const SizedBox(height: 6),
-          Text(
-            stat.label,
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: AppTheme.textSecondary,
-                  height: 1.3,
-                ),
-            textAlign: TextAlign.center,
-            maxLines: 3,
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          stat.label,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppTheme.textSecondary,
+                height: 1.3,
+              ),
+          textAlign: TextAlign.center,
+          maxLines: 3,
+        ),
+      ],
     );
   }
 
@@ -534,66 +515,56 @@ class OnboardingSummaryPage extends StatelessWidget {
       case 'difficult_moment':
         return const [
           _ResearchStat(
-            icon: Icons.favorite_outline,
             value: '83%',
-            label: 'encuentran consuelo en su fe durante desafíos',
+            label: 'de las personas encuentran consuelo en su fe en momentos difíciles',
           ),
           _ResearchStat(
-            icon: Icons.thumb_up_outlined,
             value: '89%',
-            label: 'de satisfacción en usuarios de apps de oración',
+            label: 'de los usuarios de apps de oración se sienten más acompañados',
           ),
         ];
       case 'spiritual_growth':
         return const [
           _ResearchStat(
-            icon: Icons.spa_outlined,
             value: '69%',
-            label: 'de lectores habituales reportan mayor paz interior',
+            label: 'de las personas sienten más paz interior al leer la Biblia a diario',
           ),
           _ResearchStat(
-            icon: Icons.thumb_up_outlined,
             value: '89%',
-            label: 'de satisfacción en usuarios de apps de oración',
+            label: 'de los usuarios de apps de oración se sienten más acompañados',
           ),
         ];
       case 'feeling_distant':
         return const [
           _ResearchStat(
-            icon: Icons.replay_outlined,
             value: '88%',
-            label: 'mantienen su práctica espiritual tras 4 semanas',
+            label: 'de las personas siguen con su práctica espiritual después de un mes',
           ),
           _ResearchStat(
-            icon: Icons.spa_outlined,
             value: '19%',
-            label: 'más bienestar en lectores habituales de la Biblia',
+            label: 'más de bienestar entre quienes leen la Biblia cada día',
           ),
         ];
       case 'understand_bible':
         return const [
           _ResearchStat(
-            icon: Icons.public,
             value: '+1,000M',
-            label: 'de descargas de apps bíblicas en el mundo',
+            label: 'de personas ya usan apps bíblicas en todo el mundo',
           ),
           _ResearchStat(
-            icon: Icons.spa_outlined,
             value: '19%',
-            label: 'más bienestar en lectores habituales de la Biblia',
+            label: 'más de bienestar entre quienes leen la Biblia cada día',
           ),
         ];
       default:
         return const [
           _ResearchStat(
-            icon: Icons.spa_outlined,
             value: '19%',
-            label: 'más bienestar en lectores habituales de la Biblia',
+            label: 'más de bienestar entre quienes leen la Biblia cada día',
           ),
           _ResearchStat(
-            icon: Icons.thumb_up_outlined,
             value: '89%',
-            label: 'de satisfacción en usuarios de apps de oración',
+            label: 'de los usuarios de apps de oración se sienten más acompañados',
           ),
         ];
     }
@@ -616,12 +587,10 @@ class OnboardingSummaryPage extends StatelessWidget {
 }
 
 class _ResearchStat {
-  final IconData icon;
   final String value;
   final String label;
 
   const _ResearchStat({
-    required this.icon,
     required this.value,
     required this.label,
   });

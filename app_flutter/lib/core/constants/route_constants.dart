@@ -30,6 +30,7 @@ class RouteConstants {
   // Subscription
   static const String prePaywall = '/pre-paywall';
   static const String paywall = '/paywall';
+  static const String purchaseSuccess = '/purchase-success';
 
   // Fullscreen overlays (inside ShellRoute but with hidden bottom nav)
   static const String stories = '/home/stories';

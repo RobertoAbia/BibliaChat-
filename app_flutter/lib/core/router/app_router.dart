@@ -27,6 +27,7 @@ import '../../features/study/presentation/screens/plan_detail_screen.dart';
 import '../../features/study/presentation/screens/study_screen.dart';
 import '../../features/subscription/presentation/screens/paywall_screen.dart';
 import '../../features/subscription/presentation/screens/pre_paywall_screen.dart';
+import '../../features/subscription/presentation/screens/purchase_success_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -85,6 +86,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: RouteConstants.paywall,
         name: 'paywall',
         builder: (context, state) => const PaywallScreen(),
+      ),
+
+      // Purchase success (sin bottom navigation)
+      GoRoute(
+        path: RouteConstants.purchaseSuccess,
+        name: 'purchaseSuccess',
+        builder: (context, state) => const PurchaseSuccessScreen(),
       ),
 
       // Main App with Bottom Navigation

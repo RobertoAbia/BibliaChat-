@@ -487,19 +487,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Future<void> _handlePurchase(Package package) async {
     final success = await ref.read(subscriptionProvider.notifier).purchasePackage(package);
     if (success && mounted) {
-      context.pop();
+      context.go(RouteConstants.purchaseSuccess);
     }
   }
 
   Future<void> _handleRestore() async {
     final success = await ref.read(subscriptionProvider.notifier).restorePurchases();
     if (success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Compras restauradas'),
-          backgroundColor: AppTheme.successColor,
-        ),
-      );
+      context.go(RouteConstants.purchaseSuccess);
     }
   }
 }
