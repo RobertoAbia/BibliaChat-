@@ -338,13 +338,13 @@ class _NoActivePlanCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppTheme.surfaceDark.withOpacity(0.6),
-                AppTheme.surfaceDark.withOpacity(0.4),
+                Colors.white,
+                AppTheme.surfaceLight,
               ],
             ),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: AppTheme.surfaceLight.withOpacity(0.3),
+              color: const Color(0xFFD0D8E4),
             ),
           ),
           child: Column(
@@ -438,8 +438,8 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppTheme.surfaceDark.withOpacity(0.6),
-                AppTheme.surfaceDark.withOpacity(0.4),
+                Colors.white,
+                AppTheme.surfaceLight,
               ],
             ),
             borderRadius: BorderRadius.circular(20),
@@ -568,7 +568,7 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
                           Container(
                             height: 8,
                             decoration: BoxDecoration(
-                              color: AppTheme.surfaceLight.withOpacity(0.3),
+                              color: const Color(0xFFD0D8E4),
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
@@ -743,10 +743,10 @@ class _StudyPlanTileState extends ConsumerState<_StudyPlanTile>
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceDark.withOpacity(0.4),
+                color: AppTheme.surfaceLight,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                  color: AppTheme.surfaceLight.withOpacity(0.3),
+                  color: const Color(0xFFD0D8E4),
                 ),
               ),
               child: Row(
@@ -868,7 +868,7 @@ class _StudyPlanTileState extends ConsumerState<_StudyPlanTile>
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceLight.withOpacity(0.3),
+                      color: const Color(0xFFD0D8E4),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(

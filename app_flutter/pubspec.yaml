@@ -119,12 +119,12 @@ flutter_launcher_icons:
 # Native Splash Screen Configuration
 # Logo con cruz de madera y burbuja dorada
 flutter_native_splash:
-  color: "#141A2E"
+  color: "#F5F8FC"
   image: assets/images/splash_logo_small.png
 
   # Android 12+ usa icono sin fondo para evitar cuadrado visible
   android_12:
-    color: "#141A2E"
+    color: "#F5F8FC"
     image: assets/images/splash_icon.png
 
   # iOS specific

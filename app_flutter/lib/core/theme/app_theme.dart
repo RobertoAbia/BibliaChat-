@@ -4,36 +4,41 @@ class AppTheme {
   AppTheme._();
 
   // ============================================
-  // BRAND COLORS - Biblia Chat
-  // Paleta: Azul Noche + Dorado
-  // Elegante, premium, espiritual
+  // BRAND COLORS - Biblia Chat (Light Theme)
+  // Paleta: Azul Cielo + Blanco
+  // Limpio, sereno, confiable
   // ============================================
 
-  // Primary Colors - Dorado Divino
-  static const Color primaryColor = Color(0xFFD4AF37); // Dorado principal
-  static const Color primaryLight = Color(0xFFE8C967); // Dorado claro
-  static const Color primaryDark = Color(0xFFB8963A); // Dorado oscuro
+  // Primary Colors - Azul Cielo (del logo)
+  static const Color primaryColor = Color(0xFF3498E5); // Azul principal
+  static const Color primaryLight = Color(0xFF5CB8F5); // Azul claro
+  static const Color primaryDark = Color(0xFF2070C0); // Azul oscuro
 
-  // Background Colors - Azul Noche (más azulado)
-  static const Color backgroundDark = Color(0xFF141A2E); // Fondo principal
-  static const Color backgroundDeep = Color(0xFF0F1424); // Fondo más oscuro
-  static const Color surfaceDark = Color(0xFF1C2240); // Superficies/cards
-  static const Color surfaceLight = Color(0xFF242D4A); // Superficies elevadas
+  // Gold Accent (solo para premium/especial)
+  static const Color goldColor = Color(0xFFD4AF37);
+  static const Color goldLight = Color(0xFFE8C967);
+  static const Color goldDark = Color(0xFFB8963A);
+
+  // Background Colors - Blanco limpio
+  static const Color backgroundDark = Color(0xFFF5F8FC); // Fondo principal
+  static const Color backgroundDeep = Color(0xFFEBF0F7); // Fondo ligeramente más profundo
+  static const Color surfaceDark = Color(0xFFFFFFFF); // Tarjetas/superficies
+  static const Color surfaceLight = Color(0xFFEDF2F8); // Superficies elevadas
 
   // Text Colors
-  static const Color textPrimary = Color(0xFFFAFAFA); // Texto principal (blanco)
-  static const Color textSecondary = Color(0xFFB8B8C8); // Texto secundario
-  static const Color textTertiary = Color(0xFF6B6B80); // Texto terciario
-  static const Color textOnPrimary = Color(0xFF1A1A2E); // Texto sobre dorado
+  static const Color textPrimary = Color(0xFF1A2740); // Texto principal (navy oscuro)
+  static const Color textSecondary = Color(0xFF5A6880); // Texto secundario
+  static const Color textTertiary = Color(0xFF9AA8B8); // Texto terciario
+  static const Color textOnPrimary = Color(0xFFFFFFFF); // Texto sobre azul (blanco)
 
   // Accent Colors
   static const Color accentBlue = Color(0xFF5B9BD5); // Azul acento
   static const Color accentPurple = Color(0xFF9B7ED9); // Púrpura suave
 
   // Semantic Colors
-  static const Color successColor = Color(0xFF4ADE80); // Verde éxito
+  static const Color successColor = Color(0xFF22C55E); // Verde éxito
   static const Color errorColor = Color(0xFFEF4444); // Rojo error
-  static const Color warningColor = Color(0xFFFBBF24); // Amarillo advertencia
+  static const Color warningColor = Color(0xFFF59E0B); // Amarillo advertencia
   static const Color infoColor = Color(0xFF3B82F6); // Azul info
 
   // Gradients
@@ -41,12 +46,44 @@ class AppTheme {
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [
-      Color(0xFF141A2E),
-      Color(0xFF0F1424),
+      Color(0xFFF5F8FC),
+      Color(0xFFEBF0F7),
     ],
   );
 
+  // Gradiente azul para CTAs y botones principales
+  static const LinearGradient blueGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF5CB8F5),
+      Color(0xFF3498E5),
+      Color(0xFF2070C0),
+    ],
+  );
+
+  // goldGradient ahora es azul (usado como CTA principal en toda la app)
   static const LinearGradient goldGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF5CB8F5),
+      Color(0xFF3498E5),
+      Color(0xFF2070C0),
+    ],
+  );
+
+  static const LinearGradient goldButtonGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFF5CB8F5),
+      Color(0xFF3498E5),
+    ],
+  );
+
+  // Gradiente dorado real (solo para premium/paywall)
+  static const LinearGradient premiumGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
@@ -56,21 +93,12 @@ class AppTheme {
     ],
   );
 
-  static const LinearGradient goldButtonGradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [
-      Color(0xFFE8C967),
-      Color(0xFFD4AF37),
-    ],
-  );
-
   static const LinearGradient cardGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF1C2240),
-      Color(0xFF161C35),
+      Color(0xFFFFFFFF),
+      Color(0xFFF5F8FC),
     ],
   );
 
@@ -78,8 +106,8 @@ class AppTheme {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF202540),
-      Color(0xFF1A2035),
+      Color(0xFFFFFFFF),
+      Color(0xFFF8FAFC),
     ],
   );
 
@@ -87,14 +115,15 @@ class AppTheme {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF1C2240),
-      Color(0xFF242D4A),
-      Color(0xFF1C2240),
+      Color(0xFFEDF2F8),
+      Color(0xFFF5F8FC),
+      Color(0xFFEDF2F8),
     ],
   );
 
   // ============================================
-  // GLASSMORPHISM STYLES
+  // GLASSMORPHISM STYLES (Light theme)
+  // Frosted white glass effect
   // ============================================
 
   /// Blur estándar para glass effect
@@ -104,39 +133,39 @@ class AppTheme {
   static const double glassBlurHeavy = 20.0;
 
   /// Opacidad del fondo glass
-  static const double glassOpacity = 0.3;
+  static const double glassOpacity = 0.75;
 
-  /// Color de fondo glass (surfaceDark con opacidad)
-  static Color get glassBackground => surfaceDark.withOpacity(glassOpacity);
+  /// Color de fondo glass (blanco frosted)
+  static Color get glassBackground => Colors.white.withOpacity(glassOpacity);
 
   /// Color de borde glass
-  static Color get glassBorder => surfaceLight.withOpacity(0.2);
+  static Color get glassBorder => const Color(0xFFD0D8E4).withOpacity(0.5);
 
-  /// Color de borde glass dorado
-  static Color get glassBorderGold => primaryColor.withOpacity(0.3);
+  /// Color de borde glass primario (azul)
+  static Color get glassBorderGold => primaryColor.withOpacity(0.4);
 
   /// Sombra para efecto glass
   static List<BoxShadow> get glassShadow => [
         BoxShadow(
-          color: Colors.black.withOpacity(0.2),
-          blurRadius: 20,
+          color: const Color(0xFF1A2740).withOpacity(0.06),
+          blurRadius: 16,
           offset: const Offset(0, 4),
         ),
       ];
 
-  /// Sombra dorada para selección/hover
+  /// Sombra azul para selección/hover
   static List<BoxShadow> get glassGoldShadow => [
         BoxShadow(
-          color: primaryColor.withOpacity(0.2),
+          color: primaryColor.withOpacity(0.15),
           blurRadius: 20,
           spreadRadius: 0,
         ),
       ];
 
-  /// Sombra glow dorada intensa
+  /// Sombra glow azul intensa
   static List<BoxShadow> get goldGlow => [
         BoxShadow(
-          color: primaryColor.withOpacity(0.4),
+          color: primaryColor.withOpacity(0.25),
           blurRadius: 30,
           spreadRadius: 5,
         ),
@@ -149,28 +178,28 @@ class AppTheme {
     bool isSelected = false,
   }) {
     return BoxDecoration(
-      color: glassBackground,
+      color: Colors.white.withOpacity(0.85),
       borderRadius: BorderRadius.circular(borderRadius),
       border: showBorder
           ? Border.all(
-              color: isSelected ? glassBorderGold : glassBorder,
+              color: isSelected ? primaryColor.withOpacity(0.5) : glassBorder,
               width: isSelected ? 1.5 : 1,
             )
           : null,
-      boxShadow: isSelected ? glassGoldShadow : null,
+      boxShadow: isSelected ? glassGoldShadow : glassShadow,
     );
   }
 
   // ============================================
-  // DARK THEME (Principal)
+  // LIGHT THEME (Principal)
   // ============================================
   static ThemeData get darkTheme {
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
       primaryColor: primaryColor,
       scaffoldBackgroundColor: backgroundDark,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: const ColorScheme.light(
         primary: primaryColor,
         secondary: accentBlue,
         tertiary: accentPurple,
@@ -254,7 +283,7 @@ class AppTheme {
       // Input Decoration
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surfaceDark,
+        fillColor: Colors.white,
         hintStyle: const TextStyle(color: textTertiary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -262,7 +291,7 @@ class AppTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: surfaceLight.withOpacity(0.5)),
+          borderSide: BorderSide(color: surfaceLight.withOpacity(0.8)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -277,7 +306,7 @@ class AppTheme {
 
       // Bottom Navigation
       bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        backgroundColor: backgroundDeep,
+        backgroundColor: Colors.white,
         selectedItemColor: primaryColor,
         unselectedItemColor: textTertiary,
         type: BottomNavigationBarType.fixed,
@@ -294,8 +323,9 @@ class AppTheme {
 
       // Navigation Bar (Material 3)
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: backgroundDeep,
-        indicatorColor: primaryColor.withOpacity(0.2),
+        backgroundColor: Colors.white,
+        indicatorColor: primaryColor.withOpacity(0.12),
+        surfaceTintColor: Colors.transparent,
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
             return const TextStyle(
@@ -320,9 +350,9 @@ class AppTheme {
 
       // Chips
       chipTheme: ChipThemeData(
-        backgroundColor: surfaceDark,
-        selectedColor: primaryColor.withOpacity(0.2),
-        disabledColor: surfaceDark,
+        backgroundColor: surfaceLight,
+        selectedColor: primaryColor.withOpacity(0.15),
+        disabledColor: surfaceLight,
         labelStyle: const TextStyle(color: textPrimary),
         secondaryLabelStyle: const TextStyle(color: textPrimary),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -334,12 +364,12 @@ class AppTheme {
       // Progress Indicator
       progressIndicatorTheme: const ProgressIndicatorThemeData(
         color: primaryColor,
-        linearTrackColor: surfaceDark,
+        linearTrackColor: surfaceLight,
       ),
 
       // Divider
       dividerTheme: DividerThemeData(
-        color: surfaceLight.withOpacity(0.3),
+        color: surfaceLight.withOpacity(0.8),
         thickness: 1,
       ),
 
@@ -452,7 +482,7 @@ class AppTheme {
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return backgroundDark;
+            return Colors.white;
           }
           return textTertiary;
         }),

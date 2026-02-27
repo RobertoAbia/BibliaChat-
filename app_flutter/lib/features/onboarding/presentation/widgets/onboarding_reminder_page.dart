@@ -188,12 +188,12 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
                               : null,
                           color: widget.reminderEnabled
                               ? null
-                              : AppTheme.surfaceDark.withOpacity(0.4),
+                              : AppTheme.surfaceLight,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: widget.reminderEnabled
                                 ? AppTheme.primaryColor.withOpacity(0.6)
-                                : AppTheme.surfaceLight.withOpacity(0.3),
+                                : const Color(0xFFD0D8E4),
                             width: widget.reminderEnabled ? 1.5 : 1,
                           ),
                           boxShadow: widget.reminderEnabled
@@ -276,7 +276,7 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
                                   AppTheme.primaryColor.withOpacity(0.3),
                               inactiveThumbColor: AppTheme.textSecondary,
                               inactiveTrackColor:
-                                  AppTheme.surfaceLight.withOpacity(0.3),
+                                  const Color(0xFFD0D8E4),
                             ),
                           ],
                         ),
@@ -301,11 +301,11 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
                                 child: Container(
                                   padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.surfaceDark.withOpacity(0.5),
+                                    color: Colors.white,
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
                                       color:
-                                          AppTheme.surfaceLight.withOpacity(0.3),
+                                          const Color(0xFFD0D8E4),
                                     ),
                                   ),
                                   child: Row(

@@ -79,7 +79,7 @@ class _BibliaChatAppState extends ConsumerState<BibliaChatApp> {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
       darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.dark,
+      themeMode: ThemeMode.light,
       routerConfig: router,
     );
   }

@@ -300,13 +300,13 @@ class _SelectionTileState extends State<_SelectionTile>
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: widget.isSelected
-                      ? AppTheme.primaryColor.withOpacity(0.15)
-                      : AppTheme.surfaceDark.withOpacity(0.4),
+                      ? AppTheme.primaryColor.withOpacity(0.1)
+                      : Colors.white,
                   borderRadius: BorderRadius.circular(18),
                   border: Border.all(
                     color: widget.isSelected
                         ? AppTheme.primaryColor.withOpacity(0.6)
-                        : AppTheme.surfaceLight.withOpacity(0.3),
+                        : const Color(0xFFD0D8E4),
                     width: 1,
                   ),
                 ),
@@ -322,7 +322,7 @@ class _SelectionTileState extends State<_SelectionTile>
                       decoration: BoxDecoration(
                         color: widget.isSelected
                             ? AppTheme.primaryColor
-                            : AppTheme.surfaceLight.withOpacity(0.5),
+                            : AppTheme.surfaceLight,
                         borderRadius: BorderRadius.circular(14),
                         boxShadow: [
                           BoxShadow(
@@ -393,12 +393,12 @@ class _SelectionTileState extends State<_SelectionTile>
                     decoration: BoxDecoration(
                       color: widget.isSelected
                           ? AppTheme.primaryColor
-                          : AppTheme.surfaceLight.withOpacity(0.4),
+                          : AppTheme.surfaceLight,
                       shape: BoxShape.circle,
                       border: Border.all(
                         color: widget.isSelected
                             ? AppTheme.primaryColor
-                            : AppTheme.textTertiary.withOpacity(0.3),
+                            : const Color(0xFFD0D8E4),
                         width: widget.isSelected ? 0 : 2,
                       ),
                       boxShadow: [

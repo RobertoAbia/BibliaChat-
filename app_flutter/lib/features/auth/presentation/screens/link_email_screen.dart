@@ -74,7 +74,7 @@ class _LinkEmailScreenState extends ConsumerState<LinkEmailScreen> {
                       color: AppTheme.textPrimary,
                     ),
                     style: IconButton.styleFrom(
-                      backgroundColor: AppTheme.surfaceDark.withOpacity(0.5),
+                      backgroundColor: Colors.white,
                       padding: const EdgeInsets.all(12),
                     ),
                   ),

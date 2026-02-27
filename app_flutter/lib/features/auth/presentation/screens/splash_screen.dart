@@ -166,7 +166,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   Widget build(BuildContext context) {
     // Mismo color que la splash nativa para transición invisible
     return const Scaffold(
-      backgroundColor: Color(0xFF141A2E),
+      backgroundColor: Color(0xFFF5F8FC),
       body: SizedBox.shrink(),
     );
   }

@@ -332,12 +332,12 @@ class _OptionTileState extends State<_OptionTile>
                     : null,
                 color: widget.isSelected
                     ? null
-                    : AppTheme.surfaceDark.withOpacity(0.4),
+                    : AppTheme.surfaceLight,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: widget.isSelected
                       ? AppTheme.primaryColor.withOpacity(0.6)
-                      : AppTheme.surfaceLight.withOpacity(0.3),
+                      : const Color(0xFFD0D8E4),
                   width: widget.isSelected ? 1.5 : 1,
                 ),
                 boxShadow: widget.isSelected

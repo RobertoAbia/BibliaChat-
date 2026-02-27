@@ -314,7 +314,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             } else if (dayState == _DayState.pastLocked) {
               // Pasado no completado: gris + candado
               circleGradient = null;
-              circleColor = AppTheme.surfaceLight.withOpacity(0.3);
+              circleColor = const Color(0xFFD0D8E4);
               circleBorder = Border.all(
                 color: AppTheme.surfaceLight.withOpacity(0.5),
                 width: 1,
@@ -670,7 +670,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       Expanded(
                         child: Container(
                           height: 1,
-                          color: AppTheme.surfaceLight.withOpacity(0.3),
+                          color: const Color(0xFFD0D8E4),
                         ),
                       ),
                       Padding(
@@ -688,7 +688,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       Expanded(
                         child: Container(
                           height: 1,
-                          color: AppTheme.surfaceLight.withOpacity(0.3),
+                          color: const Color(0xFFD0D8E4),
                         ),
                       ),
                     ],
@@ -834,12 +834,12 @@ class _GospelCardPlaceholder extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 AppTheme.surfaceLight.withOpacity(0.08),
-                AppTheme.surfaceDark.withOpacity(0.3),
+                AppTheme.surfaceLight,
               ],
             ),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: AppTheme.surfaceLight.withOpacity(0.1),
+              color: const Color(0xFFD8DEE8),
             ),
           ),
           child: Row(
@@ -863,7 +863,7 @@ class _GospelCardPlaceholder extends StatelessWidget {
                       width: 100,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: AppTheme.surfaceLight.withOpacity(0.15),
+                        color: const Color(0xFFD8DEE8),
                         borderRadius: BorderRadius.circular(5),
                       ),
                     ),
@@ -872,7 +872,7 @@ class _GospelCardPlaceholder extends StatelessWidget {
                       width: 160,
                       height: 14,
                       decoration: BoxDecoration(
-                        color: AppTheme.surfaceLight.withOpacity(0.1),
+                        color: const Color(0xFFD8DEE8),
                         borderRadius: BorderRadius.circular(7),
                       ),
                     ),
@@ -958,7 +958,7 @@ class _GospelCardCompactState extends State<_GospelCardCompact>
                   end: Alignment.bottomRight,
                   colors: [
                     AppTheme.primaryColor.withOpacity(0.15),
-                    AppTheme.surfaceDark.withOpacity(0.5),
+                    Colors.white,
                   ],
                 ),
                 borderRadius: BorderRadius.circular(20),
@@ -1343,7 +1343,7 @@ class _ContentCardState extends State<_ContentCard>
                   decoration: BoxDecoration(
                     color: widget.isNew
                         ? AppTheme.primaryColor.withOpacity(0.2)
-                        : AppTheme.surfaceLight.withOpacity(0.3),
+                        : const Color(0xFFD0D8E4),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -1387,13 +1387,13 @@ class _GospelErrorCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppTheme.surfaceDark.withOpacity(0.6),
-                AppTheme.surfaceDark.withOpacity(0.4),
+                Colors.white,
+                AppTheme.surfaceLight,
               ],
             ),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: AppTheme.surfaceLight.withOpacity(0.2),
+              color: const Color(0xFFD8DEE8),
             ),
           ),
           child: Column(
@@ -1512,7 +1512,7 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
                     end: Alignment.bottomRight,
                     colors: [
                       AppTheme.primaryColor.withOpacity(0.12),
-                      AppTheme.surfaceDark.withOpacity(0.5),
+                      Colors.white,
                     ],
                   ),
                   borderRadius: BorderRadius.circular(20),
@@ -1617,7 +1617,7 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
                     Container(
                       height: 6,
                       decoration: BoxDecoration(
-                        color: AppTheme.surfaceLight.withOpacity(0.3),
+                        color: const Color(0xFFD0D8E4),
                         borderRadius: BorderRadius.circular(3),
                       ),
                       child: FractionallySizedBox(

@@ -244,10 +244,10 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceDark.withOpacity(0.5),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppTheme.surfaceLight.withOpacity(0.2),
+          color: const Color(0xFFD8DEE8),
         ),
       ),
       child: Column(
