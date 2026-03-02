@@ -982,12 +982,12 @@ class _DashedConnectorPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.25)
+      ..color = const Color(0xFF3498E5).withOpacity(0.25)
       ..strokeWidth = 1.5
       ..style = PaintingStyle.stroke;
 
     final dotPaint = Paint()
-      ..color = Colors.white.withOpacity(0.4)
+      ..color = const Color(0xFF3498E5).withOpacity(0.4)
       ..style = PaintingStyle.fill;
 
     // Start and end points
