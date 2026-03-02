@@ -1363,20 +1363,21 @@ class _SaveButton extends ConsumerWidget {
   }
 
   Future<void> _toggleSave(BuildContext context, WidgetRef ref) async {
+    // Leer estado ANTES del toggle para saber qué acción se hizo
+    final savedIdsBefore = ref.read(savedMessageIdsProvider);
+    final wasSavedBefore = savedIdsBefore.whenOrNull(
+      data: (ids) => ids.contains(messageId),
+    ) ?? false;
+
     final success = await ref
         .read(savedMessageNotifierProvider.notifier)
         .toggleSave(messageId);
 
     if (success && context.mounted) {
-      final savedIdsAsync = ref.read(savedMessageIdsProvider);
-      final wasSaved = savedIdsAsync.whenOrNull(
-        data: (ids) => ids.contains(messageId),
-      ) ?? false;
-
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            wasSaved ? 'Guardado en Mis Reflexiones' : 'Eliminado de Mis Reflexiones',
+            wasSavedBefore ? 'Eliminado de Mis Reflexiones' : 'Guardado en Mis Reflexiones',
             style: const TextStyle(color: Colors.white),
           ),
           backgroundColor: const Color(0xFF1A2740),
