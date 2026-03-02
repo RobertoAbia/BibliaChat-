@@ -263,7 +263,7 @@ class SavedMessagesScreen extends ConsumerWidget {
               ),
             ],
           ),
-          backgroundColor: AppTheme.surfaceDark.withOpacity(0.95),
+          backgroundColor: const Color(0xFF1A2740),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

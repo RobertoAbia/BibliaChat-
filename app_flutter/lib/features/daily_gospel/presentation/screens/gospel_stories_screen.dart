@@ -240,10 +240,14 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundDark,
+      backgroundColor: const Color(0xFF1A1A2E),
       body: Container(
         decoration: const BoxDecoration(
-          gradient: AppTheme.backgroundGradient,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF1A1A2E), Color(0xFF16162A)],
+          ),
         ),
         child: SafeArea(
           child: Column(
@@ -303,7 +307,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
-                  color: AppTheme.textTertiary.withOpacity(0.4),
+                  color: Colors.white.withOpacity(0.3),
                   width: 1,
                 ),
               ),
@@ -313,14 +317,14 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
                     child: TextField(
                       controller: _messageController,
                       focusNode: _messageFocusNode,
-                      cursorColor: AppTheme.textPrimary,
+                      cursorColor: Colors.white,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.textPrimary,
+                            color: Colors.white,
                           ),
                       decoration: InputDecoration(
                         hintText: 'Enviar mensaje',
                         hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textTertiary,
+                              color: Colors.white.withOpacity(0.5),
                             ),
                         border: InputBorder.none,
                         focusedBorder: InputBorder.none,
@@ -363,9 +367,9 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
             // Share button
             GestureDetector(
               onTap: _shareContent,
-              child: Icon(
+              child: const Icon(
                 Icons.ios_share,
-                color: AppTheme.textPrimary,
+                color: Colors.white,
                 size: 26,
               ),
             ),
@@ -491,7 +495,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
                       children: [
                         // Background
                         Container(
-                          color: AppTheme.surfaceLight.withOpacity(0.4),
+                          color: Colors.white.withOpacity(0.3),
                         ),
                         // Progress
                         if (index < _currentPage)
@@ -533,7 +537,9 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 borderRadius: 20,
                 blur: 8,
-                backgroundOpacity: 0.4,
+                backgroundColor: Colors.white.withOpacity(0.15),
+                borderColor: Colors.white.withOpacity(0.2),
+                backgroundOpacity: 0.15,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -549,7 +555,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
                     Text(
                       widget.gospel.reference,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textPrimary,
+                            color: Colors.white,
                             fontWeight: FontWeight.w500,
                           ),
                     ),
@@ -564,11 +570,13 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
                 padding: const EdgeInsets.all(10),
                 borderRadius: 24,
                 blur: 8,
-                backgroundOpacity: 0.4,
+                backgroundColor: Colors.white.withOpacity(0.15),
+                borderColor: Colors.white.withOpacity(0.2),
+                backgroundOpacity: 0.15,
                 onTap: () => context.pop(),
                 child: const Icon(
                   Icons.close_rounded,
-                  color: AppTheme.textPrimary,
+                  color: Colors.white,
                   size: 22,
                 ),
               ),
@@ -687,7 +695,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
                   child: Text(
                     slide.content,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: AppTheme.textPrimary,
+                          color: Colors.white.withOpacity(0.9),
                           height: 1.5,
                           fontSize: 20,
                           fontWeight: FontWeight.w400,

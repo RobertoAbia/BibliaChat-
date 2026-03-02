@@ -517,9 +517,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           SnackBar(
             content: const Text(
               'No hay contenido disponible para este día',
-              style: TextStyle(color: AppTheme.textPrimary),
+              style: TextStyle(color: Colors.white),
             ),
-            backgroundColor: AppTheme.surfaceDark,
+            backgroundColor: const Color(0xFF1A2740),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.all(16),
