@@ -403,7 +403,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           context.go('/chat'); // Siempre va al tab de chats
         }
       },
-      child: Scaffold(
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.opaque,
+        child: Scaffold(
         backgroundColor: AppTheme.backgroundDark,
         body: Container(
         decoration: const BoxDecoration(
@@ -474,6 +477,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           ),
         ),
       ),
+    ),
     ),
     );
   }
@@ -1363,33 +1367,7 @@ class _SaveButton extends ConsumerWidget {
   }
 
   Future<void> _toggleSave(BuildContext context, WidgetRef ref) async {
-    // Leer estado ANTES del toggle para saber qué acción se hizo
-    final savedIdsBefore = ref.read(savedMessageIdsProvider);
-    final wasSavedBefore = savedIdsBefore.whenOrNull(
-      data: (ids) => ids.contains(messageId),
-    ) ?? false;
-
-    final success = await ref
-        .read(savedMessageNotifierProvider.notifier)
-        .toggleSave(messageId);
-
-    if (success && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            wasSavedBefore ? 'Eliminado de Mis Reflexiones' : 'Guardado en Mis Reflexiones',
-            style: const TextStyle(color: Colors.white),
-          ),
-          backgroundColor: const Color(0xFF1A2740),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
+    await ref.read(savedMessageNotifierProvider.notifier).toggleSave(messageId);
   }
 }
 
