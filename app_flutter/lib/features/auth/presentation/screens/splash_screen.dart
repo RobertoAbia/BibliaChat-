@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,34 +24,10 @@ class SplashScreen extends ConsumerStatefulWidget {
 }
 
 class _SplashScreenState extends ConsumerState<SplashScreen> {
-  StreamSubscription<AuthState>? _authSubscription;
-
   @override
   void initState() {
     super.initState();
-    _listenToAuthChanges();
     _checkAuthAndNavigate();
-  }
-
-  @override
-  void dispose() {
-    _authSubscription?.cancel();
-    super.dispose();
-  }
-
-  /// Escuchar cambios de auth para detectar password recovery
-  void _listenToAuthChanges() {
-    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
-      final event = data.event;
-
-      // Detectar password recovery (cuando el usuario hace clic en el enlace del email)
-      if (event == AuthChangeEvent.passwordRecovery) {
-        if (mounted) {
-          FlutterNativeSplash.remove();
-          context.go(RouteConstants.resetPassword);
-        }
-      }
-    });
   }
 
   Future<void> _checkAuthAndNavigate() async {

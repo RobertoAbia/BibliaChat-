@@ -22,6 +22,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
 
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  bool _hasNavigated = false;
 
   @override
   void dispose() {
@@ -36,9 +37,10 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
 
-    // Escuchar éxito para navegar a Login
+    // Escuchar éxito para navegar a Login (una sola vez)
     ref.listen<AuthNotifierState>(authNotifierProvider, (previous, next) {
-      if (next.success) {
+      if (next.success && !_hasNavigated) {
+        _hasNavigated = true;
         _onPasswordChanged();
       }
     });
@@ -53,68 +55,77 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
           child: GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
             behavior: HitTestBehavior.opaque,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 40),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight - 48, // 24 padding * 2
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 40),
 
-                  // Icono
-                  Center(child: _buildIcon()),
+                          // Icono
+                          Center(child: _buildIcon()),
 
-                  const SizedBox(height: 32),
+                          const SizedBox(height: 32),
 
-                  // Título
-                  Center(
-                    child: Text(
-                      'Nueva contraseña',
-                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                            color: AppTheme.textPrimary,
-                            fontWeight: FontWeight.bold,
+                          // Título
+                          Center(
+                            child: Text(
+                              'Nueva contraseña',
+                              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                                    color: AppTheme.textPrimary,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                            ),
                           ),
+
+                          const SizedBox(height: 12),
+
+                          // Subtítulo
+                          Center(
+                            child: Text(
+                              'Ingresa tu nueva contraseña para recuperar el acceso a tu cuenta',
+                              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                  ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+
+                          const SizedBox(height: 48),
+
+                          // Campo Nueva Contraseña
+                          _buildPasswordField(),
+
+                          const SizedBox(height: 20),
+
+                          // Campo Confirmar Contraseña
+                          _buildConfirmPasswordField(),
+
+                          const SizedBox(height: 8),
+
+                          // Mensaje de error
+                          if (authState.errorMessage != null)
+                            _buildErrorMessage(authState.errorMessage!),
+
+                          const SizedBox(height: 32),
+
+                          // Botón Cambiar Contraseña
+                          _buildChangePasswordButton(authState.isLoading),
+                        ],
+                      ),
                     ),
                   ),
-
-                  const SizedBox(height: 12),
-
-                  // Subtítulo
-                  Center(
-                    child: Text(
-                      'Ingresa tu nueva contraseña para recuperar el acceso a tu cuenta',
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            color: AppTheme.textSecondary,
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-
-                  const SizedBox(height: 48),
-
-                  // Campo Nueva Contraseña
-                  _buildPasswordField(),
-
-                  const SizedBox(height: 20),
-
-                  // Campo Confirmar Contraseña
-                  _buildConfirmPasswordField(),
-
-                  const SizedBox(height: 8),
-
-                  // Mensaje de error
-                  if (authState.errorMessage != null)
-                    _buildErrorMessage(authState.errorMessage!),
-
-                  const SizedBox(height: 32),
-
-                  // Botón Cambiar Contraseña
-                  _buildChangePasswordButton(authState.isLoading),
-                ],
-              ),
+                );
+              },
             ),
-          ),
           ),
         ),
       ),

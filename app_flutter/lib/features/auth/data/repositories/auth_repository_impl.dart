@@ -315,10 +315,10 @@ class AuthRepositoryImpl implements AuthRepository {
       );
     }
 
-    // Misma contraseña (email ya vinculado, falta verificar)
+    // Misma contraseña
     if (message.contains('new password should be different')) {
       return AuthResult.error(
-        'Ya vinculaste este email. Revisa tu correo para verificar.',
+        'La nueva contraseña debe ser diferente a la anterior',
         'same_password',
       );
     }

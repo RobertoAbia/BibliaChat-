@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:back_button_interceptor/back_button_interceptor.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
@@ -27,16 +30,29 @@ class BibliaChatApp extends ConsumerStatefulWidget {
 }
 
 class _BibliaChatAppState extends ConsumerState<BibliaChatApp> {
+  StreamSubscription<AuthState>? _authSubscription;
+
   @override
   void initState() {
     super.initState();
     BackButtonInterceptor.add(_handleBackButton, name: 'main');
+    _listenToAuthChanges();
   }
 
   @override
   void dispose() {
+    _authSubscription?.cancel();
     BackButtonInterceptor.remove(_handleBackButton);
     super.dispose();
+  }
+
+  /// Listener global para detectar password recovery deep link
+  void _listenToAuthChanges() {
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (data.event == AuthChangeEvent.passwordRecovery && mounted) {
+        ref.read(appRouterProvider).go(RouteConstants.resetPassword);
+      }
+    });
   }
 
   bool _handleBackButton(bool stopDefaultButtonEvent, RouteInfo info) {
