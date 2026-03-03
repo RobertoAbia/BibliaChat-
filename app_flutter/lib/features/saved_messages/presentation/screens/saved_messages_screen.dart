@@ -476,7 +476,7 @@ class _SavedMessageTileState extends State<_SavedMessageTile>
                 widget.onUnsave();
               },
             ),
-            const Divider(height: 1, color: AppTheme.surfaceLight),
+            Divider(height: 1, color: AppTheme.textTertiary.withOpacity(0.3)),
             ListTile(
               leading: Icon(
                 Icons.close,

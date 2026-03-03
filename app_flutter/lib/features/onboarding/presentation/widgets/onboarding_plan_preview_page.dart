@@ -113,7 +113,7 @@ class OnboardingPlanPreviewPage extends StatelessWidget {
                         child: Container(
                           width: 1,
                           height: 20,
-                          color: AppTheme.surfaceLight.withOpacity(0.5),
+                          color: AppTheme.textTertiary.withOpacity(0.3),
                         ),
                       ),
                       Icon(
