@@ -197,11 +197,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                                   style: const TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w600,
-                                    color: AppTheme.backgroundDark,
+                                    color: Colors.white,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                const Icon(Icons.chevron_right, size: 22, color: AppTheme.backgroundDark),
+                                const Icon(Icons.chevron_right, size: 22, color: Colors.white),
                               ],
                             ),
                           ),
