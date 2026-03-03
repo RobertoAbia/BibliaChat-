@@ -68,6 +68,9 @@ class AuthRepositoryImpl implements AuthRepository {
     } on AuthException catch (e) {
       return _handleAuthException(e);
     } catch (e) {
+      if (_isNetworkError(e)) {
+        return AuthResult.error('No tienes conexión a internet', 'network_error');
+      }
       return AuthResult.error('Error inesperado: $e');
     }
   }
@@ -105,6 +108,9 @@ class AuthRepositoryImpl implements AuthRepository {
     } on AuthException catch (e) {
       return _handleAuthException(e);
     } catch (e) {
+      if (_isNetworkError(e)) {
+        return AuthResult.error('No tienes conexión a internet', 'network_error');
+      }
       return AuthResult.error('Error inesperado: $e');
     }
   }
@@ -127,6 +133,9 @@ class AuthRepositoryImpl implements AuthRepository {
     } on AuthException catch (e) {
       return _handleAuthException(e);
     } catch (e) {
+      if (_isNetworkError(e)) {
+        return AuthResult.error('No tienes conexión a internet', 'network_error');
+      }
       return AuthResult.error('Error inesperado: $e');
     }
   }
@@ -139,6 +148,9 @@ class AuthRepositoryImpl implements AuthRepository {
     } on AuthException catch (e) {
       return _handleAuthException(e);
     } catch (e) {
+      if (_isNetworkError(e)) {
+        return AuthResult.error('No tienes conexión a internet', 'network_error');
+      }
       return AuthResult.error('Error al cerrar sesión: $e');
     }
   }
@@ -159,6 +171,9 @@ class AuthRepositoryImpl implements AuthRepository {
     } on AuthException catch (e) {
       return _handleAuthException(e);
     } catch (e) {
+      if (_isNetworkError(e)) {
+        return AuthResult.error('No tienes conexión a internet', 'network_error');
+      }
       return AuthResult.error('Error al reenviar email: $e');
     }
   }
@@ -171,6 +186,9 @@ class AuthRepositoryImpl implements AuthRepository {
     } on AuthException catch (e) {
       return _handleAuthException(e);
     } catch (e) {
+      if (_isNetworkError(e)) {
+        return AuthResult.error('No tienes conexión a internet', 'network_error');
+      }
       return AuthResult.error('Error al enviar email: $e');
     }
   }
@@ -186,6 +204,9 @@ class AuthRepositoryImpl implements AuthRepository {
     } on AuthException catch (e) {
       return _handleAuthException(e);
     } catch (e) {
+      if (_isNetworkError(e)) {
+        return AuthResult.error('No tienes conexión a internet', 'network_error');
+      }
       return AuthResult.error('Error al refrescar sesión: $e');
     }
   }
@@ -207,6 +228,9 @@ class AuthRepositoryImpl implements AuthRepository {
     } on AuthException catch (e) {
       return _handleAuthException(e);
     } catch (e) {
+      if (_isNetworkError(e)) {
+        return AuthResult.error('No tienes conexión a internet', 'network_error');
+      }
       return AuthResult.error('Error al cambiar contraseña: $e');
     }
   }
@@ -236,13 +260,41 @@ class AuthRepositoryImpl implements AuthRepository {
         'function_error',
       );
     } catch (e) {
+      if (_isNetworkError(e)) {
+        return AuthResult.error('No tienes conexión a internet', 'network_error');
+      }
       return AuthResult.error('Error de conexión: $e', 'connection_error');
     }
+  }
+
+  /// Detecta si un error es de red (sin conexión a internet)
+  bool _isNetworkError(Object e) {
+    final msg = e.toString().toLowerCase();
+    return msg.contains('socketexception') ||
+        msg.contains('failed host lookup') ||
+        msg.contains('no address associated') ||
+        msg.contains('connection refused') ||
+        msg.contains('network is unreachable') ||
+        msg.contains('connection timed out') ||
+        msg.contains('clientexception');
   }
 
   /// Maneja las excepciones de Supabase Auth y devuelve mensajes amigables
   AuthResult _handleAuthException(AuthException e) {
     final message = e.message.toLowerCase();
+
+    // Sin conexión a internet (Supabase envuelve SocketException en AuthException)
+    if (message.contains('socketexception') ||
+        message.contains('failed host lookup') ||
+        message.contains('no address associated') ||
+        message.contains('clientexception') ||
+        message.contains('connection refused') ||
+        message.contains('network is unreachable')) {
+      return AuthResult.error(
+        'No tienes conexión a internet',
+        'network_error',
+      );
+    }
 
     // Email ya existe
     if (message.contains('already registered') ||
@@ -300,9 +352,12 @@ class AuthRepositoryImpl implements AuthRepository {
     }
 
     // Rate limit
-    if (message.contains('rate limit') || message.contains('too many')) {
+    if (message.contains('rate limit') ||
+        message.contains('too many') ||
+        message.contains('for security purposes') ||
+        message.contains('you can only request this after')) {
       return AuthResult.error(
-        'Demasiados intentos. Espera unos minutos.',
+        'Demasiados intentos. Espera unos segundos.',
         'rate_limit',
       );
     }
