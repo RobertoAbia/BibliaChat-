@@ -405,6 +405,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  /// Trunca un texto a [maxLength] caracteres y añade "..." si es más largo.
+  String? _truncate(String? text, int maxLength) {
+    if (text == null || text.isEmpty) return null;
+    if (text.length <= maxLength) return text;
+    return '${text.substring(0, maxLength)}...';
+  }
+
   void _onLockedDayTapped(DateTime date) {
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) {
@@ -621,10 +628,53 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final hasContent = (gospelAsync.valueOrNull as dynamic)?.hasStoriesContent ?? false;
 
+    // Get gospel data for content previews
+    final gospel = gospelAsync.valueOrNull as dynamic;
+    final conceptPreview = gospel?.keyConcept as String?;
+    final exercisePreview = gospel?.practicalExercise as String?;
+
+    // Determine label based on denomination
+    final profileAsync = ref.watch(currentUserProfileProvider);
+    final isCatholic = profileAsync.whenOrNull(
+      data: (profile) => profile?.denomination == Denomination.catolica,
+    ) ?? false;
+    final sectionTitle = isCatholic ? 'Evangelio de hoy' : 'Lectura de hoy';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Section header
+          if (hasContent) ...[
+            Row(
+              children: [
+                Text(
+                  sectionTitle,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '· 3 historias',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textTertiary,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Toca cada una para verla',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.textTertiary,
+                  ),
+            ),
+            const SizedBox(height: 12),
+          ],
+
           // Gospel Card (Evangelio del Día)
           _buildGospelCard(),
 
@@ -633,8 +683,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // Key Concept Card - Opens Stories at slide 1
           _ContentCard(
             label: 'CONCEPTO CLAVE',
+            stepIndicator: '2/3',
             duration: '1 MIN',
-            title: 'La idea que transforma',
+            title: _truncate(conceptPreview, 60) ?? 'La idea que transforma',
             icon: Icons.lightbulb_outline,
             delay: 100,
             isNew: hasContent && !viewedSlides.contains(1),
@@ -646,8 +697,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // Practical Exercise Card - Opens Stories at slide 2
           _ContentCard(
             label: 'PARA HOY',
+            stepIndicator: '3/3',
             duration: '1 MIN',
-            title: 'Tu acción del día',
+            title: _truncate(exercisePreview, 60) ?? 'Tu acción del día',
             icon: Icons.favorite_outline,
             delay: 200,
             isNew: hasContent && !viewedSlides.contains(2),
@@ -774,6 +826,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return _GospelCardCompact(
           key: const ValueKey('gospel'),
           label: label,
+          stepIndicator: gospel.hasStoriesContent ? '1/3' : null,
           reference: gospel.reference,
           hasStories: isSlide0New,
           onTap: () async {
@@ -893,6 +946,7 @@ class _GospelCardCompact extends StatefulWidget {
   final bool hasStories;
   final VoidCallback onTap;
   final VoidCallback? onChatTap;
+  final String? stepIndicator;
 
   const _GospelCardCompact({
     super.key,
@@ -901,6 +955,7 @@ class _GospelCardCompact extends StatefulWidget {
     this.hasStories = false,
     required this.onTap,
     this.onChatTap,
+    this.stepIndicator,
   });
 
   @override
@@ -1038,6 +1093,30 @@ class _GospelCardCompactState extends State<_GospelCardCompact>
                       children: [
                         Row(
                           children: [
+                            if (widget.stepIndicator != null) ...[
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.textTertiary.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  widget.stepIndicator!,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                        color: AppTheme.textTertiary,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 9,
+                                      ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
                             Text(
                               widget.label,
                               style: Theme.of(context)
@@ -1139,6 +1218,7 @@ class _GospelCardCompactState extends State<_GospelCardCompact>
 
 class _ContentCard extends StatefulWidget {
   final String label;
+  final String? stepIndicator;
   final String duration;
   final String title;
   final IconData icon;
@@ -1148,6 +1228,7 @@ class _ContentCard extends StatefulWidget {
 
   const _ContentCard({
     required this.label,
+    this.stepIndicator,
     required this.duration,
     required this.title,
     required this.icon,
@@ -1266,6 +1347,30 @@ class _ContentCardState extends State<_ContentCard>
                     children: [
                       Row(
                         children: [
+                          if (widget.stepIndicator != null) ...[
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppTheme.textTertiary.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                widget.stepIndicator!,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: AppTheme.textTertiary,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 9,
+                                    ),
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                          ],
                           Text(
                             widget.label,
                             style:
