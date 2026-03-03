@@ -64,9 +64,10 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
 
     // Slide 1: Resumen
     if (widget.gospel.hasSummary) {
+      final isCatholic = widget.topicKey == 'evangelio_del_dia';
       slides.add(_StorySlide(
         type: _SlideType.summary,
-        title: 'Reflexión del día',
+        title: isCatholic ? 'Evangelio del día' : 'Reflexión del día',
         content: widget.gospel.summary!,
         icon: Icons.format_quote_rounded,
       ));
@@ -192,6 +193,8 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
   }
 
   void _onTapDown(TapDownDetails details) {
+    // Cerrar teclado si está abierto
+    _messageFocusNode.unfocus();
     // Guardar posición para usar en _onTapUp
     _tapX = details.globalPosition.dx;
     // Pausar mientras está presionado
@@ -303,9 +306,9 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
           // Text input field
           Expanded(
             child: Container(
-              height: 44,
+              height: 52,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(26),
                 border: Border.all(
                   color: Colors.white.withOpacity(0.3),
                   width: 1,
