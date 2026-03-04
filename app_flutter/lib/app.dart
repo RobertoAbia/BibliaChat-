@@ -90,13 +90,20 @@ class _BibliaChatAppState extends ConsumerState<BibliaChatApp> {
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
 
-    return MaterialApp.router(
-      title: 'Biblia Chat',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.light,
-      routerConfig: router,
+    return MediaQuery(
+      // Ignorar tamaño de fuente del sistema
+      data: MediaQuery.of(context).copyWith(
+        textScaler: TextScaler.noScaling,
+        boldText: false,
+      ),
+      child: MaterialApp.router(
+        title: 'Biblia Chat',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.darkTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.light,
+        routerConfig: router,
+      ),
     );
   }
 }

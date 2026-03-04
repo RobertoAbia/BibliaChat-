@@ -173,28 +173,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
 
           // Streak with glass effect
-          GlassContainer(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            borderRadius: 24,
-            blur: 8,
-            backgroundOpacity: 0.4,
-            child: Row(
-              children: [
-                const Text('🔥', style: TextStyle(fontSize: 18)),
-                const SizedBox(width: 6),
-                Consumer(
-                  builder: (context, ref, child) {
-                    final streak = ref.watch(streakDaysDisplayProvider);
-                    return Text(
-                      '$streak',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppTheme.primaryColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    );
-                  },
-                ),
-              ],
+          GestureDetector(
+            onTap: () => _showStreakInfo(context),
+            child: GlassContainer(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              borderRadius: 24,
+              blur: 8,
+              backgroundOpacity: 0.4,
+              child: Row(
+                children: [
+                  const Text('🔥', style: TextStyle(fontSize: 18)),
+                  const SizedBox(width: 6),
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final streak = ref.watch(streakDaysDisplayProvider);
+                      return Text(
+                        '$streak',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -415,6 +418,116 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+
+  void _showStreakInfo(BuildContext context) {
+    final streak = ref.read(streakDaysDisplayProvider);
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceDark,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: const Color(0xFFD4AF37).withOpacity(0.3),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFD4AF37).withOpacity(0.15),
+                  blurRadius: 30,
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Fuego con glow dorado
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: _brightGoldGradient,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFD4AF37).withOpacity(0.4),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Text('🔥', style: TextStyle(fontSize: 36)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Número grande
+                Text(
+                  '$streak',
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        color: const Color(0xFFE8C967),
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  streak == 1 ? 'día de racha' : 'días de racha',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                ),
+                const SizedBox(height: 20),
+                // Divider dorado sutil
+                Container(
+                  height: 1,
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  color: const Color(0xFFD4AF37).withOpacity(0.2),
+                ),
+                const SizedBox(height: 20),
+                // Explicación
+                Text(
+                  'Completa las 3 reflexiones cada día para mantener tu racha activa.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.textSecondary,
+                        height: 1.4,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                // Botón
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    style: TextButton.styleFrom(
+                      backgroundColor: const Color(0xFFD4AF37).withOpacity(0.12),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      'Entendido',
+                      style: TextStyle(
+                        color: Color(0xFFE8C967),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   void _onLockedDayTapped(DateTime date) {
     final isPremium = ref.read(isPremiumProvider);
