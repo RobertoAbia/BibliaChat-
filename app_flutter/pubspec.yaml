@@ -48,7 +48,7 @@ dependencies:
   # Image sharing
   screenshot: ^3.0.0
   image_picker: ^1.0.7
-  google_fonts: ^6.1.0
+  google_fonts: ^6.3.2
 
   # Payments (RevenueCat)
   purchases_flutter: ^8.3.1
