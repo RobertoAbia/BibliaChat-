@@ -203,6 +203,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+  /// Gradiente dorado brillante para hoy completado.
+  static const _brightGoldGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFFE8C967),
+      Color(0xFFD4AF37),
+    ],
+  );
+
   /// Gradiente dorado tenue para días pasados completados.
   static const _dimGoldGradient = LinearGradient(
     begin: Alignment.topLeft,
@@ -300,13 +310,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             final List<BoxShadow>? circleShadow;
 
             if (isDayCompleted) {
-              // Completado: dorado (bright para hoy, dimmer para pasado)
-              circleGradient = isToday ? AppTheme.goldGradient : _dimGoldGradient;
+              // Completado: dorado real (bright para hoy, dimmer para pasado)
+              circleGradient = isToday ? _brightGoldGradient : _dimGoldGradient;
               circleColor = null;
               circleBorder = null;
               circleShadow = [
                 BoxShadow(
-                  color: AppTheme.primaryColor.withOpacity(isToday ? 0.3 : 0.15),
+                  color: const Color(0xFFD4AF37).withOpacity(isToday ? 0.4 : 0.2),
                   blurRadius: isToday ? 10 : 6,
                   spreadRadius: 0,
                 ),
@@ -405,12 +415,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// Trunca un texto a [maxLength] caracteres y añade "..." si es más largo.
-  String? _truncate(String? text, int maxLength) {
-    if (text == null || text.isEmpty) return null;
-    if (text.length <= maxLength) return text;
-    return '${text.substring(0, maxLength)}...';
-  }
 
   void _onLockedDayTapped(DateTime date) {
     final isPremium = ref.read(isPremiumProvider);
@@ -547,6 +551,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         'gospel': gospel,
         'initialSlideIndex': slideIndex,
         'topicKey': topicKey,
+        'singleSlideIndex': slideIndex,
         'onSlideViewed': (int index) async {
           // Mark slide as viewed (with user ID)
           await service.markSlideAsViewed(userId, gospel.date, index);
@@ -628,17 +633,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final hasContent = (gospelAsync.valueOrNull as dynamic)?.hasStoriesContent ?? false;
 
-    // Get gospel data for content previews
-    final gospel = gospelAsync.valueOrNull as dynamic;
-    final conceptPreview = gospel?.keyConcept as String?;
-    final exercisePreview = gospel?.practicalExercise as String?;
-
     // Determine label based on denomination
     final profileAsync = ref.watch(currentUserProfileProvider);
     final isCatholic = profileAsync.whenOrNull(
       data: (profile) => profile?.denomination == Denomination.catolica,
     ) ?? false;
-    final sectionTitle = isCatholic ? 'Evangelio de hoy' : 'Lectura de hoy';
+    final sectionTitle = 'Reflexiones del día';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -658,19 +658,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '· 3 historias',
+                  '· 3 reflexiones',
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
                         color: AppTheme.textTertiary,
                       ),
                 ),
               ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Toca cada una para verla',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: AppTheme.textTertiary,
-                  ),
             ),
             const SizedBox(height: 12),
           ],
@@ -683,9 +676,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // Key Concept Card - Opens Stories at slide 1
           _ContentCard(
             label: 'CONCEPTO CLAVE',
-            stepIndicator: '2/3',
             duration: '1 MIN',
-            title: _truncate(conceptPreview, 60) ?? 'La idea que transforma',
+            title: 'La idea que transforma',
             icon: Icons.lightbulb_outline,
             delay: 100,
             isNew: hasContent && !viewedSlides.contains(1),
@@ -697,9 +689,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           // Practical Exercise Card - Opens Stories at slide 2
           _ContentCard(
             label: 'PARA HOY',
-            stepIndicator: '3/3',
             duration: '1 MIN',
-            title: _truncate(exercisePreview, 60) ?? 'Tu acción del día',
+            title: 'Tu acción del día',
             icon: Icons.favorite_outline,
             delay: 200,
             isNew: hasContent && !viewedSlides.contains(2),
@@ -826,7 +817,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return _GospelCardCompact(
           key: const ValueKey('gospel'),
           label: label,
-          stepIndicator: gospel.hasStoriesContent ? '1/3' : null,
           reference: gospel.reference,
           hasStories: isSlide0New,
           onTap: () async {
@@ -843,17 +833,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               );
             }
-          },
-          onChatTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => ChatScreen(
-                  topicKey: topicKey,
-                  initialGospelText: gospel.text,
-                  initialGospelReference: gospel.reference,
-                ),
-              ),
-            );
           },
         );
       },
@@ -945,8 +924,6 @@ class _GospelCardCompact extends StatefulWidget {
   final String reference;
   final bool hasStories;
   final VoidCallback onTap;
-  final VoidCallback? onChatTap;
-  final String? stepIndicator;
 
   const _GospelCardCompact({
     super.key,
@@ -954,8 +931,6 @@ class _GospelCardCompact extends StatefulWidget {
     required this.reference,
     this.hasStories = false,
     required this.onTap,
-    this.onChatTap,
-    this.stepIndicator,
   });
 
   @override
@@ -1093,40 +1068,19 @@ class _GospelCardCompactState extends State<_GospelCardCompact>
                       children: [
                         Row(
                           children: [
-                            if (widget.stepIndicator != null) ...[
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.textTertiary.withOpacity(0.15),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  widget.stepIndicator!,
-                                  style: Theme.of(context)
-                                      .textTheme
-                                      .labelSmall
-                                      ?.copyWith(
-                                        color: AppTheme.textTertiary,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 9,
-                                      ),
-                                ),
+                            Flexible(
+                              child: Text(
+                                widget.label,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: AppTheme.primaryColor,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
                               ),
-                              const SizedBox(width: 6),
-                            ],
-                            Text(
-                              widget.label,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(
-                                    color: AppTheme.primaryColor,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.5,
-                                  ),
                             ),
                             if (widget.hasStories) ...[
                               const SizedBox(width: 8),
@@ -1167,44 +1121,20 @@ class _GospelCardCompactState extends State<_GospelCardCompact>
                       ],
                     ),
                   ),
-                  // Actions
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Chat button (si tiene Stories)
-                      if (widget.hasStories && widget.onChatTap != null)
-                        GestureDetector(
-                          onTap: widget.onChatTap,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            margin: const EdgeInsets.only(right: 8),
-                            decoration: BoxDecoration(
-                              color: AppTheme.surfaceLight.withOpacity(0.4),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.chat_bubble_outline_rounded,
-                              color: AppTheme.textSecondary,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      // Chevron / Play
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          widget.hasStories
-                              ? Icons.play_arrow_rounded
-                              : Icons.chevron_right,
-                          color: AppTheme.primaryColor,
-                          size: 22,
-                        ),
-                      ),
-                    ],
+                  // Chevron / Play
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      widget.hasStories
+                          ? Icons.play_arrow_rounded
+                          : Icons.chevron_right,
+                      color: AppTheme.primaryColor,
+                      size: 22,
+                    ),
                   ),
                 ],
               ),
@@ -1218,7 +1148,6 @@ class _GospelCardCompactState extends State<_GospelCardCompact>
 
 class _ContentCard extends StatefulWidget {
   final String label;
-  final String? stepIndicator;
   final String duration;
   final String title;
   final IconData icon;
@@ -1228,7 +1157,6 @@ class _ContentCard extends StatefulWidget {
 
   const _ContentCard({
     required this.label,
-    this.stepIndicator,
     required this.duration,
     required this.title,
     required this.icon,
@@ -1347,42 +1275,21 @@ class _ContentCardState extends State<_ContentCard>
                     children: [
                       Row(
                         children: [
-                          if (widget.stepIndicator != null) ...[
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppTheme.textTertiary.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                widget.stepIndicator!,
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.copyWith(
-                                      color: AppTheme.textTertiary,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 9,
-                                    ),
-                              ),
+                          Flexible(
+                            child: Text(
+                              widget.label,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  Theme.of(context).textTheme.labelSmall?.copyWith(
+                                        color: widget.isNew
+                                            ? AppTheme.primaryColor
+                                            : AppTheme.textTertiary,
+                                        fontWeight: widget.isNew
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                        letterSpacing: 0.5,
+                                      ),
                             ),
-                            const SizedBox(width: 6),
-                          ],
-                          Text(
-                            widget.label,
-                            style:
-                                Theme.of(context).textTheme.labelSmall?.copyWith(
-                                      color: widget.isNew
-                                          ? AppTheme.primaryColor
-                                          : AppTheme.textTertiary,
-                                      fontWeight: widget.isNew
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                      letterSpacing: 0.5,
-                                    ),
                           ),
                           // "NUEVO" badge when isNew
                           if (widget.isNew) ...[

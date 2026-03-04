@@ -1222,23 +1222,8 @@ class _MessageBubble extends ConsumerWidget {
               // Actions for AI messages
               if (!message.isUser) ...[
                 const SizedBox(height: 8),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _SaveButton(
-                      messageId: message.id,
-                    ),
-                    const SizedBox(width: 8),
-                    _ActionButton(
-                      icon: Icons.bookmark_border,
-                      onTap: () {},
-                    ),
-                    const SizedBox(width: 8),
-                    _ActionButton(
-                      icon: Icons.share_outlined,
-                      onTap: () {},
-                    ),
-                  ],
+                _SaveButton(
+                  messageId: message.id,
                 ),
               ],
             ],
@@ -1299,36 +1284,6 @@ class _MessageBubble extends ConsumerWidget {
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _ActionButton({
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: const Color(0xFFD0D8E4),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(
-          icon,
-          color: AppTheme.textTertiary,
-          size: 16,
-        ),
-      ),
-    );
-  }
-}
-
 /// Save/unsave button for AI messages (heart icon)
 class _SaveButton extends ConsumerWidget {
   final String messageId;
@@ -1337,10 +1292,7 @@ class _SaveButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final savedIdsAsync = ref.watch(savedMessageIdsProvider);
-    final isSaved = savedIdsAsync.whenOrNull(
-      data: (ids) => ids.contains(messageId),
-    ) ?? false;
+    final isSaved = ref.watch(isMessageSavedProvider(messageId));
 
     return GestureDetector(
       onTap: () => _toggleSave(context, ref),

@@ -17,6 +17,7 @@ class GospelStoriesScreen extends StatefulWidget {
   final int initialSlideIndex;
   final void Function(int slideIndex)? onSlideViewed;
   final String? topicKey; // Para navegar directo al chat
+  final int? singleSlideIndex; // Si no es null, muestra SOLO ese slide
 
   const GospelStoriesScreen({
     super.key,
@@ -24,6 +25,7 @@ class GospelStoriesScreen extends StatefulWidget {
     this.initialSlideIndex = 0,
     this.onSlideViewed,
     this.topicKey,
+    this.singleSlideIndex,
   });
 
   @override
@@ -48,21 +50,13 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
   // Duración de cada slide (en segundos)
   static const int _slideDuration = 8;
 
-  // Total de slides
-  int get _totalSlides {
-    int count = 0;
-    if (widget.gospel.hasSummary) count++;
-    if (widget.gospel.keyConcept != null &&
-        widget.gospel.keyConcept!.isNotEmpty) count++;
-    if (widget.gospel.practicalExercise != null &&
-        widget.gospel.practicalExercise!.isNotEmpty) count++;
-    return count > 0 ? count : 1; // Mínimo 1 slide
-  }
+  bool get _isSingleSlideMode => widget.singleSlideIndex != null;
 
-  List<_StorySlide> get _slides {
+  // Todos los slides disponibles (sin filtrar)
+  List<_StorySlide> get _allSlides {
     final slides = <_StorySlide>[];
 
-    // Slide 1: Resumen
+    // Slide 0: Resumen
     if (widget.gospel.hasSummary) {
       final isCatholic = widget.topicKey == 'evangelio_del_dia';
       slides.add(_StorySlide(
@@ -73,7 +67,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
       ));
     }
 
-    // Slide 2: Concepto clave
+    // Slide 1: Concepto clave
     if (widget.gospel.keyConcept != null &&
         widget.gospel.keyConcept!.isNotEmpty) {
       slides.add(_StorySlide(
@@ -84,7 +78,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
       ));
     }
 
-    // Slide 3: Ejercicio práctico
+    // Slide 2: Ejercicio práctico
     if (widget.gospel.practicalExercise != null &&
         widget.gospel.practicalExercise!.isNotEmpty) {
       slides.add(_StorySlide(
@@ -110,11 +104,26 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
     return slides;
   }
 
+  // Total de slides (1 en single mode)
+  int get _totalSlides => _isSingleSlideMode ? 1 : _allSlides.length;
+
+  // Slides a mostrar
+  List<_StorySlide> get _slides {
+    if (_isSingleSlideMode) {
+      final all = _allSlides;
+      final idx = widget.singleSlideIndex!;
+      if (idx < all.length) return [all[idx]];
+      return [all.last];
+    }
+    return _allSlides;
+  }
+
   @override
   void initState() {
     super.initState();
-    _currentPage = widget.initialSlideIndex;
-    _pageController = PageController(initialPage: widget.initialSlideIndex);
+    // En single mode, solo hay 1 slide (index 0 del PageView)
+    _currentPage = _isSingleSlideMode ? 0 : widget.initialSlideIndex;
+    _pageController = PageController(initialPage: _currentPage);
     _progressController = AnimationController(
       vsync: this,
       duration: Duration(seconds: _slideDuration),
@@ -145,9 +154,10 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
     });
 
     // Mark initial slide as viewed
-    widget.onSlideViewed?.call(widget.initialSlideIndex);
+    final viewedIndex = widget.singleSlideIndex ?? widget.initialSlideIndex;
+    widget.onSlideViewed?.call(viewedIndex);
     // Log analytics for initial slide
-    AnalyticsService().logStoryViewed(slideNumber: widget.initialSlideIndex);
+    AnalyticsService().logStoryViewed(slideNumber: viewedIndex);
 
     _startProgress();
   }
@@ -157,6 +167,11 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
   }
 
   void _nextSlide() {
+    if (_isSingleSlideMode) {
+      // Single slide mode: cerrar al terminar
+      context.pop();
+      return;
+    }
     if (_currentPage < _totalSlides - 1) {
       setState(() {
         _currentPage++;
@@ -178,6 +193,11 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
   }
 
   void _previousSlide() {
+    if (_isSingleSlideMode) {
+      // Single slide mode: no hay slide anterior, reiniciar progreso
+      _startProgress();
+      return;
+    }
     if (_currentPage > 0) {
       setState(() {
         _currentPage--;

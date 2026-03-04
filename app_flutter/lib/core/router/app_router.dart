@@ -117,6 +117,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                     initialSlideIndex: extra['initialSlideIndex'] as int? ?? 0,
                     onSlideViewed: extra['onSlideViewed'] as void Function(int)?,
                     topicKey: extra['topicKey'] as String?,
+                    singleSlideIndex: extra['singleSlideIndex'] as int?,
                   );
                 },
               ),
