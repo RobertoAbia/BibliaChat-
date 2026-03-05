@@ -112,14 +112,18 @@ class NotificationService {
   }
 
   /// Obtiene el token FCM y lo guarda en Supabase.
+  /// Timeout de 5s para evitar que bloquee la splash (iOS sin APNs se cuelga).
   Future<void> _saveToken(String userId) async {
     try {
-      final token = await _messaging.getToken();
+      final token = await _messaging.getToken().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => null,
+      );
       if (token != null) {
         await _saveTokenToSupabase(token, userId);
         debugPrint('FCM token saved for user: $userId');
       } else {
-        debugPrint('FCM token is null (permission may be required on iOS)');
+        debugPrint('FCM token is null (timeout or permission required on iOS)');
       }
     } catch (e) {
       debugPrint('Error getting/saving FCM token: $e');
