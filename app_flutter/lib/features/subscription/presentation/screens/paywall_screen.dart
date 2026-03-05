@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -36,9 +35,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final subscriptionState = ref.watch(subscriptionProvider);
     final monthlyPackage = ref.watch(monthlyPackageProvider);
     final annualPackage = ref.watch(annualPackageProvider);
-
-    final showMockData =
-        monthlyPackage == null && annualPackage == null && !subscriptionState.isLoading;
 
     final monthlyPrice = monthlyPackage?.storeProduct.priceString ?? '\$14.99';
     final annualPrice = annualPackage?.storeProduct.priceString ?? '\$39.99';
@@ -102,21 +98,13 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
                       const SizedBox(height: 12),
 
-                      // Loading
-                      if (subscriptionState.isLoading && !kIsWeb && !showMockData)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 40),
-                          child: Center(child: CircularProgressIndicator()),
-                        )
-                      else ...[
-                        // Plan mensual
-                        _buildMonthlyCard(monthlyPrice),
+                      // Plan mensual (mock data si RevenueCat no carga)
+                      _buildMonthlyCard(monthlyPrice),
 
-                        const SizedBox(height: 10),
+                      const SizedBox(height: 10),
 
-                        // Plan anual
-                        _buildAnnualCard(annualPrice),
-                      ],
+                      // Plan anual
+                      _buildAnnualCard(annualPrice),
 
                       const SizedBox(height: 16),
 
