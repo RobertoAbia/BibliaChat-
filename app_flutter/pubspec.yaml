@@ -1,7 +1,7 @@
 name: biblia_chat
 description: "App cristiana para hispanohablantes - Tu fe, tu idioma, tu cultura."
 publish_to: 'none'
-version: 1.0.0+2
+version: 1.0.0+3
 
 environment:
   sdk: ^3.5.4
@@ -120,7 +120,7 @@ flutter_launcher_icons:
 # Logo cruz+burbuja azul sobre fondo blanco
 flutter_native_splash:
   color: "#FFFFFF"
-  image: assets/images/splash_icon.png
+  image: assets/images/splash_icon_small.png
 
   # Android 12+
   android_12:
