@@ -43,8 +43,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
             .signInAnonymously()
             .timeout(const Duration(seconds: 5));
         if (mounted) {
-          FlutterNativeSplash.remove();
           context.go(RouteConstants.onboarding);
+          FlutterNativeSplash.remove();
           if (response.user != null) {
             _initializeAllServices(response.user!.id);
           }
@@ -52,8 +52,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       } catch (e) {
         debugPrint('Splash signIn error: $e');
         if (mounted) {
-          FlutterNativeSplash.remove();
           context.go(RouteConstants.onboarding);
+          FlutterNativeSplash.remove();
         }
       }
       return;
@@ -64,8 +64,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     if (user.email != null &&
         user.email!.isNotEmpty &&
         user.emailConfirmedAt == null) {
-      FlutterNativeSplash.remove();
       context.go('${RouteConstants.verifyEmail}?email=${user.email}');
+      FlutterNativeSplash.remove();
       _initializeAllServices(user.id);
       return;
     }
@@ -83,17 +83,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         // Precargar datos de Home (con timeout, splash nativa cubre la espera)
         await _preloadHomeData();
         if (!mounted) return;
-        FlutterNativeSplash.remove();
         context.go(RouteConstants.home);
-      } else {
         FlutterNativeSplash.remove();
+      } else {
         context.go(RouteConstants.onboarding);
+        FlutterNativeSplash.remove();
       }
     } catch (e) {
       debugPrint('Splash onboarding check error: $e');
       if (mounted) {
-        FlutterNativeSplash.remove();
         context.go(RouteConstants.onboarding);
+        FlutterNativeSplash.remove();
       }
     }
 
