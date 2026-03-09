@@ -28,6 +28,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) setState(() => _canClose = true);
     });
+    // Forzar recarga de offerings si no están disponibles
+    final offerings = ref.read(subscriptionProvider).offerings;
+    if (offerings == null) {
+      ref.read(subscriptionProvider.notifier).refresh();
+    }
   }
 
   @override

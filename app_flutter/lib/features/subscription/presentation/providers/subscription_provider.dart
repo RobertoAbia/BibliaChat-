@@ -77,8 +77,16 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
   }
 
   Future<void> _loadOfferings() async {
+    // RevenueCat se inicializa fire-and-forget en splash,
+    // puede no estar listo cuando se abre el paywall
+    for (int i = 0; i < 10; i++) {
+      if (_revenueCatService.isAvailable) break;
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
     final offerings = await _revenueCatService.getOfferings();
-    state = state.copyWith(offerings: offerings);
+    if (offerings != null) {
+      state = state.copyWith(offerings: offerings);
+    }
   }
 
   Future<bool> purchasePackage(Package package) async {
