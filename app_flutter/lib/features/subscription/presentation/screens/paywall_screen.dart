@@ -491,9 +491,18 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   }
 
   Future<void> _handleRestore() async {
-    final success = await ref.read(subscriptionProvider.notifier).restorePurchases();
-    if (success && mounted) {
+    await ref.read(subscriptionProvider.notifier).restorePurchases();
+    if (!mounted) return;
+    final isPremium = ref.read(subscriptionProvider).isPremium;
+    if (isPremium) {
       context.go(RouteConstants.purchaseSuccess);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se encontraron compras anteriores'),
+          backgroundColor: Color(0xFF1A2740),
+        ),
+      );
     }
   }
 }

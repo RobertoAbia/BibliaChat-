@@ -92,24 +92,25 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
   Future<bool> purchasePackage(Package package) async {
     state = state.copyWith(isPurchasing: true, error: null);
 
-    final success = await _revenueCatService.purchasePackage(package);
+    final result = await _revenueCatService.purchasePackage(package);
 
-    if (success) {
-      // Actualizar estado directamente (el stream de customerInfo confirmará después)
-      state = state.copyWith(isPremium: true);
-      // Log analytics event
+    if (result == true) {
+      state = state.copyWith(isPremium: true, isPurchasing: false);
       final planType = package.packageType == PackageType.annual ? 'annual' : 'monthly';
       AnalyticsService().logSubscriptionStarted(planType: planType);
       AnalyticsService().setUserProperties(isPremium: true);
+      return true;
+    } else if (result == null) {
+      // User cancelled — no error message
+      state = state.copyWith(isPurchasing: false);
+      return false;
     } else {
       state = state.copyWith(
         isPurchasing: false,
         error: 'No se pudo completar la compra',
       );
+      return false;
     }
-
-    state = state.copyWith(isPurchasing: false);
-    return success;
   }
 
   Future<bool> restorePurchases() async {
