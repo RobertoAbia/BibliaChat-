@@ -4,8 +4,42 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/theme/app_theme.dart';
 
-class PurchaseSuccessScreen extends StatelessWidget {
+class PurchaseSuccessScreen extends StatefulWidget {
   const PurchaseSuccessScreen({super.key});
+
+  @override
+  State<PurchaseSuccessScreen> createState() => _PurchaseSuccessScreenState();
+}
+
+class _PurchaseSuccessScreenState extends State<PurchaseSuccessScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _scaleAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.elasticOut,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOut,
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -15,6 +49,7 @@ class PurchaseSuccessScreen extends StatelessWidget {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
+          bottom: false,
           child: Column(
             children: [
               Expanded(
@@ -24,68 +59,128 @@ class PurchaseSuccessScreen extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Emoji celebración animado
+                        ScaleTransition(
+                          scale: _scaleAnimation,
+                          child: const Text(
+                            '🎉',
+                            style: TextStyle(fontSize: 64),
+                          ),
+                        ),
+
+                        const SizedBox(height: 24),
+
                         // Logo
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: Image.asset(
-                            'assets/images/splash_logo.png',
-                            width: 80,
-                            height: 80,
-                            fit: BoxFit.contain,
+                        FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(20),
+                            child: Image.asset(
+                              'assets/images/splash_logo.png',
+                              width: 80,
+                              height: 80,
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ),
 
                         const SizedBox(height: 28),
 
                         // Título
-                        Text.rich(
-                          TextSpan(
-                            children: [
-                              const TextSpan(
-                                text: '¡Bienvenido a\n',
-                                style: TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w400,
-                                  color: AppTheme.textPrimary,
-                                  height: 1.4,
+                        FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: Text.rich(
+                            TextSpan(
+                              children: [
+                                const TextSpan(
+                                  text: '¡Bienvenido a\n',
+                                  style: TextStyle(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w400,
+                                    color: AppTheme.textPrimary,
+                                    height: 1.4,
+                                  ),
                                 ),
-                              ),
-                              TextSpan(
-                                text: 'Premium',
-                                style: TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppTheme.primaryColor,
-                                  height: 1.4,
+                                TextSpan(
+                                  text: 'Premium',
+                                  style: TextStyle(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.primaryColor,
+                                    height: 1.4,
+                                  ),
                                 ),
-                              ),
-                              const TextSpan(
-                                text: '!',
-                                style: TextStyle(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w400,
-                                  color: AppTheme.textPrimary,
-                                  height: 1.4,
+                                const TextSpan(
+                                  text: '!',
+                                  style: TextStyle(
+                                    fontSize: 30,
+                                    fontWeight: FontWeight.w400,
+                                    color: AppTheme.textPrimary,
+                                    height: 1.4,
+                                  ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
                         ),
 
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 12),
+
+                        // Subtítulo motivador
+                        FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: Text(
+                            'Tu camino de fe sin límites comienza ahora',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: AppTheme.textSecondary,
+                              height: 1.4,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+
+                        const SizedBox(height: 36),
 
                         // Features desbloqueadas
-                        _FeatureItem(
-                          text: 'Chat ilimitado con tu consejero',
-                        ),
-                        const SizedBox(height: 16),
-                        _FeatureItem(
-                          text: 'Todos los planes de estudio',
-                        ),
-                        const SizedBox(height: 16),
-                        _FeatureItem(
-                          text: 'Reflexiones diarias completas',
+                        FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: AppTheme.primaryColor.withOpacity(0.15),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primaryColor.withOpacity(0.08),
+                                  blurRadius: 20,
+                                  spreadRadius: 0,
+                                ),
+                              ],
+                            ),
+                            child: const Column(
+                              children: [
+                                _FeatureItem(
+                                  icon: Icons.chat_bubble_outline,
+                                  text: 'Chat ilimitado con tu consejero',
+                                ),
+                                SizedBox(height: 16),
+                                _FeatureItem(
+                                  icon: Icons.menu_book_outlined,
+                                  text: 'Todos los planes de estudio',
+                                ),
+                                SizedBox(height: 16),
+                                _FeatureItem(
+                                  icon: Icons.wb_sunny_outlined,
+                                  text: 'Reflexiones diarias completas',
+                                ),
+                              ],
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -154,35 +249,42 @@ class PurchaseSuccessScreen extends StatelessWidget {
 }
 
 class _FeatureItem extends StatelessWidget {
+  final IconData icon;
   final String text;
 
-  const _FeatureItem({required this.text});
+  const _FeatureItem({required this.icon, required this.text});
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Container(
-          width: 24,
-          height: 24,
+          width: 36,
+          height: 36,
           decoration: BoxDecoration(
             gradient: AppTheme.goldGradient,
             shape: BoxShape.circle,
           ),
-          child: const Icon(
-            Icons.check,
-            size: 14,
+          child: Icon(
+            icon,
+            size: 18,
             color: Colors.white,
           ),
         ),
-        const SizedBox(width: 12),
-        Text(
-          text,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppTheme.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
+          ),
+        ),
+        Icon(
+          Icons.check_circle,
+          size: 20,
+          color: AppTheme.primaryColor,
         ),
       ],
     );
