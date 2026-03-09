@@ -216,6 +216,11 @@ class AppTheme {
         foregroundColor: textPrimary,
         elevation: 0,
         centerTitle: false,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.dark,
+          statusBarBrightness: Brightness.light,
+        ),
         titleTextStyle: TextStyle(
           fontSize: 22,
           fontWeight: FontWeight.w600,
