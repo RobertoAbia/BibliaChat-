@@ -59,17 +59,6 @@ class _PurchaseSuccessScreenState extends State<PurchaseSuccessScreen>
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Emoji celebración animado
-                        ScaleTransition(
-                          scale: _scaleAnimation,
-                          child: const Text(
-                            '🎉',
-                            style: TextStyle(fontSize: 64),
-                          ),
-                        ),
-
-                        const SizedBox(height: 24),
-
                         // Logo
                         FadeTransition(
                           opacity: _fadeAnimation,

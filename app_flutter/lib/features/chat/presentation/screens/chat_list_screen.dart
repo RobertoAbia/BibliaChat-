@@ -18,6 +18,7 @@ class ChatListScreen extends ConsumerStatefulWidget {
 
 class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   String? _lastLocation;
+  bool _isScrolled = false;
 
   @override
   void initState() {
@@ -76,12 +77,35 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header
-              _buildHeader(context),
+              // Header con efecto scroll
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: BoxDecoration(
+                  color: _isScrolled ? AppTheme.backgroundDeep : Colors.transparent,
+                  boxShadow: _isScrolled
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : [],
+                ),
+                child: _buildHeader(context),
+              ),
 
               // Content
               Expanded(
-                child: RefreshIndicator(
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    final scrolled = notification.metrics.pixels > 0;
+                    if (scrolled != _isScrolled) {
+                      setState(() => _isScrolled = scrolled);
+                    }
+                    return false;
+                  },
+                  child: RefreshIndicator(
                   onRefresh: () async {
                     ref.read(userChatsRefreshProvider.notifier).state++;
                     await ref.read(refreshableUserChatsProvider.future);
@@ -176,6 +200,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                       ),
                     ],
                   ),
+                ),
                 ),
               ),
             ],

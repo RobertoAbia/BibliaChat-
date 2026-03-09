@@ -31,6 +31,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// Guard: esperar a que los providers tengan datos antes de renderizar.
   /// _forceReady es safety net: si algo falla, mostramos la UI igual tras 150ms.
   bool _forceReady = false;
+  bool _isScrolled = false;
 
   @override
   void initState() {
@@ -88,12 +89,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header fijo (no se va con el scroll)
-              _buildHeader(context),
+              // Header fijo con efecto scroll
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: BoxDecoration(
+                  color: _isScrolled ? AppTheme.backgroundDeep : Colors.transparent,
+                  boxShadow: _isScrolled
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : [],
+                ),
+                child: _buildHeader(context),
+              ),
 
               // Contenido scrollable
               Expanded(
-                child: SingleChildScrollView(
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    final scrolled = notification.metrics.pixels > 0;
+                    if (scrolled != _isScrolled) {
+                      setState(() => _isScrolled = scrolled);
+                    }
+                    return false;
+                  },
+                  child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -111,6 +135,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       _buildContentCards(),
                     ],
                   ),
+                ),
                 ),
               ),
             ],

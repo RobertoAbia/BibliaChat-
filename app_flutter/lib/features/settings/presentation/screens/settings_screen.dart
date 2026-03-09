@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
 import '../../../../app.dart' show dialogContextProvider;
@@ -14,11 +15,18 @@ import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../../study/presentation/providers/study_provider.dart';
 import '../../../subscription/presentation/providers/subscription_provider.dart';
 
-class SettingsScreen extends ConsumerWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
+  bool _isScrolled = false;
+
+  @override
+  Widget build(BuildContext context) {
     final authStatus = ref.watch(authStatusProvider);
     final isAnonymous = authStatus == AuthStatus.anonymous;
     final isEmailUnverified = authStatus == AuthStatus.emailUnverified;
@@ -28,10 +36,88 @@ class SettingsScreen extends ConsumerWidget {
     final profileName = profileAsync.valueOrNull?.name;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Perfil'),
-      ),
-      body: SingleChildScrollView(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppTheme.backgroundGradient,
+        ),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              // Header fijo con efecto scroll
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                decoration: BoxDecoration(
+                  color: _isScrolled ? AppTheme.backgroundDeep : Colors.transparent,
+                  boxShadow: _isScrolled
+                      ? [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : [],
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.goldGradient,
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryColor.withOpacity(0.3),
+                              blurRadius: 12,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.person_rounded,
+                          color: AppTheme.textOnPrimary,
+                          size: 22,
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Perfil',
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                  color: AppTheme.textPrimary,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                          Text(
+                            'Tu cuenta y preferencias',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: AppTheme.textTertiary,
+                                ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Contenido scrollable
+              Expanded(
+                child: NotificationListener<ScrollNotification>(
+                  onNotification: (notification) {
+                    final scrolled = notification.metrics.pixels > 0;
+                    if (scrolled != _isScrolled) {
+                      setState(() => _isScrolled = scrolled);
+                    }
+                    return false;
+                  },
+                  child: SingleChildScrollView(
         key: const PageStorageKey<String>('settings_scroll'),
         child: Column(
           children: [
@@ -174,6 +260,19 @@ class SettingsScreen extends ConsumerWidget {
                     isHighlighted: true,
                     onTap: () => context.push(RouteConstants.paywall),
                   ),
+                // Gestionar suscripción (solo premium)
+                if (isPremium)
+                  SettingsItem(
+                    icon: Icons.credit_card,
+                    title: 'Gestionar suscripción',
+                    subtitle: 'Cambiar plan o cancelar',
+                    onTap: () async {
+                      await launchUrl(
+                        Uri.parse('https://apps.apple.com/account/subscriptions'),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
+                  ),
               ],
             ),
 
@@ -261,6 +360,12 @@ class SettingsScreen extends ConsumerWidget {
             ),
             const SizedBox(height: 32),
           ],
+        ),
+      ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
