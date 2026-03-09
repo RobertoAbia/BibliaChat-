@@ -16,12 +16,12 @@ class SavedMessagesScreen extends ConsumerWidget {
     final savedMessagesAsync = ref.watch(savedMessagesProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
+          bottom: false,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

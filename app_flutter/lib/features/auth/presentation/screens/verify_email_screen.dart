@@ -102,12 +102,12 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
     final authState = ref.watch(authNotifierProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
+          bottom: false,
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
             child: ConstrainedBox(
