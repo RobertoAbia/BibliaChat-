@@ -363,7 +363,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       onTap: () => setState(() => _trialEnabled = true),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isSelected ? 14.5 : 16),
         decoration: BoxDecoration(
           color: AppTheme.surfaceLight,
           borderRadius: BorderRadius.circular(14),
@@ -406,7 +406,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       onTap: () => setState(() => _trialEnabled = false),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isSelected ? 14.5 : 16),
         decoration: BoxDecoration(
           color: AppTheme.surfaceLight,
           borderRadius: BorderRadius.circular(14),
@@ -468,8 +468,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       _handlePurchase(monthlyPackage);
     } else if (!_trialEnabled && annualPackage != null) {
       _handlePurchase(annualPackage);
+    } else {
+      // RevenueCat no cargó productos — dejar pasar sin compra
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go(RouteConstants.home);
+      }
     }
-    // Si es mock data (packages null), no hace nada
   }
 
   Future<void> _handlePurchase(Package package) async {
