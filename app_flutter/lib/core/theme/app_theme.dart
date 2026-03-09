@@ -323,6 +323,7 @@ class AppTheme {
 
       // Navigation Bar (Material 3)
       navigationBarTheme: NavigationBarThemeData(
+        height: 65,
         backgroundColor: Colors.white,
         indicatorColor: primaryColor.withOpacity(0.12),
         surfaceTintColor: Colors.transparent,
