@@ -31,7 +31,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final email = ref.watch(currentEmailProvider);
     final subscriptionState = ref.watch(subscriptionProvider);
     final isPremium = subscriptionState.isPremium;
-    final isSubscriptionLoading = subscriptionState.isLoading;
     final profileAsync = ref.watch(currentUserProfileProvider);
     final profileName = profileAsync.valueOrNull?.name;
 

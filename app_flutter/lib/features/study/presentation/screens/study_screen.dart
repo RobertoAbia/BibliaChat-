@@ -258,7 +258,6 @@ class _StudyScreenState extends ConsumerState<StudyScreen> {
             ),
           ),
         ),
-      ),
     );
   }
 }
