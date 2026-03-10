@@ -694,6 +694,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // Refresh the viewed slides state for UI
     ref.invalidate(viewedSlidesProvider);
+    if (forDate != null) {
+      ref.invalidate(viewedSlidesForDateProvider(forDate));
+    }
 
     // Read directly from SharedPreferences to check completion
     final viewedSlides = await service.getViewedSlides(userId, gospel.date);
@@ -907,9 +910,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       forDate = null;
     } else {
       gospelAsync = ref.watch(gospelForDateProvider(_selectedDate));
-      final completedDates = ref.watch(weekCompletionProvider).valueOrNull ?? <String>{};
-      final dateStr = '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
-      viewedSlides = completedDates.contains(dateStr) ? {0, 1, 2} : <int>{};
+      final pastViewedAsync = ref.watch(viewedSlidesForDateProvider(_selectedDate));
+      viewedSlides = pastViewedAsync.valueOrNull ?? <int>{};
       forDate = _selectedDate;
     }
 

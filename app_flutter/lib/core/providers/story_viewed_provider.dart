@@ -27,6 +27,16 @@ final viewedSlidesProvider = FutureProvider<Set<int>>((ref) async {
   return await service.getViewedSlides(userId, gospel.date);
 });
 
+/// Provider that returns viewed slides for a specific date (past days).
+final viewedSlidesForDateProvider = FutureProvider.family<Set<int>, DateTime>((ref, date) async {
+  final userId = ref.watch(currentUserIdProvider);
+  final service = ref.watch(storyViewedServiceProvider);
+
+  if (userId == null) return <int>{};
+
+  return await service.getViewedSlides(userId, date);
+});
+
 /// Provider family to mark a specific slide as viewed.
 /// Usage: ref.read(markSlideViewedProvider(slideIndex))
 final markSlideViewedProvider = FutureProvider.family<void, int>((ref, slideIndex) async {
