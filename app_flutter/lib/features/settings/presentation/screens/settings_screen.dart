@@ -31,7 +31,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final isAnonymous = authStatus == AuthStatus.anonymous;
     final isEmailUnverified = authStatus == AuthStatus.emailUnverified;
     final email = ref.watch(currentEmailProvider);
-    final isPremium = ref.watch(isPremiumProvider);
+    final subscriptionState = ref.watch(subscriptionProvider);
+    final isPremium = subscriptionState.isPremium;
+    final isSubscriptionLoading = subscriptionState.isLoading;
     final profileAsync = ref.watch(currentUserProfileProvider);
     final profileName = profileAsync.valueOrNull?.name;
 
@@ -251,8 +253,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     subtitle: email,
                     onTap: () {},
                   ),
-                // Mostrar "Pásate a Premium" si NO es premium
-                if (!isPremium)
+                // Mostrar "Pásate a Premium" si NO es premium (y ya cargó el estado)
+                if (!isPremium && !isSubscriptionLoading)
                   SettingsItem(
                     icon: Icons.workspace_premium,
                     title: 'Pásate a Premium',
