@@ -303,8 +303,7 @@ class NotificationService {
         _timezoneInitialized = true;
       }
 
-      // TODO: Cambiar a Duration(days: 1) para producción
-      final scheduledDate = tz.TZDateTime.now(tz.local).add(const Duration(minutes: 1));
+      final scheduledDate = tz.TZDateTime.now(tz.local).add(const Duration(days: 1));
 
       await _localNotifications.zonedSchedule(
         _trialReminderId,
