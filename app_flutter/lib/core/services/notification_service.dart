@@ -351,13 +351,24 @@ class NotificationService {
   }
 
   /// Limpia el badge del icono de la app (iOS)
-  void _clearBadge() {
+  /// Usa una notificación invisible con badgeNumber: 0 que se cancela inmediatamente
+  Future<void> _clearBadge() async {
     if (Platform.isIOS) {
       try {
-        _localNotifications
-            .resolvePlatformSpecificImplementation<
-                IOSFlutterLocalNotificationsPlugin>()
-            ?.setBadgeNumber(0);
+        await _localNotifications.show(
+          0,
+          null,
+          null,
+          const NotificationDetails(
+            iOS: DarwinNotificationDetails(
+              badgeNumber: 0,
+              presentAlert: false,
+              presentSound: false,
+              presentBadge: true,
+            ),
+          ),
+        );
+        await _localNotifications.cancel(0);
       } catch (e) {
         debugPrint('Error clearing badge: $e');
       }
