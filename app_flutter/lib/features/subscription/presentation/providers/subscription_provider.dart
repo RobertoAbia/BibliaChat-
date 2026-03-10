@@ -101,10 +101,10 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       AnalyticsService().logSubscriptionStarted(planType: planType);
       AnalyticsService().setUserProperties(isPremium: true);
 
-      // Programar recordatorio de trial si el producto tiene oferta introductoria (free trial)
-      if (package.storeProduct.introductoryPrice != null) {
-        NotificationService().scheduleTrialReminder();
-      }
+      // TODO: Restaurar condición para producción:
+      // if (package.storeProduct.introductoryPrice != null) {
+      NotificationService().scheduleTrialReminder();
+      // }
 
       return true;
     } else if (result == null) {
