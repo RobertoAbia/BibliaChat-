@@ -236,13 +236,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     ],
   );
 
-  /// Gradiente dorado tenue para días pasados completados.
+  /// Gradiente dorado tenue para días completados no seleccionados.
   static const _dimGoldGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xB3E8C967), // 0.7 opacity
-      Color(0xB3D4AF37), // 0.7 opacity
+      Color(0x80E8C967), // 0.5 opacity
+      Color(0x80D4AF37), // 0.5 opacity
     ],
   );
 
@@ -325,9 +325,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               circleBorder = null;
               circleShadow = [
                 BoxShadow(
-                  color: const Color(0xFFD4AF37).withOpacity(isSelected ? 0.4 : 0.2),
-                  blurRadius: isSelected ? 10 : 6,
-                  spreadRadius: 0,
+                  color: const Color(0xFFD4AF37).withOpacity(isSelected ? 0.5 : 0.15),
+                  blurRadius: isSelected ? 12 : 4,
+                  spreadRadius: isSelected ? 2 : 0,
                 ),
               ];
             } else if (dayState == _DayState.pastLocked) {
