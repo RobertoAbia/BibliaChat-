@@ -60,7 +60,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 64),
+                      const SizedBox(height: 32),
 
                       // Logo centrado
                       Center(
