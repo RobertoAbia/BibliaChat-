@@ -86,6 +86,9 @@ class NotificationService {
       });
     }
 
+    // 7. Limpiar badge del icono de la app
+    _clearBadge();
+
     _isInitialized = true;
     debugPrint('NotificationService initialized for user: $userId');
   }
@@ -344,6 +347,20 @@ class NotificationService {
       await _localNotifications.cancel(_trialReminderId);
     } catch (e) {
       debugPrint('Error cancelling trial reminder: $e');
+    }
+  }
+
+  /// Limpia el badge del icono de la app (iOS)
+  void _clearBadge() {
+    if (Platform.isIOS) {
+      try {
+        _localNotifications
+            .resolvePlatformSpecificImplementation<
+                IOSFlutterLocalNotificationsPlugin>()
+            ?.setBadgeNumber(0);
+      } catch (e) {
+        debugPrint('Error clearing badge: $e');
+      }
     }
   }
 

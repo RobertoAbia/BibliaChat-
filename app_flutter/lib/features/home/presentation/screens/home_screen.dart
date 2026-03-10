@@ -262,22 +262,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         borderRadius: 20,
         blur: 10,
         backgroundOpacity: 0.35,
-        child: TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0.0, end: 1.0),
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeOutCubic,
-          builder: (context, value, child) {
-            return Opacity(
-              opacity: value,
-              child: Transform.translate(
-                offset: Offset(0, 10 * (1 - value)),
-                child: child,
-              ),
-            );
-          },
-          child: weekCompletionAsync.isLoading
-              ? const SizedBox(height: 52)
-              : Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: List.generate(7, (index) {
             final day = weekStart.add(Duration(days: index));
@@ -319,42 +304,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 onTap = null;
             }
 
-            // --- VISUAL: Letra = selector, Círculo = completación ---
+            // --- VISUAL: Letra fija en hoy, Círculo = selector + completación ---
+            final isPremium = ref.watch(isPremiumProvider);
 
-            // Letra: dorada si seleccionado, gris si no
-            final letterColor = isSelected
+            // Letra: azul fijo en hoy, gris el resto (no se mueve al seleccionar)
+            final letterColor = isToday
                 ? AppTheme.primaryColor
                 : AppTheme.textTertiary;
 
-            // Círculo: dorado si completado, gris si locked, transparente si no completado/futuro
+            // Círculo: dorado bright = seleccionado+completado, dim = completado no seleccionado
             final Gradient? circleGradient;
             final Color? circleColor;
             final Border? circleBorder;
             final List<BoxShadow>? circleShadow;
 
             if (isDayCompleted) {
-              // Completado: dorado real (bright para hoy, dimmer para pasado)
-              circleGradient = isToday ? _brightGoldGradient : _dimGoldGradient;
+              // Completado: bright si seleccionado, dim si no
+              circleGradient = isSelected ? _brightGoldGradient : _dimGoldGradient;
               circleColor = null;
               circleBorder = null;
               circleShadow = [
                 BoxShadow(
-                  color: const Color(0xFFD4AF37).withOpacity(isToday ? 0.4 : 0.2),
-                  blurRadius: isToday ? 10 : 6,
+                  color: const Color(0xFFD4AF37).withOpacity(isSelected ? 0.4 : 0.2),
+                  blurRadius: isSelected ? 10 : 6,
                   spreadRadius: 0,
                 ),
               ];
             } else if (dayState == _DayState.pastLocked) {
-              // Pasado no completado: gris + candado
+              // Pasado no completado
               circleGradient = null;
               circleColor = const Color(0xFFD0D8E4);
-              circleBorder = Border.all(
-                color: AppTheme.surfaceLight.withOpacity(0.5),
-                width: 1,
-              );
+              circleBorder = isSelected
+                  ? Border.all(color: AppTheme.primaryColor, width: 2)
+                  : Border.all(color: AppTheme.surfaceLight.withOpacity(0.5), width: 1);
+              circleShadow = null;
+            } else if (isToday && isSelected) {
+              // Hoy no completado + seleccionado: borde azul grueso
+              circleGradient = null;
+              circleColor = Colors.transparent;
+              circleBorder = Border.all(color: AppTheme.primaryColor, width: 2);
               circleShadow = null;
             } else {
-              // Hoy no completado / futuro: transparente + borde sutil
+              // Hoy no completado no seleccionado / futuro: borde sutil
               circleGradient = null;
               circleColor = Colors.transparent;
               circleBorder = Border.all(
@@ -379,7 +370,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       dayNames[index],
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: letterColor,
-                            fontWeight: isSelected
+                            fontWeight: isToday
                                 ? FontWeight.w600
                                 : FontWeight.normal,
                           ),
@@ -420,7 +411,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             Positioned(
                               bottom: 0,
                               child: Icon(
-                                Icons.lock_rounded,
+                                isPremium ? Icons.lock_open_rounded : Icons.lock_rounded,
                                 color: AppTheme.textTertiary,
                                 size: 14,
                               ),
@@ -432,7 +423,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
             );
           }),
-        ),
         ),
       ),
     );
