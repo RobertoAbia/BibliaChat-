@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
 
@@ -26,6 +27,19 @@ class OnboardingReminderPage extends StatefulWidget {
 }
 
 class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
+  Future<void> _handleToggle(bool value) async {
+    if (value) {
+      // Al activar, pedir permiso de notificaciones
+      final granted = await NotificationService().requestPermission();
+      if (granted) {
+        widget.onToggle(true);
+      }
+      // Si deniega, no activar el toggle
+    } else {
+      widget.onToggle(false);
+    }
+  }
+
   Future<void> _showTimePicker() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -167,7 +181,7 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
 
                 // Toggle card
                 GestureDetector(
-                  onTap: () => widget.onToggle(!widget.reminderEnabled),
+                  onTap: () => _handleToggle(!widget.reminderEnabled),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: BackdropFilter(
@@ -270,7 +284,7 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
                             // Toggle switch
                             Switch(
                               value: widget.reminderEnabled,
-                              onChanged: widget.onToggle,
+                              onChanged: _handleToggle,
                               activeColor: AppTheme.primaryColor,
                               activeTrackColor:
                                   AppTheme.primaryColor.withOpacity(0.3),

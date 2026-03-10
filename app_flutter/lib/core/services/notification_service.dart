@@ -282,6 +282,21 @@ class NotificationService {
     if (kIsWeb) return;
 
     try {
+      // Asegurar que tiene permiso de notificaciones
+      final settings = await _messaging.getNotificationSettings();
+      final hasPermission =
+          settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+
+      if (!hasPermission) {
+        final granted = await requestPermission();
+        if (!granted) {
+          debugPrint('Trial reminder: notification permission denied');
+          return;
+        }
+        await _setupLocalNotifications();
+      }
+
       // Inicializar timezone si no se ha hecho
       if (!_timezoneInitialized) {
         tz.initializeTimeZones();

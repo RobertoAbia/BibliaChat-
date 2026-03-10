@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/providers/story_viewed_provider.dart';
-import '../../../../core/services/notification_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/daily_progress_provider.dart';
 import '../../../../core/widgets/glass_container.dart';
@@ -41,10 +40,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (mounted && !_forceReady) {
         setState(() => _forceReady = true);
       }
-    });
-    // Pedir permiso de notificaciones después de que Home sea visible
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      NotificationService().requestPermissionIfNeeded();
     });
   }
 
