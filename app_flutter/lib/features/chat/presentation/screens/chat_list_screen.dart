@@ -18,7 +18,6 @@ class ChatListScreen extends ConsumerStatefulWidget {
 
 class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   String? _lastLocation;
-  bool _isScrolled = false;
 
   @override
   void initState() {
@@ -74,45 +73,24 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header con efecto scroll
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                decoration: BoxDecoration(
-                  color: _isScrolled ? AppTheme.backgroundDeep : Colors.transparent,
-                  boxShadow: [
-                    BoxShadow(
-                      color: _isScrolled
-                          ? Colors.black.withOpacity(0.06)
-                          : Colors.transparent,
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+          child: RefreshIndicator(
+            onRefresh: () async {
+              ref.read(userChatsRefreshProvider.notifier).state++;
+              await ref.read(refreshableUserChatsProvider.future);
+            },
+            color: AppTheme.primaryColor,
+            child: CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  pinned: true,
+                  backgroundColor: AppTheme.backgroundDark,
+                  surfaceTintColor: Colors.transparent,
+                  scrolledUnderElevation: 4,
+                  shadowColor: Colors.black26,
+                  toolbarHeight: 76,
+                  automaticallyImplyLeading: false,
+                  flexibleSpace: _buildHeader(context),
                 ),
-                child: _buildHeader(context),
-              ),
-
-              // Content
-              Expanded(
-                child: NotificationListener<ScrollNotification>(
-                  onNotification: (notification) {
-                    final scrolled = notification.metrics.pixels > 0;
-                    if (scrolled != _isScrolled) {
-                      setState(() => _isScrolled = scrolled);
-                    }
-                    return false;
-                  },
-                  child: RefreshIndicator(
-                  onRefresh: () async {
-                    ref.read(userChatsRefreshProvider.notifier).state++;
-                    await ref.read(refreshableUserChatsProvider.future);
-                  },
-                  color: AppTheme.primaryColor,
-                  child: CustomScrollView(
-                    slivers: [
                       // New conversation button
                       SliverToBoxAdapter(
                         child: Padding(
@@ -201,9 +179,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                     ],
                   ),
                 ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

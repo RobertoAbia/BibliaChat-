@@ -23,8 +23,6 @@ class SettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
-  bool _isScrolled = false;
-
   @override
   Widget build(BuildContext context) {
     final authStatus = ref.watch(authStatusProvider);
@@ -44,24 +42,18 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         ),
         child: SafeArea(
           bottom: false,
-          child: Column(
-            children: [
-              // Header fijo con efecto scroll
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                decoration: BoxDecoration(
-                  color: _isScrolled ? AppTheme.backgroundDeep : Colors.transparent,
-                  boxShadow: [
-                    BoxShadow(
-                      color: _isScrolled
-                          ? Colors.black.withOpacity(0.06)
-                          : Colors.transparent,
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Padding(
+          child: CustomScrollView(
+            key: const PageStorageKey<String>('settings_scroll'),
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                backgroundColor: AppTheme.backgroundDark,
+                surfaceTintColor: Colors.transparent,
+                scrolledUnderElevation: 4,
+                shadowColor: Colors.black26,
+                toolbarHeight: 76,
+                automaticallyImplyLeading: false,
+                flexibleSpace: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
                   child: Row(
                     children: [
@@ -88,6 +80,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       const SizedBox(width: 14),
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
                             'Perfil',
@@ -108,20 +101,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   ),
                 ),
               ),
-
-              // Contenido scrollable
-              Expanded(
-                child: NotificationListener<ScrollNotification>(
-                  onNotification: (notification) {
-                    final scrolled = notification.metrics.pixels > 0;
-                    if (scrolled != _isScrolled) {
-                      setState(() => _isScrolled = scrolled);
-                    }
-                    return false;
-                  },
-                  child: SingleChildScrollView(
-        key: const PageStorageKey<String>('settings_scroll'),
-        child: Column(
+              SliverToBoxAdapter(
+                child: Column(
           children: [
             // Profile Header
             Container(
@@ -363,8 +344,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 32),
           ],
         ),
-      ),
-                ),
               ),
             ],
           ),

@@ -30,8 +30,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// Guard: esperar a que los providers tengan datos antes de renderizar.
   /// _forceReady es safety net: si algo falla, mostramos la UI igual tras 150ms.
   bool _forceReady = false;
-  bool _isScrolled = false;
-
   @override
   void initState() {
     super.initState();
@@ -81,56 +79,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header fijo con efecto scroll
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                decoration: BoxDecoration(
-                  color: _isScrolled ? AppTheme.backgroundDeep : Colors.transparent,
-                  boxShadow: [
-                    BoxShadow(
-                      color: _isScrolled
-                          ? Colors.black.withOpacity(0.06)
-                          : Colors.transparent,
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: _buildHeader(context),
+          child: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                backgroundColor: AppTheme.backgroundDark,
+                surfaceTintColor: Colors.transparent,
+                scrolledUnderElevation: 4,
+                shadowColor: Colors.black26,
+                toolbarHeight: 88,
+                automaticallyImplyLeading: false,
+                flexibleSpace: _buildHeader(context),
               ),
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Week Calendar with glass effect
+                    _buildWeekCalendar(context),
 
-              // Contenido scrollable
-              Expanded(
-                child: NotificationListener<ScrollNotification>(
-                  onNotification: (notification) {
-                    final scrolled = notification.metrics.pixels > 0;
-                    if (scrolled != _isScrolled) {
-                      setState(() => _isScrolled = scrolled);
-                    }
-                    return false;
-                  },
-                  child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Week Calendar with glass effect
-                      _buildWeekCalendar(context),
+                    const SizedBox(height: 24),
 
-                      const SizedBox(height: 24),
+                    // Today's Progress
+                    _buildProgressSection(context),
 
-                      // Today's Progress
-                      _buildProgressSection(context),
+                    const SizedBox(height: 24),
 
-                      const SizedBox(height: 24),
-
-                      // Content Cards
-                      _buildContentCards(),
-                    ],
-                  ),
-                ),
+                    // Content Cards
+                    _buildContentCards(),
+                  ],
                 ),
               ),
             ],
