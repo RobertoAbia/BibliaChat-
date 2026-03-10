@@ -749,11 +749,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       forDate = null;
     } else {
       gospelAsync = ref.watch(gospelForDateProvider(_selectedDate));
-      // Para días pasados, los slides vistos se cargan del SharedPreferences de esa fecha
-      // Por simplicidad, si el día está completado mostramos todo como visto
-      final completedDates = ref.watch(weekCompletionProvider).valueOrNull ?? <String>{};
-      final dateStr = '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
-      viewedSlides = completedDates.contains(dateStr) ? {0, 1, 2} : <int>{};
+      final pastViewedAsync = ref.watch(viewedSlidesForDateProvider(_selectedDate));
+      viewedSlides = pastViewedAsync.valueOrNull ?? <int>{};
       forDate = _selectedDate;
     }
 
