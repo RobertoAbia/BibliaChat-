@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import '../../../../core/services/analytics_service.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/revenue_cat_service.dart';
 
 // Estado de la suscripción
@@ -99,6 +100,12 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       final planType = package.packageType == PackageType.annual ? 'annual' : 'monthly';
       AnalyticsService().logSubscriptionStarted(planType: planType);
       AnalyticsService().setUserProperties(isPremium: true);
+
+      // Programar recordatorio de trial si el producto tiene oferta introductoria (free trial)
+      if (package.storeProduct.introductoryPrice != null) {
+        NotificationService().scheduleTrialReminder();
+      }
+
       return true;
     } else if (result == null) {
       // User cancelled — no error message

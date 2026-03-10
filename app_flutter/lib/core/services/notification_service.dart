@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 import 'analytics_service.dart';
 
@@ -27,6 +29,7 @@ class NotificationService {
 
   GoRouter? _router;
   bool _isInitialized = false;
+  bool _timezoneInitialized = false;
   String? _currentUserId;
 
   /// Inicializa el servicio de notificaciones.
@@ -268,6 +271,63 @@ class NotificationService {
       default:
         _router!.go('/home');
         break;
+    }
+  }
+
+  /// Programa una notificación local para recordar que el trial termina en 2 días.
+  /// Se llama 1 día después de la compra con trial (3 días - 1 = 2 días restantes).
+  static const int _trialReminderId = 9999;
+
+  Future<void> scheduleTrialReminder() async {
+    if (kIsWeb) return;
+
+    try {
+      // Inicializar timezone si no se ha hecho
+      if (!_timezoneInitialized) {
+        tz.initializeTimeZones();
+        _timezoneInitialized = true;
+      }
+
+      // TODO: Cambiar a Duration(days: 1) para producción
+      final scheduledDate = tz.TZDateTime.now(tz.local).add(const Duration(minutes: 1));
+
+      await _localNotifications.zonedSchedule(
+        _trialReminderId,
+        '⏰ Tu prueba gratuita termina pronto',
+        'Quedan 2 días de tu prueba gratuita. ¡Disfruta de todas las funciones!',
+        scheduledDate,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'biblia_chat_channel',
+            'Biblia Chat',
+            channelDescription: 'Notificaciones de Biblia Chat',
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@drawable/ic_notification',
+          ),
+          iOS: DarwinNotificationDetails(
+            sound: 'default',
+            badgeNumber: 1,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        matchDateTimeComponents: null,
+        payload: 'home',
+      );
+
+      debugPrint('Trial reminder scheduled for: $scheduledDate');
+    } catch (e) {
+      debugPrint('Error scheduling trial reminder: $e');
+    }
+  }
+
+  /// Cancela el recordatorio del trial (por si el usuario cancela antes)
+  Future<void> cancelTrialReminder() async {
+    if (kIsWeb) return;
+    try {
+      await _localNotifications.cancel(_trialReminderId);
+    } catch (e) {
+      debugPrint('Error cancelling trial reminder: $e');
     }
   }
 
