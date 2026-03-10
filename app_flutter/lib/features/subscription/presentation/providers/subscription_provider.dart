@@ -91,22 +91,27 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
   }
 
   Future<bool> purchasePackage(Package package) async {
+    final wasPremium = state.isPremium;
     state = state.copyWith(isPurchasing: true, error: null);
 
     final result = await _revenueCatService.purchasePackage(package);
 
     if (result == true) {
       state = state.copyWith(isPremium: true, isPurchasing: false);
-      final planType = package.packageType == PackageType.annual ? 'annual' : 'monthly';
-      AnalyticsService().logSubscriptionStarted(planType: planType);
-      AnalyticsService().setUserProperties(isPremium: true);
 
-      // TODO: Restaurar condición para producción:
-      // if (package.storeProduct.introductoryPrice != null) {
-      NotificationService().scheduleTrialReminder();
-      // }
+      // Solo loguear y notificar si es una compra nueva (no ya suscrito)
+      if (!wasPremium) {
+        final planType = package.packageType == PackageType.annual ? 'annual' : 'monthly';
+        AnalyticsService().logSubscriptionStarted(planType: planType);
+        AnalyticsService().setUserProperties(isPremium: true);
 
-      return true;
+        // TODO: Restaurar condición para producción:
+        // if (package.storeProduct.introductoryPrice != null) {
+        NotificationService().scheduleTrialReminder();
+        // }
+      }
+
+      return !wasPremium; // false si ya era premium (no navegar a success)
     } else if (result == null) {
       // User cancelled — no error message
       state = state.copyWith(isPurchasing: false);
