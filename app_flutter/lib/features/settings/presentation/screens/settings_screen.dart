@@ -234,8 +234,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     subtitle: email,
                     onTap: () {},
                   ),
-                // Mostrar "Pásate a Premium" si NO es premium (y ya cargó el estado)
-                if (!isPremium && !isSubscriptionLoading)
+                // Mostrar "Pásate a Premium" si NO es premium
+                if (!isPremium)
                   SettingsItem(
                     icon: Icons.workspace_premium,
                     title: 'Pásate a Premium',
