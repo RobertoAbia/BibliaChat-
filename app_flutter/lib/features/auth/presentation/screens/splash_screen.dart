@@ -115,8 +115,17 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     });
   }
 
-  /// Precarga datos de Home. Timeout de 1.5s como safety net.
+  /// Precarga datos de Home. Timeout de 2s como safety net.
   Future<void> _preloadHomeData() async {
+    // RevenueCat DEBE estar listo antes de Home (candados premium, paywall)
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId != null) {
+      await RevenueCatService.instance.init(userId).timeout(
+        const Duration(seconds: 2),
+        onTimeout: () {},
+      );
+    }
+
     await Future.wait([
       ref.read(currentUserProfileProvider.future).catchError((_) => null),
       ref.read(dailyGospelProvider.future).catchError((_) => null),

@@ -22,6 +22,8 @@ class RevenueCatService {
   bool get isAvailable => !kIsWeb && _isInitialized;
 
   Future<void> init(String supabaseUserId) async {
+    if (_isInitialized) return;
+
     // RevenueCat no funciona en web
     if (kIsWeb) {
       debugPrint('RevenueCat: Not available on web');
