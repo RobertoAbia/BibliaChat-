@@ -59,9 +59,12 @@ class _LinkEmailScreenState extends ConsumerState<LinkEmailScreen> {
           child: GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
             behavior: HitTestBehavior.opaque,
-            child: SingleChildScrollView(
+            child: LayoutBuilder(
+              builder: (context, constraints) => SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              child: Form(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight - 48),
+                child: Form(
                 key: _formKey,
                 child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -155,6 +158,8 @@ class _LinkEmailScreenState extends ConsumerState<LinkEmailScreen> {
                 ],
               ),
             ),
+          ),
+          ),
           ),
           ),
         ),
