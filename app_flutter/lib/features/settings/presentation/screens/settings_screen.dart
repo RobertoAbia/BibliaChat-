@@ -31,6 +31,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final email = ref.watch(currentEmailProvider);
     final subscriptionState = ref.watch(subscriptionProvider);
     final isPremium = subscriptionState.isPremium;
+    final isSubscriptionLoading = subscriptionState.isLoading;
     final profileAsync = ref.watch(currentUserProfileProvider);
     final profileName = profileAsync.valueOrNull?.name;
 
@@ -233,8 +234,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     subtitle: email,
                     onTap: () {},
                   ),
-                // Mostrar "Pásate a Premium" si NO es premium
-                if (!isPremium)
+                // Mientras carga no mostramos nada (evita flash incorrecto)
+                // Después de cargar: premium → gestionar, no premium → pásate
+                if (!isSubscriptionLoading && !isPremium)
                   SettingsItem(
                     icon: Icons.workspace_premium,
                     title: 'Pásate a Premium',
@@ -242,8 +244,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     isHighlighted: true,
                     onTap: () => context.push(RouteConstants.paywall),
                   ),
-                // Gestionar suscripción (solo premium)
-                if (isPremium)
+                if (!isSubscriptionLoading && isPremium)
                   SettingsItem(
                     icon: Icons.credit_card,
                     title: 'Gestionar suscripción',

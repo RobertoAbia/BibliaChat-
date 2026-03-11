@@ -118,17 +118,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   /// Precarga datos de Home. Timeout de 2s como safety net.
   Future<void> _preloadHomeData() async {
-    // RevenueCat DEBE estar listo antes de Home (candados premium, paywall)
+    // Iniciar RevenueCat SDK (no bloquea, pero debe estar listo cuanto antes)
     final userId = Supabase.instance.client.auth.currentUser?.id;
     if (userId != null) {
-      await RevenueCatService.instance.init(userId).timeout(
-        const Duration(seconds: 2),
-        onTimeout: () {},
-      );
+      RevenueCatService.instance.init(userId).catchError((e) {
+        debugPrint('RevenueCat init error: $e');
+      });
     }
 
-    // Forzar creación del SubscriptionNotifier para que _checkPremiumStatus()
-    // se ejecute YA (no cuando Home/Settings lo observe por primera vez)
+    // Forzar creación del SubscriptionNotifier para que empiece a comprobar
+    // premium status en paralelo (no esperamos — puede tardar por red)
     ref.read(subscriptionProvider);
 
     await Future.wait([
@@ -136,16 +135,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       ref.read(dailyGospelProvider.future).catchError((_) => null),
       ref.read(weekCompletionProvider.future).catchError((_) => <String>{}),
       ref.read(activePlanDataProvider.future).catchError((_) => null),
-      // Esperar a que subscription resuelva (isLoading → false)
-      Future(() async {
-        for (int i = 0; i < 20; i++) {
-          if (!ref.read(subscriptionProvider).isLoading) return;
-          await Future.delayed(const Duration(milliseconds: 100));
-        }
-      }),
     ]).timeout(
-      const Duration(milliseconds: 2500),
-      onTimeout: () => [null, null, <String>{}, null, null],
+      const Duration(milliseconds: 1500),
+      onTimeout: () => [null, null, <String>{}, null],
     );
   }
 
