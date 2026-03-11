@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/revenue_cat_service.dart';
@@ -56,12 +57,18 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       return;
     }
 
+    // Leer valor cacheado de SharedPreferences (instantáneo, sin red)
+    final prefs = await SharedPreferences.getInstance();
+    final cachedPremium = prefs.getBool('is_premium') ?? false;
+    state = state.copyWith(isPremium: cachedPremium, isLoading: false);
+
     _customerInfoSubscription = _revenueCatService.customerInfoStream.listen(
       (customerInfo) {
         _updatePremiumStatus(customerInfo);
       },
     );
 
+    // RevenueCat comprueba en background y corrige si cambió
     await _checkPremiumStatus();
     await _loadOfferings();
   }
@@ -70,11 +77,20 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
     final isPremium = customerInfo.entitlements.active
         .containsKey(RevenueCatService.entitlementId);
     state = state.copyWith(isPremium: isPremium);
+    // Guardar en cache para siguiente apertura
+    _savePremiumCache(isPremium);
   }
 
   Future<void> _checkPremiumStatus() async {
     final isPremium = await _revenueCatService.checkPremiumStatus();
     state = state.copyWith(isPremium: isPremium, isLoading: false);
+    // Guardar en cache para siguiente apertura
+    _savePremiumCache(isPremium);
+  }
+
+  Future<void> _savePremiumCache(bool isPremium) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_premium', isPremium);
   }
 
   Future<void> _loadOfferings() async {
@@ -98,6 +114,7 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
 
     if (result == true) {
       state = state.copyWith(isPremium: true, isPurchasing: false);
+      _savePremiumCache(true);
 
       // Solo loguear y notificar si es una compra nueva (no ya suscrito)
       if (!wasPremium) {

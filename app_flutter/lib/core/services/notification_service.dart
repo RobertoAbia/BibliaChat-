@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -87,7 +88,7 @@ class NotificationService {
     }
 
     // 7. Limpiar badge del icono de la app
-    _clearBadge();
+    clearBadge();
 
     _isInitialized = true;
     debugPrint('NotificationService initialized for user: $userId');
@@ -351,27 +352,12 @@ class NotificationService {
   }
 
   /// Limpia el badge del icono de la app (iOS)
-  /// Usa una notificación invisible con badgeNumber: 0 que se cancela inmediatamente
-  Future<void> _clearBadge() async {
-    if (Platform.isIOS) {
-      try {
-        await _localNotifications.show(
-          0,
-          null,
-          null,
-          const NotificationDetails(
-            iOS: DarwinNotificationDetails(
-              badgeNumber: 0,
-              presentAlert: false,
-              presentSound: false,
-              presentBadge: true,
-            ),
-          ),
-        );
-        await _localNotifications.cancel(0);
-      } catch (e) {
-        debugPrint('Error clearing badge: $e');
-      }
+  /// Usa flutter_app_badger que llama directamente a la API nativa de iOS
+  Future<void> clearBadge() async {
+    try {
+      FlutterAppBadger.removeBadge();
+    } catch (e) {
+      debugPrint('Error clearing badge: $e');
     }
   }
 

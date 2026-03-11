@@ -13,7 +13,6 @@ import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart'
 import '../../../home/presentation/providers/daily_progress_provider.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../../study/presentation/providers/study_provider.dart';
-import '../../../subscription/presentation/providers/subscription_provider.dart';
 
 /// Splash screen — check auth local + navegar rápido.
 /// Servicios de red se lanzan en background DESPUÉS de navegar.
@@ -125,10 +124,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         debugPrint('RevenueCat init error: $e');
       });
     }
-
-    // Forzar creación del SubscriptionNotifier para que empiece a comprobar
-    // premium status en paralelo (no esperamos — puede tardar por red)
-    ref.read(subscriptionProvider);
 
     await Future.wait([
       ref.read(currentUserProfileProvider.future).catchError((_) => null),
