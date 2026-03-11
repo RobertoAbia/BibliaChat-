@@ -108,7 +108,7 @@ class WidgetSetupScreen extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppTheme.backgroundLight,
+              color: AppTheme.backgroundDark,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
