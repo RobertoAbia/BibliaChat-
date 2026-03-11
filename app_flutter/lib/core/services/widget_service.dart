@@ -3,7 +3,6 @@ import 'dart:math';
 
 import 'package:flutter/services.dart';
 import 'package:home_widget/home_widget.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 /// Service that manages Bible verse widgets on Lock Screen (iOS) and Home Screen (Android).
 ///
@@ -16,10 +15,6 @@ class WidgetService {
 
   static const String _keyVerseText = 'verse_text';
   static const String _keyVerseRef = 'verse_ref';
-  static const String _keyLastUpdate = 'verse_last_update';
-
-  static const String _prefsShuffleKey = 'widget_verse_shuffle';
-  static const String _prefsShuffleDateKey = 'widget_verse_shuffle_date';
 
   List<Map<String, String>>? _verses;
 
@@ -77,10 +72,6 @@ class WidgetService {
 
     await HomeWidget.saveWidgetData<String>(_keyVerseText, verse['text']);
     await HomeWidget.saveWidgetData<String>(_keyVerseRef, verse['ref']);
-    await HomeWidget.saveWidgetData<String>(
-      _keyLastUpdate,
-      DateTime.now().toIso8601String(),
-    );
 
     // Request native widget update
     await HomeWidget.updateWidget(
