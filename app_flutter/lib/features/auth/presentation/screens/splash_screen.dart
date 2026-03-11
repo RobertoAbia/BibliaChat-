@@ -13,6 +13,7 @@ import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart'
 import '../../../home/presentation/providers/daily_progress_provider.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../../study/presentation/providers/study_provider.dart';
+import '../../../subscription/presentation/providers/subscription_provider.dart';
 
 /// Splash screen — check auth local + navegar rápido.
 /// Servicios de red se lanzan en background DESPUÉS de navegar.
@@ -126,14 +127,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       );
     }
 
+    // Forzar creación del SubscriptionNotifier para que _checkPremiumStatus()
+    // se ejecute YA (no cuando Home/Settings lo observe por primera vez)
+    ref.read(subscriptionProvider);
+
     await Future.wait([
       ref.read(currentUserProfileProvider.future).catchError((_) => null),
       ref.read(dailyGospelProvider.future).catchError((_) => null),
       ref.read(weekCompletionProvider.future).catchError((_) => <String>{}),
       ref.read(activePlanDataProvider.future).catchError((_) => null),
+      // Esperar a que subscription resuelva (isLoading → false)
+      Future(() async {
+        for (int i = 0; i < 20; i++) {
+          if (!ref.read(subscriptionProvider).isLoading) return;
+          await Future.delayed(const Duration(milliseconds: 100));
+        }
+      }),
     ]).timeout(
-      const Duration(milliseconds: 1500),
-      onTimeout: () => [null, null, <String>{}, null],
+      const Duration(milliseconds: 2500),
+      onTimeout: () => [null, null, <String>{}, null, null],
     );
   }
 
