@@ -9,6 +9,7 @@ import '../../../../core/router/app_router.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/revenue_cat_service.dart';
+import '../../../../core/services/widget_service.dart';
 import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart';
 import '../../../home/presentation/providers/daily_progress_provider.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
@@ -112,6 +113,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     RevenueCatService.instance.init(userId).catchError((e) {
       debugPrint('RevenueCat init error: $e');
+    });
+
+    WidgetService().init().catchError((e) {
+      debugPrint('Widget service init error: $e');
     });
   }
 

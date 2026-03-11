@@ -260,6 +260,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: 'Preferencias',
               items: [
                 SettingsItem(
+                  icon: Icons.widgets_outlined,
+                  title: 'Widget de versículos',
+                  subtitle: 'Añádelo a tu pantalla',
+                  onTap: () => context.push(RouteConstants.widgetSetup),
+                ),
+                SettingsItem(
                   icon: Icons.favorite_outline,
                   title: 'Mis Reflexiones',
                   subtitle: 'Mensajes guardados',

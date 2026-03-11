@@ -20,6 +20,7 @@ class RouteConstants {
   static const String settings = '/settings';
   static const String profileEdit = '/settings/edit';
   static const String savedMessages = '/settings/saved-messages';
+  static const String widgetSetup = '/settings/widget-setup';
   static const String privacyPolicy = '/settings/privacy-policy';
   static const String termsConditions = '/settings/terms-conditions';
 

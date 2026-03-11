@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    android:background="@drawable/widget_background"
+    android:gravity="center_vertical">
+
+    <TextView
+        android:id="@+id/verse_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="El Señor es mi pastor; nada me falta."
+        android:textSize="15sp"
+        android:textColor="#1A2740"
+        android:fontFamily="serif"
+        android:lineSpacingMultiplier="1.3"
+        android:maxLines="5"
+        android:ellipsize="end" />
+
+    <TextView
+        android:id="@+id/verse_ref"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:text="Salmos 23:1"
+        android:textSize="12sp"
+        android:textColor="#6B7B8D"
+        android:fontFamily="sans-serif-light" />
+
+</LinearLayout>
