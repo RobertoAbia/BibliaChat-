@@ -39,6 +39,12 @@ final savedMessageIdsProvider = FutureProvider<Set<String>>((ref) async {
   return repo.getSavedMessageIds();
 });
 
+// Per-message saved status (avoids rebuilding ALL hearts when one changes)
+final isMessageSavedProvider = Provider.family<bool, String>((ref, messageId) {
+  final savedIds = ref.watch(savedMessageIdsProvider).valueOrNull;
+  return savedIds?.contains(messageId) ?? false;
+});
+
 // State for saved message operations
 class SavedMessageState {
   final bool isLoading;

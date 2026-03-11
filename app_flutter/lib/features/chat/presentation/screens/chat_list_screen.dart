@@ -73,22 +73,24 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              _buildHeader(context),
-
-              // Content
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: () async {
-                    ref.read(userChatsRefreshProvider.notifier).state++;
-                    await ref.read(refreshableUserChatsProvider.future);
-                  },
-                  color: AppTheme.primaryColor,
-                  child: CustomScrollView(
-                    slivers: [
+          child: RefreshIndicator(
+            onRefresh: () async {
+              ref.read(userChatsRefreshProvider.notifier).state++;
+              await ref.read(refreshableUserChatsProvider.future);
+            },
+            color: AppTheme.primaryColor,
+            child: CustomScrollView(
+              slivers: [
+                SliverAppBar(
+                  pinned: true,
+                  backgroundColor: AppTheme.backgroundDark,
+                  surfaceTintColor: Colors.transparent,
+                  scrolledUnderElevation: 4,
+                  shadowColor: Colors.black26,
+                  toolbarHeight: 76,
+                  automaticallyImplyLeading: false,
+                  flexibleSpace: _buildHeader(context),
+                ),
                       // New conversation button
                       SliverToBoxAdapter(
                         child: Padding(
@@ -174,11 +176,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -243,7 +242,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppTheme.surfaceDark.withOpacity(0.5),
+              color: Colors.white,
               borderRadius: BorderRadius.circular(24),
             ),
             child: Icon(
@@ -496,10 +495,10 @@ class _ChatTileState extends State<_ChatTile>
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceDark.withOpacity(0.4),
+                color: AppTheme.surfaceLight,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppTheme.surfaceLight.withOpacity(0.3),
+                  color: const Color(0xFFD0D8E4),
                 ),
               ),
               child: Row(
@@ -509,7 +508,7 @@ class _ChatTileState extends State<_ChatTile>
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceLight.withOpacity(0.3),
+                      color: const Color(0xFFD0D8E4),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Center(
@@ -574,7 +573,7 @@ class _ChatTileState extends State<_ChatTile>
                     width: 28,
                     height: 28,
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceLight.withOpacity(0.2),
+                      color: const Color(0xFFD8DEE8),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -687,10 +686,10 @@ class _GuidedTopicsSection extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
         child: Container(
           decoration: BoxDecoration(
-            color: AppTheme.surfaceDark.withOpacity(0.3),
+            color: AppTheme.surfaceLight,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: AppTheme.surfaceLight.withOpacity(0.2),
+              color: const Color(0xFFD8DEE8),
             ),
           ),
           child: Theme(
@@ -707,7 +706,7 @@ class _GuidedTopicsSection extends StatelessWidget {
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceLight.withOpacity(0.3),
+                      color: const Color(0xFFD0D8E4),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(
@@ -728,7 +727,7 @@ class _GuidedTopicsSection extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceLight.withOpacity(0.3),
+                      color: const Color(0xFFD0D8E4),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -745,7 +744,7 @@ class _GuidedTopicsSection extends StatelessWidget {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceLight.withOpacity(0.2),
+                  color: const Color(0xFFD8DEE8),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(

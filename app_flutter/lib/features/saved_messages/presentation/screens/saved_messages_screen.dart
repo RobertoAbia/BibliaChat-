@@ -16,12 +16,12 @@ class SavedMessagesScreen extends ConsumerWidget {
     final savedMessagesAsync = ref.watch(savedMessagesProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
+          bottom: false,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -98,7 +98,7 @@ class SavedMessagesScreen extends ConsumerWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppTheme.surfaceLight.withOpacity(0.3),
+                color: const Color(0xFFD0D8E4),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -166,7 +166,7 @@ class SavedMessagesScreen extends ConsumerWidget {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceDark.withOpacity(0.5),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
                 ),
                 child: Icon(
@@ -263,7 +263,7 @@ class SavedMessagesScreen extends ConsumerWidget {
               ),
             ],
           ),
-          backgroundColor: AppTheme.surfaceDark.withOpacity(0.95),
+          backgroundColor: const Color(0xFF1A2740),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -352,10 +352,10 @@ class _SavedMessageTileState extends State<_SavedMessageTile>
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceDark.withOpacity(0.4),
+                color: AppTheme.surfaceLight,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: AppTheme.surfaceLight.withOpacity(0.3),
+                  color: const Color(0xFFD0D8E4),
                 ),
               ),
               child: Column(
@@ -412,7 +412,7 @@ class _SavedMessageTileState extends State<_SavedMessageTile>
                           width: 32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color: AppTheme.surfaceLight.withOpacity(0.3),
+                            color: const Color(0xFFD0D8E4),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Icon(
@@ -456,7 +456,7 @@ class _SavedMessageTileState extends State<_SavedMessageTile>
           color: AppTheme.surfaceDark,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppTheme.surfaceLight.withOpacity(0.3),
+            color: const Color(0xFFD0D8E4),
           ),
         ),
         child: Column(
@@ -476,7 +476,7 @@ class _SavedMessageTileState extends State<_SavedMessageTile>
                 widget.onUnsave();
               },
             ),
-            const Divider(height: 1, color: AppTheme.surfaceLight),
+            Divider(height: 1, color: AppTheme.textTertiary.withOpacity(0.3)),
             ListTile(
               leading: Icon(
                 Icons.close,

@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:back_button_interceptor/back_button_interceptor.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'core/router/app_router.dart';
+import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'core/constants/route_constants.dart';
 
@@ -26,17 +30,41 @@ class BibliaChatApp extends ConsumerStatefulWidget {
   ConsumerState<BibliaChatApp> createState() => _BibliaChatAppState();
 }
 
-class _BibliaChatAppState extends ConsumerState<BibliaChatApp> {
+class _BibliaChatAppState extends ConsumerState<BibliaChatApp>
+    with WidgetsBindingObserver {
+  StreamSubscription<AuthState>? _authSubscription;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     BackButtonInterceptor.add(_handleBackButton, name: 'main');
+    _listenToAuthChanges();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _authSubscription?.cancel();
     BackButtonInterceptor.remove(_handleBackButton);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Limpiar badge del icono cada vez que la app vuelve al primer plano
+      NotificationService().clearBadge();
+    }
+  }
+
+  /// Listener global para detectar password recovery deep link
+  void _listenToAuthChanges() {
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      if (data.event == AuthChangeEvent.passwordRecovery && mounted) {
+        ref.read(appRouterProvider).go(RouteConstants.resetPassword);
+      }
+    });
   }
 
   bool _handleBackButton(bool stopDefaultButtonEvent, RouteInfo info) {
@@ -74,13 +102,20 @@ class _BibliaChatAppState extends ConsumerState<BibliaChatApp> {
   Widget build(BuildContext context) {
     final router = ref.watch(appRouterProvider);
 
-    return MaterialApp.router(
-      title: 'Biblia Chat',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.dark,
-      routerConfig: router,
+    return MediaQuery(
+      // Ignorar tamaño de fuente del sistema
+      data: MediaQuery.of(context).copyWith(
+        textScaler: TextScaler.noScaling,
+        boldText: false,
+      ),
+      child: MaterialApp.router(
+        title: 'Biblia Chat',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.darkTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: ThemeMode.light,
+        routerConfig: router,
+      ),
     );
   }
 }

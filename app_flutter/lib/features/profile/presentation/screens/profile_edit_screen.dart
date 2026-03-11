@@ -307,7 +307,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
                     border: Border.all(
                       color: isSelected
                           ? AppTheme.primaryColor
-                          : AppTheme.surfaceLight.withOpacity(0.3),
+                          : const Color(0xFFD0D8E4),
                     ),
                   ),
                   child: Column(
@@ -364,7 +364,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
             side: BorderSide(
               color: isSelected
                   ? AppTheme.primaryColor
-                  : AppTheme.surfaceLight.withOpacity(0.3),
+                  : const Color(0xFFD0D8E4),
             ),
           );
         }).toList(),
@@ -455,7 +455,7 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
             side: BorderSide(
               color: isSelected
                   ? AppTheme.primaryColor
-                  : AppTheme.surfaceLight.withOpacity(0.3),
+                  : const Color(0xFFD0D8E4),
             ),
           );
         }).toList(),

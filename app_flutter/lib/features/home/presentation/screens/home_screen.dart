@@ -6,7 +6,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/providers/story_viewed_provider.dart';
-import '../../../../core/services/notification_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/daily_progress_provider.dart';
 import '../../../../core/widgets/glass_container.dart';
@@ -31,7 +30,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   /// Guard: esperar a que los providers tengan datos antes de renderizar.
   /// _forceReady es safety net: si algo falla, mostramos la UI igual tras 150ms.
   bool _forceReady = false;
-
   @override
   void initState() {
     super.initState();
@@ -40,10 +38,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (mounted && !_forceReady) {
         setState(() => _forceReady = true);
       }
-    });
-    // Pedir permiso de notificaciones después de que Home sea visible
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      NotificationService().requestPermissionIfNeeded();
     });
   }
 
@@ -85,32 +79,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header fijo (no se va con el scroll)
-              _buildHeader(context),
+          child: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                pinned: true,
+                backgroundColor: AppTheme.backgroundDark,
+                surfaceTintColor: Colors.transparent,
+                scrolledUnderElevation: 4,
+                shadowColor: Colors.black26,
+                toolbarHeight: 88,
+                automaticallyImplyLeading: false,
+                flexibleSpace: _buildHeader(context),
+              ),
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Week Calendar with glass effect
+                    _buildWeekCalendar(context),
 
-              // Contenido scrollable
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Week Calendar with glass effect
-                      _buildWeekCalendar(context),
+                    const SizedBox(height: 24),
 
-                      const SizedBox(height: 24),
+                    // Today's Progress
+                    _buildProgressSection(context),
 
-                      // Today's Progress
-                      _buildProgressSection(context),
+                    const SizedBox(height: 24),
 
-                      const SizedBox(height: 24),
-
-                      // Content Cards
-                      _buildContentCards(),
-                    ],
-                  ),
+                    // Content Cards
+                    _buildContentCards(),
+                  ],
                 ),
               ),
             ],
@@ -173,28 +170,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
 
           // Streak with glass effect
-          GlassContainer(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            borderRadius: 24,
-            blur: 8,
-            backgroundOpacity: 0.4,
-            child: Row(
-              children: [
-                const Text('🔥', style: TextStyle(fontSize: 18)),
-                const SizedBox(width: 6),
-                Consumer(
-                  builder: (context, ref, child) {
-                    final streak = ref.watch(streakDaysDisplayProvider);
-                    return Text(
-                      '$streak',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            color: AppTheme.primaryColor,
-                            fontWeight: FontWeight.bold,
-                          ),
-                    );
-                  },
-                ),
-              ],
+          GestureDetector(
+            onTap: () => _showStreakInfo(context),
+            child: GlassContainer(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              borderRadius: 24,
+              blur: 8,
+              backgroundOpacity: 0.4,
+              child: Row(
+                children: [
+                  const Text('🔥', style: TextStyle(fontSize: 18)),
+                  const SizedBox(width: 6),
+                  Consumer(
+                    builder: (context, ref, child) {
+                      final streak = ref.watch(streakDaysDisplayProvider);
+                      return Text(
+                        '$streak',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
 
@@ -203,13 +203,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  /// Gradiente dorado tenue para días pasados completados.
+  /// Gradiente dorado brillante para hoy completado.
+  static const _brightGoldGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      Color(0xFFE8C967),
+      Color(0xFFD4AF37),
+    ],
+  );
+
+  /// Gradiente dorado tenue para días completados no seleccionados.
   static const _dimGoldGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xB3E8C967), // 0.7 opacity
-      Color(0xB3D4AF37), // 0.7 opacity
+      Color(0x80E8C967), // 0.5 opacity
+      Color(0x80D4AF37), // 0.5 opacity
     ],
   );
 
@@ -229,22 +239,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         borderRadius: 20,
         blur: 10,
         backgroundOpacity: 0.35,
-        child: TweenAnimationBuilder<double>(
-          tween: Tween(begin: 0.0, end: 1.0),
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeOutCubic,
-          builder: (context, value, child) {
-            return Opacity(
-              opacity: value,
-              child: Transform.translate(
-                offset: Offset(0, 10 * (1 - value)),
-                child: child,
-              ),
-            );
-          },
-          child: weekCompletionAsync.isLoading
-              ? const SizedBox(height: 52)
-              : Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: List.generate(7, (index) {
             final day = weekStart.add(Duration(days: index));
@@ -286,42 +281,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 onTap = null;
             }
 
-            // --- VISUAL: Letra = selector, Círculo = completación ---
+            // --- VISUAL: Letra fija en hoy, Círculo = selector + completación ---
+            final isPremium = ref.watch(isPremiumProvider);
 
-            // Letra: dorada si seleccionado, gris si no
-            final letterColor = isSelected
+            // Letra: azul fijo en hoy, gris el resto (no se mueve al seleccionar)
+            final letterColor = isToday
                 ? AppTheme.primaryColor
                 : AppTheme.textTertiary;
 
-            // Círculo: dorado si completado, gris si locked, transparente si no completado/futuro
+            // Círculo: dorado bright = seleccionado+completado, dim = completado no seleccionado
             final Gradient? circleGradient;
             final Color? circleColor;
             final Border? circleBorder;
             final List<BoxShadow>? circleShadow;
 
             if (isDayCompleted) {
-              // Completado: dorado (bright para hoy, dimmer para pasado)
-              circleGradient = isToday ? AppTheme.goldGradient : _dimGoldGradient;
+              // Completado: bright si seleccionado, dim si no
+              circleGradient = isSelected ? _brightGoldGradient : _dimGoldGradient;
               circleColor = null;
               circleBorder = null;
               circleShadow = [
                 BoxShadow(
-                  color: AppTheme.primaryColor.withOpacity(isToday ? 0.3 : 0.15),
-                  blurRadius: isToday ? 10 : 6,
-                  spreadRadius: 0,
+                  color: const Color(0xFFD4AF37).withOpacity(isSelected ? 0.5 : 0.15),
+                  blurRadius: isSelected ? 12 : 4,
+                  spreadRadius: isSelected ? 2 : 0,
                 ),
               ];
             } else if (dayState == _DayState.pastLocked) {
-              // Pasado no completado: gris + candado
+              // Pasado no completado
               circleGradient = null;
-              circleColor = AppTheme.surfaceLight.withOpacity(0.3);
-              circleBorder = Border.all(
-                color: AppTheme.surfaceLight.withOpacity(0.5),
-                width: 1,
-              );
+              circleColor = const Color(0xFFD0D8E4);
+              circleBorder = isSelected
+                  ? Border.all(color: AppTheme.primaryColor, width: 2)
+                  : Border.all(color: AppTheme.surfaceLight.withOpacity(0.5), width: 1);
+              circleShadow = null;
+            } else if (isToday && isSelected) {
+              // Hoy no completado + seleccionado: borde azul grueso
+              circleGradient = null;
+              circleColor = Colors.transparent;
+              circleBorder = Border.all(color: AppTheme.primaryColor, width: 2);
               circleShadow = null;
             } else {
-              // Hoy no completado / futuro: transparente + borde sutil
+              // Hoy no completado no seleccionado / futuro: borde sutil
               circleGradient = null;
               circleColor = Colors.transparent;
               circleBorder = Border.all(
@@ -346,7 +347,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       dayNames[index],
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             color: letterColor,
-                            fontWeight: isSelected
+                            fontWeight: isToday
                                 ? FontWeight.w600
                                 : FontWeight.normal,
                           ),
@@ -387,7 +388,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             Positioned(
                               bottom: 0,
                               child: Icon(
-                                Icons.lock_rounded,
+                                isPremium ? Icons.lock_open_rounded : Icons.lock_rounded,
                                 color: AppTheme.textTertiary,
                                 size: 14,
                               ),
@@ -400,8 +401,118 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             );
           }),
         ),
-        ),
       ),
+    );
+  }
+
+
+  void _showStreakInfo(BuildContext context) {
+    final streak = ref.read(streakDaysDisplayProvider);
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            padding: const EdgeInsets.all(28),
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceDark,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                color: const Color(0xFFD4AF37).withOpacity(0.3),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFD4AF37).withOpacity(0.15),
+                  blurRadius: 30,
+                  spreadRadius: 0,
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Fuego con glow dorado
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: _brightGoldGradient,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFD4AF37).withOpacity(0.4),
+                        blurRadius: 20,
+                        spreadRadius: 2,
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Text('🔥', style: TextStyle(fontSize: 36)),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                // Número grande
+                Text(
+                  '$streak',
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        color: const Color(0xFFE8C967),
+                        fontWeight: FontWeight.bold,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  streak == 1 ? 'día de racha' : 'días de racha',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
+                ),
+                const SizedBox(height: 20),
+                // Divider dorado sutil
+                Container(
+                  height: 1,
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  color: const Color(0xFFD4AF37).withOpacity(0.2),
+                ),
+                const SizedBox(height: 20),
+                // Explicación
+                Text(
+                  'Completa las 3 reflexiones cada día para mantener tu racha activa.',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppTheme.textSecondary,
+                        height: 1.4,
+                      ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                // Botón
+                SizedBox(
+                  width: double.infinity,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(dialogContext),
+                    style: TextButton.styleFrom(
+                      backgroundColor: const Color(0xFFD4AF37).withOpacity(0.12),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      'Entendido',
+                      style: TextStyle(
+                        color: Color(0xFFE8C967),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -517,9 +628,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           SnackBar(
             content: const Text(
               'No hay contenido disponible para este día',
-              style: TextStyle(color: AppTheme.textPrimary),
+              style: TextStyle(color: Colors.white),
             ),
-            backgroundColor: AppTheme.surfaceDark,
+            backgroundColor: const Color(0xFF1A2740),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.all(16),
@@ -540,6 +651,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         'gospel': gospel,
         'initialSlideIndex': slideIndex,
         'topicKey': topicKey,
+        'singleSlideIndex': slideIndex,
         'onSlideViewed': (int index) async {
           // Mark slide as viewed (with user ID)
           await service.markSlideAsViewed(userId, gospel.date, index);
@@ -549,6 +661,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     // Refresh the viewed slides state for UI
     ref.invalidate(viewedSlidesProvider);
+    if (forDate != null) {
+      ref.invalidate(viewedSlidesForDateProvider(forDate));
+    }
 
     // Read directly from SharedPreferences to check completion
     final viewedSlides = await service.getViewedSlides(userId, gospel.date);
@@ -611,20 +726,48 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       forDate = null;
     } else {
       gospelAsync = ref.watch(gospelForDateProvider(_selectedDate));
-      // Para días pasados, los slides vistos se cargan del SharedPreferences de esa fecha
-      // Por simplicidad, si el día está completado mostramos todo como visto
-      final completedDates = ref.watch(weekCompletionProvider).valueOrNull ?? <String>{};
-      final dateStr = '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
-      viewedSlides = completedDates.contains(dateStr) ? {0, 1, 2} : <int>{};
+      final pastViewedAsync = ref.watch(viewedSlidesForDateProvider(_selectedDate));
+      viewedSlides = pastViewedAsync.valueOrNull ?? <int>{};
       forDate = _selectedDate;
     }
 
     final hasContent = (gospelAsync.valueOrNull as dynamic)?.hasStoriesContent ?? false;
 
+    // Determine label based on denomination
+    final profileAsync = ref.watch(currentUserProfileProvider);
+    final isCatholic = profileAsync.whenOrNull(
+      data: (profile) => profile?.denomination == Denomination.catolica,
+    ) ?? false;
+    final sectionTitle = 'Reflexiones del día';
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Section header
+          if (hasContent) ...[
+            Row(
+              children: [
+                Text(
+                  sectionTitle,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  '· 3 reflexiones',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.textTertiary,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+
           // Gospel Card (Evangelio del Día)
           _buildGospelCard(),
 
@@ -670,7 +813,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       Expanded(
                         child: Container(
                           height: 1,
-                          color: AppTheme.surfaceLight.withOpacity(0.3),
+                          color: const Color(0xFFD0D8E4),
                         ),
                       ),
                       Padding(
@@ -688,7 +831,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       Expanded(
                         child: Container(
                           height: 1,
-                          color: AppTheme.surfaceLight.withOpacity(0.3),
+                          color: const Color(0xFFD0D8E4),
                         ),
                       ),
                     ],
@@ -731,9 +874,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       forDate = null;
     } else {
       gospelAsync = ref.watch(gospelForDateProvider(_selectedDate));
-      final completedDates = ref.watch(weekCompletionProvider).valueOrNull ?? <String>{};
-      final dateStr = '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
-      viewedSlides = completedDates.contains(dateStr) ? {0, 1, 2} : <int>{};
+      final pastViewedAsync = ref.watch(viewedSlidesForDateProvider(_selectedDate));
+      viewedSlides = pastViewedAsync.valueOrNull ?? <int>{};
       forDate = _selectedDate;
     }
 
@@ -791,17 +933,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               );
             }
           },
-          onChatTap: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => ChatScreen(
-                  topicKey: topicKey,
-                  initialGospelText: gospel.text,
-                  initialGospelReference: gospel.reference,
-                ),
-              ),
-            );
-          },
         );
       },
     );
@@ -834,12 +965,12 @@ class _GospelCardPlaceholder extends StatelessWidget {
               end: Alignment.bottomRight,
               colors: [
                 AppTheme.surfaceLight.withOpacity(0.08),
-                AppTheme.surfaceDark.withOpacity(0.3),
+                AppTheme.surfaceLight,
               ],
             ),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: AppTheme.surfaceLight.withOpacity(0.1),
+              color: const Color(0xFFD8DEE8),
             ),
           ),
           child: Row(
@@ -863,7 +994,7 @@ class _GospelCardPlaceholder extends StatelessWidget {
                       width: 100,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: AppTheme.surfaceLight.withOpacity(0.15),
+                        color: const Color(0xFFD8DEE8),
                         borderRadius: BorderRadius.circular(5),
                       ),
                     ),
@@ -872,7 +1003,7 @@ class _GospelCardPlaceholder extends StatelessWidget {
                       width: 160,
                       height: 14,
                       decoration: BoxDecoration(
-                        color: AppTheme.surfaceLight.withOpacity(0.1),
+                        color: const Color(0xFFD8DEE8),
                         borderRadius: BorderRadius.circular(7),
                       ),
                     ),
@@ -892,7 +1023,6 @@ class _GospelCardCompact extends StatefulWidget {
   final String reference;
   final bool hasStories;
   final VoidCallback onTap;
-  final VoidCallback? onChatTap;
 
   const _GospelCardCompact({
     super.key,
@@ -900,7 +1030,6 @@ class _GospelCardCompact extends StatefulWidget {
     required this.reference,
     this.hasStories = false,
     required this.onTap,
-    this.onChatTap,
   });
 
   @override
@@ -958,7 +1087,7 @@ class _GospelCardCompactState extends State<_GospelCardCompact>
                   end: Alignment.bottomRight,
                   colors: [
                     AppTheme.primaryColor.withOpacity(0.15),
-                    AppTheme.surfaceDark.withOpacity(0.5),
+                    Colors.white,
                   ],
                 ),
                 borderRadius: BorderRadius.circular(20),
@@ -1038,16 +1167,19 @@ class _GospelCardCompactState extends State<_GospelCardCompact>
                       children: [
                         Row(
                           children: [
-                            Text(
-                              widget.label,
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(
-                                    color: AppTheme.primaryColor,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.5,
-                                  ),
+                            Flexible(
+                              child: Text(
+                                widget.label,
+                                overflow: TextOverflow.ellipsis,
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                      color: AppTheme.primaryColor,
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.5,
+                                    ),
+                              ),
                             ),
                             if (widget.hasStories) ...[
                               const SizedBox(width: 8),
@@ -1088,44 +1220,20 @@ class _GospelCardCompactState extends State<_GospelCardCompact>
                       ],
                     ),
                   ),
-                  // Actions
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Chat button (si tiene Stories)
-                      if (widget.hasStories && widget.onChatTap != null)
-                        GestureDetector(
-                          onTap: widget.onChatTap,
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            margin: const EdgeInsets.only(right: 8),
-                            decoration: BoxDecoration(
-                              color: AppTheme.surfaceLight.withOpacity(0.4),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Icon(
-                              Icons.chat_bubble_outline_rounded,
-                              color: AppTheme.textSecondary,
-                              size: 20,
-                            ),
-                          ),
-                        ),
-                      // Chevron / Play
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          widget.hasStories
-                              ? Icons.play_arrow_rounded
-                              : Icons.chevron_right,
-                          color: AppTheme.primaryColor,
-                          size: 22,
-                        ),
-                      ),
-                    ],
+                  // Chevron / Play
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      widget.hasStories
+                          ? Icons.play_arrow_rounded
+                          : Icons.chevron_right,
+                      color: AppTheme.primaryColor,
+                      size: 22,
+                    ),
                   ),
                 ],
               ),
@@ -1266,18 +1374,21 @@ class _ContentCardState extends State<_ContentCard>
                     children: [
                       Row(
                         children: [
-                          Text(
-                            widget.label,
-                            style:
-                                Theme.of(context).textTheme.labelSmall?.copyWith(
-                                      color: widget.isNew
-                                          ? AppTheme.primaryColor
-                                          : AppTheme.textTertiary,
-                                      fontWeight: widget.isNew
-                                          ? FontWeight.w600
-                                          : FontWeight.normal,
-                                      letterSpacing: 0.5,
-                                    ),
+                          Flexible(
+                            child: Text(
+                              widget.label,
+                              overflow: TextOverflow.ellipsis,
+                              style:
+                                  Theme.of(context).textTheme.labelSmall?.copyWith(
+                                        color: widget.isNew
+                                            ? AppTheme.primaryColor
+                                            : AppTheme.textTertiary,
+                                        fontWeight: widget.isNew
+                                            ? FontWeight.w600
+                                            : FontWeight.normal,
+                                        letterSpacing: 0.5,
+                                      ),
+                            ),
                           ),
                           // "NUEVO" badge when isNew
                           if (widget.isNew) ...[
@@ -1343,7 +1454,7 @@ class _ContentCardState extends State<_ContentCard>
                   decoration: BoxDecoration(
                     color: widget.isNew
                         ? AppTheme.primaryColor.withOpacity(0.2)
-                        : AppTheme.surfaceLight.withOpacity(0.3),
+                        : const Color(0xFFD0D8E4),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -1387,13 +1498,13 @@ class _GospelErrorCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppTheme.surfaceDark.withOpacity(0.6),
-                AppTheme.surfaceDark.withOpacity(0.4),
+                Colors.white,
+                AppTheme.surfaceLight,
               ],
             ),
             borderRadius: BorderRadius.circular(24),
             border: Border.all(
-              color: AppTheme.surfaceLight.withOpacity(0.2),
+              color: const Color(0xFFD8DEE8),
             ),
           ),
           child: Column(
@@ -1512,7 +1623,7 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
                     end: Alignment.bottomRight,
                     colors: [
                       AppTheme.primaryColor.withOpacity(0.12),
-                      AppTheme.surfaceDark.withOpacity(0.5),
+                      Colors.white,
                     ],
                   ),
                   borderRadius: BorderRadius.circular(20),
@@ -1617,7 +1728,7 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
                     Container(
                       height: 6,
                       decoration: BoxDecoration(
-                        color: AppTheme.surfaceLight.withOpacity(0.3),
+                        color: const Color(0xFFD0D8E4),
                         borderRadius: BorderRadius.circular(3),
                       ),
                       child: FractionallySizedBox(

@@ -38,13 +38,14 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Set system UI overlay style (dark theme)
+  // Set system UI overlay style (light theme)
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Color(0xFF0F1424),
-      systemNavigationBarIconBrightness: Brightness.light,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light, // iOS: dark icons
+      systemNavigationBarColor: Colors.white,
+      systemNavigationBarIconBrightness: Brightness.dark,
     ),
   );
 

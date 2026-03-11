@@ -97,7 +97,7 @@ class GlassContainer extends StatelessWidget {
       blur: 15,
       backgroundOpacity: 0.4,
       showBorder: true,
-      borderColor: AppTheme.surfaceLight.withOpacity(0.3),
+      borderColor: const Color(0xFFD0D8E4),
       onTap: onTap,
       child: child,
     );
@@ -150,7 +150,7 @@ class GlassContainer extends StatelessWidget {
       showBorder: true,
       borderColor: isSelected
           ? AppTheme.primaryColor.withOpacity(0.6)
-          : AppTheme.surfaceLight.withOpacity(0.3),
+          : const Color(0xFFD0D8E4),
       borderWidth: isSelected ? 1.5 : 1,
       boxShadow: isSelected
           ? [
@@ -168,8 +168,6 @@ class GlassContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = backgroundColor ?? AppTheme.surfaceDark;
-
     Widget content = ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: BackdropFilter(
@@ -179,15 +177,21 @@ class GlassContainer extends StatelessWidget {
           height: height,
           padding: padding,
           decoration: BoxDecoration(
-            color: bgColor.withOpacity(backgroundOpacity),
+            color: (backgroundColor ?? Colors.white).withOpacity(backgroundOpacity),
             borderRadius: BorderRadius.circular(borderRadius),
             border: showBorder
                 ? Border.all(
-                    color: borderColor ?? AppTheme.surfaceLight.withOpacity(0.2),
+                    color: borderColor ?? const Color(0xFFD0D8E4).withOpacity(0.4),
                     width: borderWidth,
                   )
                 : null,
-            boxShadow: boxShadow,
+            boxShadow: boxShadow ?? [
+              BoxShadow(
+                color: const Color(0xFF1A2740).withOpacity(0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: child,
         ),
@@ -259,7 +263,7 @@ class GlassContainerGradientBorder extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
           child: Container(
             decoration: BoxDecoration(
-              color: AppTheme.surfaceDark.withOpacity(backgroundOpacity),
+              color: Colors.white.withOpacity(backgroundOpacity),
               borderRadius: BorderRadius.circular(borderRadius - borderWidth),
             ),
             child: child,

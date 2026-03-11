@@ -11,8 +11,14 @@ import '../../domain/entities/plan.dart';
 import '../../domain/entities/user_plan.dart';
 import '../providers/study_provider.dart';
 
-class StudyScreen extends ConsumerWidget {
+class StudyScreen extends ConsumerStatefulWidget {
   const StudyScreen({super.key});
+
+  @override
+  ConsumerState<StudyScreen> createState() => _StudyScreenState();
+}
+
+class _StudyScreenState extends ConsumerState<StudyScreen> {
 
   /// Get gradient for plan based on its icon
   LinearGradient _getGradientForPlan(Plan plan) {
@@ -49,7 +55,7 @@ class StudyScreen extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final plansAsync = ref.watch(allPlansProvider);
     final activePlanAsync = ref.watch(activePlanDataProvider);
     final userPlansAsync = ref.watch(allUserPlansProvider);
@@ -61,75 +67,80 @@ class StudyScreen extends ConsumerWidget {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header fijo (no se va con el scroll)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        gradient: AppTheme.goldGradient,
-                        borderRadius: BorderRadius.circular(14),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primaryColor.withOpacity(0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.school_rounded,
-                        color: AppTheme.textOnPrimary,
-                        size: 22,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          child: RefreshIndicator(
+            onRefresh: () async {
+              ref.invalidate(allPlansProvider);
+              ref.invalidate(activePlanDataProvider);
+              ref.invalidate(allUserPlansProvider);
+            },
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
+                SliverAppBar(
+                  pinned: true,
+                  backgroundColor: AppTheme.backgroundDark,
+                  surfaceTintColor: Colors.transparent,
+                  scrolledUnderElevation: 4,
+                  shadowColor: Colors.black26,
+                  toolbarHeight: 76,
+                  automaticallyImplyLeading: false,
+                  flexibleSpace: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+                    child: Row(
                       children: [
-                        Text(
-                          'Estudiar',
-                          style: Theme.of(context)
-                              .textTheme
-                              .headlineSmall
-                              ?.copyWith(
-                                color: AppTheme.textPrimary,
-                                fontWeight: FontWeight.w600,
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.goldGradient,
+                            borderRadius: BorderRadius.circular(14),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryColor.withOpacity(0.3),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
                               ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.school_rounded,
+                            color: AppTheme.textOnPrimary,
+                            size: 22,
+                          ),
                         ),
-                        Text(
-                          'Planes de estudio bíblico',
-                          style:
-                              Theme.of(context).textTheme.bodySmall?.copyWith(
-                                    color: AppTheme.textTertiary,
+                        const SizedBox(width: 14),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Estudiar',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .headlineSmall
+                                  ?.copyWith(
+                                    color: AppTheme.textPrimary,
+                                    fontWeight: FontWeight.w600,
                                   ),
+                            ),
+                            Text(
+                              'Planes de estudio bíblico',
+                              style:
+                                  Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        color: AppTheme.textTertiary,
+                                      ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-
-              // Contenido scrollable
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: () async {
-                    ref.invalidate(allPlansProvider);
-                    ref.invalidate(activePlanDataProvider);
-                    ref.invalidate(allUserPlansProvider);
-                  },
-                  child: SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 16),
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 16),
 
                   // Active Plan Section
                   Padding(
@@ -242,12 +253,11 @@ class StudyScreen extends ConsumerWidget {
                       ],
                     ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
-      ),
     );
   }
 }
@@ -338,13 +348,13 @@ class _NoActivePlanCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppTheme.surfaceDark.withOpacity(0.6),
-                AppTheme.surfaceDark.withOpacity(0.4),
+                Colors.white,
+                AppTheme.surfaceLight,
               ],
             ),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: AppTheme.surfaceLight.withOpacity(0.3),
+              color: const Color(0xFFD0D8E4),
             ),
           ),
           child: Column(
@@ -438,8 +448,8 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                AppTheme.surfaceDark.withOpacity(0.6),
-                AppTheme.surfaceDark.withOpacity(0.4),
+                Colors.white,
+                AppTheme.surfaceLight,
               ],
             ),
             borderRadius: BorderRadius.circular(20),
@@ -568,7 +578,7 @@ class _ActivePlanCardState extends State<_ActivePlanCard>
                           Container(
                             height: 8,
                             decoration: BoxDecoration(
-                              color: AppTheme.surfaceLight.withOpacity(0.3),
+                              color: const Color(0xFFD0D8E4),
                               borderRadius: BorderRadius.circular(4),
                             ),
                           ),
@@ -743,10 +753,10 @@ class _StudyPlanTileState extends ConsumerState<_StudyPlanTile>
             child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: AppTheme.surfaceDark.withOpacity(0.4),
+                color: AppTheme.surfaceLight,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
-                  color: AppTheme.surfaceLight.withOpacity(0.3),
+                  color: const Color(0xFFD0D8E4),
                 ),
               ),
               child: Row(
@@ -868,7 +878,7 @@ class _StudyPlanTileState extends ConsumerState<_StudyPlanTile>
                     width: 32,
                     height: 32,
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceLight.withOpacity(0.3),
+                      color: const Color(0xFFD0D8E4),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(

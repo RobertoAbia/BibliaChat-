@@ -17,6 +17,7 @@ class GospelStoriesScreen extends StatefulWidget {
   final int initialSlideIndex;
   final void Function(int slideIndex)? onSlideViewed;
   final String? topicKey; // Para navegar directo al chat
+  final int? singleSlideIndex; // Si no es null, muestra SOLO ese slide
 
   const GospelStoriesScreen({
     super.key,
@@ -24,6 +25,7 @@ class GospelStoriesScreen extends StatefulWidget {
     this.initialSlideIndex = 0,
     this.onSlideViewed,
     this.topicKey,
+    this.singleSlideIndex,
   });
 
   @override
@@ -48,31 +50,24 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
   // Duración de cada slide (en segundos)
   static const int _slideDuration = 8;
 
-  // Total de slides
-  int get _totalSlides {
-    int count = 0;
-    if (widget.gospel.hasSummary) count++;
-    if (widget.gospel.keyConcept != null &&
-        widget.gospel.keyConcept!.isNotEmpty) count++;
-    if (widget.gospel.practicalExercise != null &&
-        widget.gospel.practicalExercise!.isNotEmpty) count++;
-    return count > 0 ? count : 1; // Mínimo 1 slide
-  }
+  bool get _isSingleSlideMode => widget.singleSlideIndex != null;
 
-  List<_StorySlide> get _slides {
+  // Todos los slides disponibles (sin filtrar)
+  List<_StorySlide> get _allSlides {
     final slides = <_StorySlide>[];
 
-    // Slide 1: Resumen
+    // Slide 0: Resumen
     if (widget.gospel.hasSummary) {
+      final isCatholic = widget.topicKey == 'evangelio_del_dia';
       slides.add(_StorySlide(
         type: _SlideType.summary,
-        title: 'Reflexión del día',
+        title: isCatholic ? 'Evangelio del día' : 'Reflexión del día',
         content: widget.gospel.summary!,
         icon: Icons.format_quote_rounded,
       ));
     }
 
-    // Slide 2: Concepto clave
+    // Slide 1: Concepto clave
     if (widget.gospel.keyConcept != null &&
         widget.gospel.keyConcept!.isNotEmpty) {
       slides.add(_StorySlide(
@@ -83,7 +78,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
       ));
     }
 
-    // Slide 3: Ejercicio práctico
+    // Slide 2: Ejercicio práctico
     if (widget.gospel.practicalExercise != null &&
         widget.gospel.practicalExercise!.isNotEmpty) {
       slides.add(_StorySlide(
@@ -109,11 +104,26 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
     return slides;
   }
 
+  // Total de slides (1 en single mode)
+  int get _totalSlides => _isSingleSlideMode ? 1 : _allSlides.length;
+
+  // Slides a mostrar
+  List<_StorySlide> get _slides {
+    if (_isSingleSlideMode) {
+      final all = _allSlides;
+      final idx = widget.singleSlideIndex!;
+      if (idx < all.length) return [all[idx]];
+      return [all.last];
+    }
+    return _allSlides;
+  }
+
   @override
   void initState() {
     super.initState();
-    _currentPage = widget.initialSlideIndex;
-    _pageController = PageController(initialPage: widget.initialSlideIndex);
+    // En single mode, solo hay 1 slide (index 0 del PageView)
+    _currentPage = _isSingleSlideMode ? 0 : widget.initialSlideIndex;
+    _pageController = PageController(initialPage: _currentPage);
     _progressController = AnimationController(
       vsync: this,
       duration: Duration(seconds: _slideDuration),
@@ -144,9 +154,10 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
     });
 
     // Mark initial slide as viewed
-    widget.onSlideViewed?.call(widget.initialSlideIndex);
+    final viewedIndex = widget.singleSlideIndex ?? widget.initialSlideIndex;
+    widget.onSlideViewed?.call(viewedIndex);
     // Log analytics for initial slide
-    AnalyticsService().logStoryViewed(slideNumber: widget.initialSlideIndex);
+    AnalyticsService().logStoryViewed(slideNumber: viewedIndex);
 
     _startProgress();
   }
@@ -156,6 +167,11 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
   }
 
   void _nextSlide() {
+    if (_isSingleSlideMode) {
+      // Single slide mode: cerrar al terminar
+      context.pop();
+      return;
+    }
     if (_currentPage < _totalSlides - 1) {
       setState(() {
         _currentPage++;
@@ -177,6 +193,11 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
   }
 
   void _previousSlide() {
+    if (_isSingleSlideMode) {
+      // Single slide mode: no hay slide anterior, reiniciar progreso
+      _startProgress();
+      return;
+    }
     if (_currentPage > 0) {
       setState(() {
         _currentPage--;
@@ -192,6 +213,8 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
   }
 
   void _onTapDown(TapDownDetails details) {
+    // Cerrar teclado si está abierto
+    _messageFocusNode.unfocus();
     // Guardar posición para usar en _onTapUp
     _tapX = details.globalPosition.dx;
     // Pausar mientras está presionado
@@ -240,10 +263,14 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundDark,
+      backgroundColor: const Color(0xFF1A1A2E),
       body: Container(
         decoration: const BoxDecoration(
-          gradient: AppTheme.backgroundGradient,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF1A1A2E), Color(0xFF16162A)],
+          ),
         ),
         child: SafeArea(
           child: Column(
@@ -299,11 +326,11 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
           // Text input field
           Expanded(
             child: Container(
-              height: 44,
+              height: 52,
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(26),
                 border: Border.all(
-                  color: AppTheme.textTertiary.withOpacity(0.4),
+                  color: Colors.white.withOpacity(0.3),
                   width: 1,
                 ),
               ),
@@ -313,14 +340,14 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
                     child: TextField(
                       controller: _messageController,
                       focusNode: _messageFocusNode,
-                      cursorColor: AppTheme.textPrimary,
+                      cursorColor: Colors.white,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.textPrimary,
+                            color: Colors.white,
                           ),
                       decoration: InputDecoration(
                         hintText: 'Enviar mensaje',
                         hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.textTertiary,
+                              color: Colors.white.withOpacity(0.5),
                             ),
                         border: InputBorder.none,
                         focusedBorder: InputBorder.none,
@@ -363,9 +390,9 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
             // Share button
             GestureDetector(
               onTap: _shareContent,
-              child: Icon(
+              child: const Icon(
                 Icons.ios_share,
-                color: AppTheme.textPrimary,
+                color: Colors.white,
                 size: 26,
               ),
             ),
@@ -491,7 +518,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
                       children: [
                         // Background
                         Container(
-                          color: AppTheme.surfaceLight.withOpacity(0.4),
+                          color: Colors.white.withOpacity(0.3),
                         ),
                         // Progress
                         if (index < _currentPage)
@@ -533,7 +560,9 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 borderRadius: 20,
                 blur: 8,
-                backgroundOpacity: 0.4,
+                backgroundColor: Colors.white.withOpacity(0.15),
+                borderColor: Colors.white.withOpacity(0.2),
+                backgroundOpacity: 0.15,
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -549,7 +578,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
                     Text(
                       widget.gospel.reference,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppTheme.textPrimary,
+                            color: Colors.white,
                             fontWeight: FontWeight.w500,
                           ),
                     ),
@@ -564,11 +593,13 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
                 padding: const EdgeInsets.all(10),
                 borderRadius: 24,
                 blur: 8,
-                backgroundOpacity: 0.4,
+                backgroundColor: Colors.white.withOpacity(0.15),
+                borderColor: Colors.white.withOpacity(0.2),
+                backgroundOpacity: 0.15,
                 onTap: () => context.pop(),
                 child: const Icon(
                   Icons.close_rounded,
-                  color: AppTheme.textPrimary,
+                  color: Colors.white,
                   size: 22,
                 ),
               ),
@@ -687,7 +718,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
                   child: Text(
                     slide.content,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: AppTheme.textPrimary,
+                          color: Colors.white.withOpacity(0.9),
                           height: 1.5,
                           fontSize: 20,
                           fontWeight: FontWeight.w400,

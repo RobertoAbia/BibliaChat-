@@ -89,7 +89,7 @@ class PlanDetailScreen extends ConsumerWidget {
                     icon: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppTheme.surfaceDark.withOpacity(0.7),
+                        color: Colors.white,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -532,10 +532,10 @@ class _DayPreviewTile extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceDark.withOpacity(0.4),
+            color: AppTheme.surfaceLight,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: AppTheme.surfaceLight.withOpacity(0.2),
+              color: const Color(0xFFD8DEE8),
             ),
           ),
           child: Row(
@@ -544,7 +544,7 @@ class _DayPreviewTile extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceLight.withOpacity(0.3),
+                  color: const Color(0xFFD0D8E4),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Center(

@@ -9,12 +9,12 @@ class TermsConditionsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
+          bottom: false,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -50,7 +50,7 @@ class TermsConditionsScreen extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppTheme.surfaceLight.withOpacity(0.3),
+                color: const Color(0xFFD0D8E4),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -155,7 +155,7 @@ class TermsConditionsScreen extends StatelessWidget {
           if (!isLast) ...[
             const SizedBox(height: 16),
             Divider(
-              color: AppTheme.surfaceLight.withOpacity(0.3),
+              color: const Color(0xFFD0D8E4),
               height: 1,
             ),
             const SizedBox(height: 16),

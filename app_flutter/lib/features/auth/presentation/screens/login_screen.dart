@@ -43,12 +43,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     });
 
     return Scaffold(
-      backgroundColor: AppTheme.backgroundDark,
       body: Container(
         decoration: const BoxDecoration(
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
+          bottom: false,
           child: GestureDetector(
             onTap: () => FocusScope.of(context).unfocus(),
             behavior: HitTestBehavior.opaque,
@@ -75,7 +75,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                 color: AppTheme.textPrimary,
                               ),
                               style: IconButton.styleFrom(
-                                backgroundColor: AppTheme.surfaceDark.withOpacity(0.5),
+                                backgroundColor: Colors.white,
                                 padding: const EdgeInsets.all(12),
                               ),
                             ),
@@ -167,7 +167,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   children: [
                                     Expanded(
                                       child: Divider(
-                                        color: AppTheme.surfaceLight.withOpacity(0.3),
+                                        color: const Color(0xFFD0D8E4),
                                       ),
                                     ),
                                     Padding(
@@ -181,7 +181,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     ),
                                     Expanded(
                                       child: Divider(
-                                        color: AppTheme.surfaceLight.withOpacity(0.3),
+                                        color: const Color(0xFFD0D8E4),
                                       ),
                                     ),
                                   ],

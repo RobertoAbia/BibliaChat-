@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
 
@@ -26,6 +27,19 @@ class OnboardingReminderPage extends StatefulWidget {
 }
 
 class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
+  Future<void> _handleToggle(bool value) async {
+    if (value) {
+      // Al activar, pedir permiso de notificaciones
+      final granted = await NotificationService().requestPermission();
+      if (granted) {
+        widget.onToggle(true);
+      }
+      // Si deniega, no activar el toggle
+    } else {
+      widget.onToggle(false);
+    }
+  }
+
   Future<void> _showTimePicker() async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -167,7 +181,7 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
 
                 // Toggle card
                 GestureDetector(
-                  onTap: () => widget.onToggle(!widget.reminderEnabled),
+                  onTap: () => _handleToggle(!widget.reminderEnabled),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: BackdropFilter(
@@ -188,12 +202,12 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
                               : null,
                           color: widget.reminderEnabled
                               ? null
-                              : AppTheme.surfaceDark.withOpacity(0.4),
+                              : AppTheme.surfaceLight,
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
                             color: widget.reminderEnabled
                                 ? AppTheme.primaryColor.withOpacity(0.6)
-                                : AppTheme.surfaceLight.withOpacity(0.3),
+                                : const Color(0xFFD0D8E4),
                             width: widget.reminderEnabled ? 1.5 : 1,
                           ),
                           boxShadow: widget.reminderEnabled
@@ -270,13 +284,13 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
                             // Toggle switch
                             Switch(
                               value: widget.reminderEnabled,
-                              onChanged: widget.onToggle,
+                              onChanged: _handleToggle,
                               activeColor: AppTheme.primaryColor,
                               activeTrackColor:
                                   AppTheme.primaryColor.withOpacity(0.3),
                               inactiveThumbColor: AppTheme.textSecondary,
                               inactiveTrackColor:
-                                  AppTheme.surfaceLight.withOpacity(0.3),
+                                  const Color(0xFFD0D8E4),
                             ),
                           ],
                         ),
@@ -301,11 +315,11 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
                                 child: Container(
                                   padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
-                                    color: AppTheme.surfaceDark.withOpacity(0.5),
+                                    color: Colors.white,
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
                                       color:
-                                          AppTheme.surfaceLight.withOpacity(0.3),
+                                          const Color(0xFFD0D8E4),
                                     ),
                                   ),
                                   child: Row(
@@ -426,11 +440,11 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w600,
-                          color: AppTheme.backgroundDark,
+                          color: Colors.white,
                         ),
                       ),
                       SizedBox(width: 8),
-                      Icon(Icons.chevron_right, size: 22, color: AppTheme.backgroundDark),
+                      Icon(Icons.chevron_right, size: 22, color: Colors.white),
                     ],
                   ),
                 ),

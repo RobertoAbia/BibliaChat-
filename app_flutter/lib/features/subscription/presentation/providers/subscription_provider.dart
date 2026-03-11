@@ -2,7 +2,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/services/analytics_service.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/revenue_cat_service.dart';
 
 // Estado de la suscripción
@@ -55,12 +57,18 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       return;
     }
 
+    // Leer valor cacheado de SharedPreferences (instantáneo, sin red)
+    final prefs = await SharedPreferences.getInstance();
+    final cachedPremium = prefs.getBool('is_premium') ?? false;
+    state = state.copyWith(isPremium: cachedPremium, isLoading: false);
+
     _customerInfoSubscription = _revenueCatService.customerInfoStream.listen(
       (customerInfo) {
         _updatePremiumStatus(customerInfo);
       },
     );
 
+    // RevenueCat comprueba en background y corrige si cambió
     await _checkPremiumStatus();
     await _loadOfferings();
   }
@@ -69,39 +77,69 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
     final isPremium = customerInfo.entitlements.active
         .containsKey(RevenueCatService.entitlementId);
     state = state.copyWith(isPremium: isPremium);
+    // Guardar en cache para siguiente apertura
+    _savePremiumCache(isPremium);
   }
 
   Future<void> _checkPremiumStatus() async {
     final isPremium = await _revenueCatService.checkPremiumStatus();
     state = state.copyWith(isPremium: isPremium, isLoading: false);
+    // Guardar en cache para siguiente apertura
+    _savePremiumCache(isPremium);
+  }
+
+  Future<void> _savePremiumCache(bool isPremium) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('is_premium', isPremium);
   }
 
   Future<void> _loadOfferings() async {
+    // RevenueCat se inicializa fire-and-forget en splash,
+    // puede no estar listo cuando se abre el paywall
+    for (int i = 0; i < 10; i++) {
+      if (_revenueCatService.isAvailable) break;
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
     final offerings = await _revenueCatService.getOfferings();
-    state = state.copyWith(offerings: offerings);
+    if (offerings != null) {
+      state = state.copyWith(offerings: offerings);
+    }
   }
 
   Future<bool> purchasePackage(Package package) async {
+    final wasPremium = state.isPremium;
     state = state.copyWith(isPurchasing: true, error: null);
 
-    final success = await _revenueCatService.purchasePackage(package);
+    final result = await _revenueCatService.purchasePackage(package);
 
-    if (success) {
-      // Actualizar estado directamente (el stream de customerInfo confirmará después)
-      state = state.copyWith(isPremium: true);
-      // Log analytics event
-      final planType = package.packageType == PackageType.annual ? 'annual' : 'monthly';
-      AnalyticsService().logSubscriptionStarted(planType: planType);
-      AnalyticsService().setUserProperties(isPremium: true);
+    if (result == true) {
+      state = state.copyWith(isPremium: true, isPurchasing: false);
+      _savePremiumCache(true);
+
+      // Solo loguear y notificar si es una compra nueva (no ya suscrito)
+      if (!wasPremium) {
+        final planType = package.packageType == PackageType.annual ? 'annual' : 'monthly';
+        AnalyticsService().logSubscriptionStarted(planType: planType);
+        AnalyticsService().setUserProperties(isPremium: true);
+
+        // Programar recordatorio solo si el producto tiene trial (plan mensual)
+        if (package.storeProduct.introductoryPrice != null) {
+          NotificationService().scheduleTrialReminder();
+        }
+      }
+
+      return !wasPremium; // false si ya era premium (no navegar a success)
+    } else if (result == null) {
+      // User cancelled — no error message
+      state = state.copyWith(isPurchasing: false);
+      return false;
     } else {
       state = state.copyWith(
         isPurchasing: false,
         error: 'No se pudo completar la compra',
       );
+      return false;
     }
-
-    state = state.copyWith(isPurchasing: false);
-    return success;
   }
 
   Future<bool> restorePurchases() async {

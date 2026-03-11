@@ -78,17 +78,17 @@ class _OnboardingNamePageState extends State<OnboardingNamePage> {
                                 color: AppTheme.textTertiary,
                               ),
                           filled: true,
-                          fillColor: AppTheme.surfaceDark.withOpacity(0.4),
+                          fillColor: AppTheme.surfaceLight,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(18),
                             borderSide: BorderSide(
-                              color: AppTheme.surfaceLight.withOpacity(0.3),
+                              color: const Color(0xFFD0D8E4),
                             ),
                           ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(18),
                             borderSide: BorderSide(
-                              color: AppTheme.surfaceLight.withOpacity(0.3),
+                              color: const Color(0xFFD0D8E4),
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
@@ -176,11 +176,11 @@ class _OnboardingNamePageState extends State<OnboardingNamePage> {
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.backgroundDark,
+                              color: Colors.white,
                             ),
                           ),
                           SizedBox(width: 8),
-                          Icon(Icons.chevron_right, size: 22, color: AppTheme.backgroundDark),
+                          Icon(Icons.chevron_right, size: 22, color: Colors.white),
                         ],
                       ),
                     ),

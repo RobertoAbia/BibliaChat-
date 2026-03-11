@@ -149,11 +149,11 @@ class _PrePaywallScreenState extends State<PrePaywallScreen> {
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w600,
-                              color: AppTheme.backgroundDark,
+                              color: Colors.white,
                             ),
                           ),
                           SizedBox(width: 8),
-                          Icon(Icons.chevron_right, size: 22, color: AppTheme.backgroundDark),
+                          Icon(Icons.chevron_right, size: 22, color: Colors.white),
                         ],
                       ),
                     ),

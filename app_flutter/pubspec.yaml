@@ -1,7 +1,7 @@
 name: biblia_chat
 description: "App cristiana para hispanohablantes - Tu fe, tu idioma, tu cultura."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.0+11
 
 environment:
   sdk: ^3.5.4
@@ -48,7 +48,7 @@ dependencies:
   # Image sharing
   screenshot: ^3.0.0
   image_picker: ^1.0.7
-  google_fonts: ^6.1.0
+  google_fonts: ^6.3.2
 
   # Payments (RevenueCat)
   purchases_flutter: ^8.3.1
@@ -63,6 +63,7 @@ dependencies:
   flutter_animate: ^4.5.0
   lottie: ^3.1.3
   flutter_timezone: ^4.1.1
+  timezone: ^0.9.4
   equatable: ^2.0.7
   gal: ^2.3.2
 
@@ -73,6 +74,9 @@ dependencies:
   # Native Splash Screen (runtime API for preserve/remove)
   flutter_native_splash: ^2.4.0
   app_settings: ^7.0.0
+
+  # Badge management (iOS app icon badge)
+  flutter_app_badger: ^1.3.0
 
 dev_dependencies:
   flutter_test:
@@ -117,14 +121,14 @@ flutter_launcher_icons:
   #         weight: 700
 
 # Native Splash Screen Configuration
-# Logo con cruz de madera y burbuja dorada
+# Logo cruz+burbuja azul sobre fondo blanco
 flutter_native_splash:
-  color: "#141A2E"
-  image: assets/images/splash_logo_small.png
+  color: "#FFFFFF"
+  image: assets/images/splash_icon_small.png
 
-  # Android 12+ usa icono sin fondo para evitar cuadrado visible
+  # Android 12+
   android_12:
-    color: "#141A2E"
+    color: "#FFFFFF"
     image: assets/images/splash_icon.png
 
   # iOS specific

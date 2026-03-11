@@ -2,9 +2,12 @@ import 'dart:io';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_app_badger/flutter_app_badger.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:timezone/data/latest_all.dart' as tz;
+import 'package:timezone/timezone.dart' as tz;
 
 import 'analytics_service.dart';
 
@@ -27,6 +30,7 @@ class NotificationService {
 
   GoRouter? _router;
   bool _isInitialized = false;
+  bool _timezoneInitialized = false;
   String? _currentUserId;
 
   /// Inicializa el servicio de notificaciones.
@@ -83,6 +87,9 @@ class NotificationService {
       });
     }
 
+    // 7. Limpiar badge del icono de la app
+    clearBadge();
+
     _isInitialized = true;
     debugPrint('NotificationService initialized for user: $userId');
   }
@@ -112,14 +119,18 @@ class NotificationService {
   }
 
   /// Obtiene el token FCM y lo guarda en Supabase.
+  /// Timeout de 5s para evitar que bloquee la splash (iOS sin APNs se cuelga).
   Future<void> _saveToken(String userId) async {
     try {
-      final token = await _messaging.getToken();
+      final token = await _messaging.getToken().timeout(
+        const Duration(seconds: 5),
+        onTimeout: () => null,
+      );
       if (token != null) {
         await _saveTokenToSupabase(token, userId);
         debugPrint('FCM token saved for user: $userId');
       } else {
-        debugPrint('FCM token is null (permission may be required on iOS)');
+        debugPrint('FCM token is null (timeout or permission required on iOS)');
       }
     } catch (e) {
       debugPrint('Error getting/saving FCM token: $e');
@@ -264,6 +275,89 @@ class NotificationService {
       default:
         _router!.go('/home');
         break;
+    }
+  }
+
+  /// Programa una notificación local para recordar que el trial termina en 2 días.
+  /// Se llama 1 día después de la compra con trial (3 días - 1 = 2 días restantes).
+  static const int _trialReminderId = 9999;
+
+  Future<void> scheduleTrialReminder() async {
+    if (kIsWeb) return;
+
+    try {
+      // Asegurar que tiene permiso de notificaciones
+      final settings = await _messaging.getNotificationSettings();
+      final hasPermission =
+          settings.authorizationStatus == AuthorizationStatus.authorized ||
+          settings.authorizationStatus == AuthorizationStatus.provisional;
+
+      if (!hasPermission) {
+        final granted = await requestPermission();
+        if (!granted) {
+          debugPrint('Trial reminder: notification permission denied');
+          return;
+        }
+        await _setupLocalNotifications();
+      }
+
+      // Inicializar timezone si no se ha hecho
+      if (!_timezoneInitialized) {
+        tz.initializeTimeZones();
+        _timezoneInitialized = true;
+      }
+
+      final scheduledDate = tz.TZDateTime.now(tz.local).add(const Duration(days: 1));
+
+      await _localNotifications.zonedSchedule(
+        _trialReminderId,
+        '⏰ Tu prueba gratuita termina pronto',
+        'Quedan 2 días de tu prueba gratuita. ¡Disfruta de todas las funciones!',
+        scheduledDate,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'biblia_chat_channel',
+            'Biblia Chat',
+            channelDescription: 'Notificaciones de Biblia Chat',
+            importance: Importance.high,
+            priority: Priority.high,
+            icon: '@drawable/ic_notification',
+          ),
+          iOS: DarwinNotificationDetails(
+            sound: 'default',
+            badgeNumber: 1,
+          ),
+        ),
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: null,
+        payload: 'home',
+      );
+
+      debugPrint('Trial reminder scheduled for: $scheduledDate');
+    } catch (e) {
+      debugPrint('Error scheduling trial reminder: $e');
+    }
+  }
+
+  /// Cancela el recordatorio del trial (por si el usuario cancela antes)
+  Future<void> cancelTrialReminder() async {
+    if (kIsWeb) return;
+    try {
+      await _localNotifications.cancel(_trialReminderId);
+    } catch (e) {
+      debugPrint('Error cancelling trial reminder: $e');
+    }
+  }
+
+  /// Limpia el badge del icono de la app (iOS)
+  /// Usa flutter_app_badger que llama directamente a la API nativa de iOS
+  Future<void> clearBadge() async {
+    try {
+      FlutterAppBadger.removeBadge();
+    } catch (e) {
+      debugPrint('Error clearing badge: $e');
     }
   }
 

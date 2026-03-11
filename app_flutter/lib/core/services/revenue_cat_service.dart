@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
 class RevenueCatService {
@@ -21,6 +22,8 @@ class RevenueCatService {
   bool get isAvailable => !kIsWeb && _isInitialized;
 
   Future<void> init(String supabaseUserId) async {
+    if (_isInitialized) return;
+
     // RevenueCat no funciona en web
     if (kIsWeb) {
       debugPrint('RevenueCat: Not available on web');
@@ -59,11 +62,22 @@ class RevenueCatService {
     }
   }
 
-  Future<bool> purchasePackage(Package package) async {
+  /// Returns: true = success, false = error, null = user cancelled
+  Future<bool?> purchasePackage(Package package) async {
     if (!isAvailable) return false;
     try {
       await Purchases.purchasePackage(package);
       return true;
+    } on PlatformException catch (e) {
+      // User cancelled the purchase — not an error
+      if (e.code == '1' ||
+          e.message?.contains('PURCHASE_CANCELLED') == true ||
+          e.message?.contains('userCancelled') == true) {
+        debugPrint('RevenueCat: purchase cancelled by user');
+        return null;
+      }
+      debugPrint('RevenueCat: purchasePackage error - $e');
+      return false;
     } catch (e) {
       debugPrint('RevenueCat: purchasePackage error - $e');
       return false;

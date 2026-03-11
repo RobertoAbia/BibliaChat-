@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -29,6 +28,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) setState(() => _canClose = true);
     });
+    // Forzar recarga de offerings si no están disponibles
+    final offerings = ref.read(subscriptionProvider).offerings;
+    if (offerings == null) {
+      ref.read(subscriptionProvider.notifier).refresh();
+    }
   }
 
   @override
@@ -36,9 +40,6 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final subscriptionState = ref.watch(subscriptionProvider);
     final monthlyPackage = ref.watch(monthlyPackageProvider);
     final annualPackage = ref.watch(annualPackageProvider);
-
-    final showMockData =
-        monthlyPackage == null && annualPackage == null && !subscriptionState.isLoading;
 
     final monthlyPrice = monthlyPackage?.storeProduct.priceString ?? '\$14.99';
     final annualPrice = annualPackage?.storeProduct.priceString ?? '\$39.99';
@@ -59,7 +60,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 64),
+                      const SizedBox(height: 32),
 
                       // Logo centrado
                       Center(
@@ -102,21 +103,13 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
                       const SizedBox(height: 12),
 
-                      // Loading
-                      if (subscriptionState.isLoading && !kIsWeb && !showMockData)
-                        const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 40),
-                          child: Center(child: CircularProgressIndicator()),
-                        )
-                      else ...[
-                        // Plan mensual
-                        _buildMonthlyCard(monthlyPrice),
+                      // Plan mensual (mock data si RevenueCat no carga)
+                      _buildMonthlyCard(monthlyPrice),
 
-                        const SizedBox(height: 10),
+                      const SizedBox(height: 10),
 
-                        // Plan anual
-                        _buildAnnualCard(annualPrice),
-                      ],
+                      // Plan anual
+                      _buildAnnualCard(annualPrice),
 
                       const SizedBox(height: 16),
 
@@ -197,11 +190,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                                   style: const TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w600,
-                                    color: AppTheme.backgroundDark,
+                                    color: Colors.white,
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                const Icon(Icons.chevron_right, size: 22, color: AppTheme.backgroundDark),
+                                const Icon(Icons.chevron_right, size: 22, color: Colors.white),
                               ],
                             ),
                           ),
@@ -335,7 +328,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceDark.withOpacity(0.6),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: AppTheme.textPrimary.withOpacity(0.12),
@@ -375,9 +368,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       onTap: () => setState(() => _trialEnabled = true),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isSelected ? 14.5 : 16),
         decoration: BoxDecoration(
-          color: AppTheme.surfaceDark.withOpacity(0.4),
+          color: AppTheme.surfaceLight,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected
@@ -418,9 +411,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       onTap: () => setState(() => _trialEnabled = false),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isSelected ? 14.5 : 16),
         decoration: BoxDecoration(
-          color: AppTheme.surfaceDark.withOpacity(0.4),
+          color: AppTheme.surfaceLight,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
             color: isSelected
@@ -480,8 +473,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       _handlePurchase(monthlyPackage);
     } else if (!_trialEnabled && annualPackage != null) {
       _handlePurchase(annualPackage);
+    } else {
+      // RevenueCat no cargó productos — dejar pasar sin compra
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go(RouteConstants.home);
+      }
     }
-    // Si es mock data (packages null), no hace nada
   }
 
   Future<void> _handlePurchase(Package package) async {
@@ -492,9 +491,18 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   }
 
   Future<void> _handleRestore() async {
-    final success = await ref.read(subscriptionProvider.notifier).restorePurchases();
-    if (success && mounted) {
+    await ref.read(subscriptionProvider.notifier).restorePurchases();
+    if (!mounted) return;
+    final isPremium = ref.read(subscriptionProvider).isPremium;
+    if (isPremium) {
       context.go(RouteConstants.purchaseSuccess);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se encontraron compras anteriores'),
+          backgroundColor: Color(0xFF1A2740),
+        ),
+      );
     }
   }
 }

@@ -267,7 +267,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: AppTheme.surfaceLight.withOpacity(0.3),
+            color: const Color(0xFFD0D8E4),
           ),
         ),
         title: Row(
@@ -363,7 +363,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             'Mensaje eliminado',
             style: TextStyle(color: Colors.white),
           ),
-          backgroundColor: AppTheme.surfaceDark.withOpacity(0.95),
+          backgroundColor: const Color(0xFF1A2740),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -403,7 +403,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           context.go('/chat'); // Siempre va al tab de chats
         }
       },
-      child: Scaffold(
+      child: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.opaque,
+        child: Scaffold(
         backgroundColor: AppTheme.backgroundDark,
         body: Container(
         decoration: const BoxDecoration(
@@ -475,6 +478,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         ),
       ),
     ),
+    ),
     );
   }
 
@@ -488,10 +492,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         child: Container(
           padding: const EdgeInsets.fromLTRB(8, 8, 16, 12),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceDark.withOpacity(0.5),
+            color: Colors.white,
             border: Border(
               bottom: BorderSide(
-                color: AppTheme.surfaceLight.withOpacity(0.2),
+                color: const Color(0xFFD8DEE8),
               ),
             ),
           ),
@@ -502,7 +506,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    color: AppTheme.surfaceLight.withOpacity(0.3),
+                    color: const Color(0xFFD0D8E4),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
@@ -600,7 +604,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       width: 36,
       height: 36,
       decoration: BoxDecoration(
-        color: AppTheme.surfaceLight.withOpacity(0.3),
+        color: const Color(0xFFD0D8E4),
         shape: BoxShape.circle,
       ),
       child: PopupMenuButton<String>(
@@ -614,7 +618,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(12),
           side: BorderSide(
-            color: AppTheme.surfaceLight.withOpacity(0.3),
+            color: const Color(0xFFD0D8E4),
           ),
         ),
         enabled: hasChat,
@@ -679,7 +683,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: AppTheme.surfaceLight.withOpacity(0.3),
+            color: const Color(0xFFD0D8E4),
           ),
         ),
         title: Text(
@@ -696,7 +700,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(
-                color: AppTheme.surfaceLight.withOpacity(0.3),
+                color: const Color(0xFFD0D8E4),
               ),
             ),
             focusedBorder: OutlineInputBorder(
@@ -741,7 +745,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
           side: BorderSide(
-            color: AppTheme.surfaceLight.withOpacity(0.3),
+            color: const Color(0xFFD0D8E4),
           ),
         ),
         title: Text(
@@ -803,7 +807,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                         ),
                       ],
                     ),
-                    backgroundColor: AppTheme.surfaceDark.withOpacity(0.95),
+                    backgroundColor: const Color(0xFF1A2740),
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -905,10 +909,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: AppTheme.surfaceDark.withOpacity(0.6),
+          color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: AppTheme.surfaceLight.withOpacity(0.3),
+            color: const Color(0xFFD0D8E4),
           ),
         ),
         child: Row(
@@ -936,10 +940,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         child: Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           decoration: BoxDecoration(
-            color: AppTheme.surfaceDark.withOpacity(0.6),
+            color: Colors.white,
             border: Border(
               top: BorderSide(
-                color: AppTheme.surfaceLight.withOpacity(0.2),
+                color: const Color(0xFFD8DEE8),
               ),
             ),
           ),
@@ -1064,7 +1068,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
             decoration: BoxDecoration(
               color: remaining <= 1
                   ? AppTheme.errorColor.withOpacity(0.2)
-                  : AppTheme.surfaceLight.withOpacity(0.3),
+                  : const Color(0xFFD0D8E4),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -1170,14 +1174,10 @@ class _MessageBubble extends ConsumerWidget {
                     decoration: BoxDecoration(
                       gradient: message.isUser
                           ? AppTheme.goldGradient
-                          : LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                AppTheme.surfaceDark.withOpacity(0.7),
-                                AppTheme.surfaceDark.withOpacity(0.5),
-                              ],
-                            ),
+                          : null,
+                      color: message.isUser
+                          ? null
+                          : AppTheme.surfaceLight,
                       borderRadius: BorderRadius.circular(18).copyWith(
                         bottomRight:
                             message.isUser ? const Radius.circular(4) : null,
@@ -1187,17 +1187,23 @@ class _MessageBubble extends ConsumerWidget {
                       border: message.isUser
                           ? null
                           : Border.all(
-                              color: AppTheme.surfaceLight.withOpacity(0.3),
+                              color: const Color(0xFFD0D8E4).withOpacity(0.5),
                             ),
                       boxShadow: message.isUser
                           ? [
                               BoxShadow(
-                                color: AppTheme.primaryColor.withOpacity(0.3),
+                                color: AppTheme.primaryColor.withOpacity(0.2),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
                             ]
-                          : null,
+                          : [
+                              BoxShadow(
+                                color: const Color(0xFF1A2740).withOpacity(0.04),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                     ),
                     child: Text(
                       message.content,
@@ -1216,23 +1222,8 @@ class _MessageBubble extends ConsumerWidget {
               // Actions for AI messages
               if (!message.isUser) ...[
                 const SizedBox(height: 8),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _SaveButton(
-                      messageId: message.id,
-                    ),
-                    const SizedBox(width: 8),
-                    _ActionButton(
-                      icon: Icons.bookmark_border,
-                      onTap: () {},
-                    ),
-                    const SizedBox(width: 8),
-                    _ActionButton(
-                      icon: Icons.share_outlined,
-                      onTap: () {},
-                    ),
-                  ],
+                _SaveButton(
+                  messageId: message.id,
                 ),
               ],
             ],
@@ -1253,7 +1244,7 @@ class _MessageBubble extends ConsumerWidget {
           color: AppTheme.surfaceDark,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: AppTheme.surfaceLight.withOpacity(0.3),
+            color: const Color(0xFFD0D8E4),
           ),
         ),
         child: Column(
@@ -1273,7 +1264,7 @@ class _MessageBubble extends ConsumerWidget {
                 onDelete?.call();
               },
             ),
-            const Divider(height: 1, color: AppTheme.surfaceLight),
+            Divider(height: 1, color: AppTheme.textTertiary.withOpacity(0.3)),
             ListTile(
               leading: Icon(
                 Icons.close,
@@ -1293,36 +1284,6 @@ class _MessageBubble extends ConsumerWidget {
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _ActionButton({
-    required this.icon,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 32,
-        height: 32,
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceLight.withOpacity(0.3),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Icon(
-          icon,
-          color: AppTheme.textTertiary,
-          size: 16,
-        ),
-      ),
-    );
-  }
-}
-
 /// Save/unsave button for AI messages (heart icon)
 class _SaveButton extends ConsumerWidget {
   final String messageId;
@@ -1331,10 +1292,7 @@ class _SaveButton extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final savedIdsAsync = ref.watch(savedMessageIdsProvider);
-    final isSaved = savedIdsAsync.whenOrNull(
-      data: (ids) => ids.contains(messageId),
-    ) ?? false;
+    final isSaved = ref.watch(isMessageSavedProvider(messageId));
 
     return GestureDetector(
       onTap: () => _toggleSave(context, ref),
@@ -1345,7 +1303,7 @@ class _SaveButton extends ConsumerWidget {
         decoration: BoxDecoration(
           color: isSaved
               ? AppTheme.primaryColor.withOpacity(0.2)
-              : AppTheme.surfaceLight.withOpacity(0.3),
+              : const Color(0xFFD0D8E4),
           borderRadius: BorderRadius.circular(10),
           border: isSaved
               ? Border.all(color: AppTheme.primaryColor.withOpacity(0.5))
@@ -1361,32 +1319,7 @@ class _SaveButton extends ConsumerWidget {
   }
 
   Future<void> _toggleSave(BuildContext context, WidgetRef ref) async {
-    final success = await ref
-        .read(savedMessageNotifierProvider.notifier)
-        .toggleSave(messageId);
-
-    if (success && context.mounted) {
-      final savedIdsAsync = ref.read(savedMessageIdsProvider);
-      final wasSaved = savedIdsAsync.whenOrNull(
-        data: (ids) => ids.contains(messageId),
-      ) ?? false;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            wasSaved ? 'Guardado en Mis Reflexiones' : 'Eliminado de Mis Reflexiones',
-            style: const TextStyle(color: Colors.white),
-          ),
-          backgroundColor: AppTheme.surfaceDark.withOpacity(0.95),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
+    await ref.read(savedMessageNotifierProvider.notifier).toggleSave(messageId);
   }
 }
 
@@ -1421,12 +1354,12 @@ class _TypingIndicator extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 decoration: BoxDecoration(
-                  color: AppTheme.surfaceDark.withOpacity(0.7),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(18).copyWith(
                     bottomLeft: const Radius.circular(4),
                   ),
                   border: Border.all(
-                    color: AppTheme.surfaceLight.withOpacity(0.3),
+                    color: const Color(0xFFD0D8E4),
                   ),
                 ),
                 child: Row(

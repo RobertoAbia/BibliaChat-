@@ -335,7 +335,7 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
                     icon: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: AppTheme.surfaceDark.withOpacity(0.7),
+                        color: Colors.white,
                         shape: BoxShape.circle,
                       ),
                       child: const Icon(
@@ -376,7 +376,7 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
                             CircularProgressIndicator(
                               value: data.currentDay / data.totalDays,
                               backgroundColor:
-                                  AppTheme.surfaceLight.withOpacity(0.3),
+                                  const Color(0xFFD0D8E4),
                               color: AppTheme.primaryColor,
                               strokeWidth: 3,
                             ),
@@ -677,11 +677,11 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
                       height: 50,
                       decoration: BoxDecoration(
                         color: _displayDay > 1
-                            ? AppTheme.surfaceLight.withOpacity(0.3)
-                            : AppTheme.surfaceLight.withOpacity(0.1),
+                            ? const Color(0xFFD0D8E4)
+                            : const Color(0xFFD8DEE8),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: AppTheme.surfaceLight.withOpacity(0.3),
+                          color: const Color(0xFFD0D8E4),
                         ),
                       ),
                       child: TextButton.icon(
@@ -712,11 +712,11 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
                       height: 50,
                       decoration: BoxDecoration(
                         color: _displayDay < data.totalDays
-                            ? AppTheme.surfaceLight.withOpacity(0.3)
-                            : AppTheme.surfaceLight.withOpacity(0.1),
+                            ? const Color(0xFFD0D8E4)
+                            : const Color(0xFFD8DEE8),
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: AppTheme.surfaceLight.withOpacity(0.3),
+                          color: const Color(0xFFD0D8E4),
                         ),
                       ),
                       child: TextButton.icon(
@@ -773,7 +773,7 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
                       : LinearGradient(
                           colors: [
                             AppTheme.surfaceLight.withOpacity(0.5),
-                            AppTheme.surfaceLight.withOpacity(0.3),
+                            const Color(0xFFD0D8E4),
                           ],
                         ),
                   borderRadius: BorderRadius.circular(16),
@@ -899,7 +899,7 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
                   end: Alignment.bottomRight,
                   colors: [
                     AppTheme.surfaceDark.withOpacity(0.9),
-                    AppTheme.surfaceDark.withOpacity(0.7),
+                    Colors.white,
                   ],
                 ),
                 borderRadius: BorderRadius.circular(24),
@@ -1011,12 +1011,12 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
                   end: Alignment.bottomRight,
                   colors: [
                     AppTheme.surfaceDark.withOpacity(0.9),
-                    AppTheme.surfaceDark.withOpacity(0.7),
+                    Colors.white,
                   ],
                 ),
                 borderRadius: BorderRadius.circular(24),
                 border: Border.all(
-                  color: AppTheme.surfaceLight.withOpacity(0.3),
+                  color: const Color(0xFFD0D8E4),
                 ),
               ),
               child: Column(

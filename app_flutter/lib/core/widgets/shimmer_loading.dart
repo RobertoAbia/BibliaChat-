@@ -3,13 +3,12 @@ import 'package:shimmer/shimmer.dart';
 
 import '../theme/app_theme.dart';
 
-/// Colores base para shimmer - con contraste visible en tema oscuro
+/// Colores base para shimmer - con contraste visible en tema claro
 class ShimmerColors {
-  // Colores más claros para que el efecto shimmer sea visible
-  static Color get baseColor => const Color(0xFF3A3A5A);  // Gris-azulado medio
-  static Color get highlightColor => const Color(0xFF5A5A7A);  // Gris-azulado claro
-  static Color get goldBaseColor => AppTheme.primaryDark.withOpacity(0.3);
-  static Color get goldHighlightColor => AppTheme.primaryColor.withOpacity(0.5);
+  static Color get baseColor => const Color(0xFFD8DEE8);  // Gris-azulado claro
+  static Color get highlightColor => const Color(0xFFEDF2F8);  // Casi blanco
+  static Color get goldBaseColor => AppTheme.primaryColor.withOpacity(0.15);
+  static Color get goldHighlightColor => AppTheme.primaryColor.withOpacity(0.3);
 }
 
 /// Wrapper base para efectos shimmer
