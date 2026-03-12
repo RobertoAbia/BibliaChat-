@@ -196,6 +196,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               context,
               title: 'Cuenta',
               items: [
+                // No premium: CTA prominente arriba de todo
+                if (!isPremium)
+                  SettingsItem(
+                    icon: Icons.workspace_premium,
+                    title: 'Pásate a Premium',
+                    subtitle: 'Chat ilimitado y más',
+                    isHighlighted: true,
+                    onTap: () => context.push(RouteConstants.paywall),
+                  ),
                 SettingsItem(
                   icon: Icons.person_outline,
                   title: 'Editar Perfil',
@@ -232,26 +241,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     subtitle: email,
                     onTap: () {},
                   ),
-                if (!isPremium)
-                  SettingsItem(
-                    icon: Icons.workspace_premium,
-                    title: 'Pásate a Premium',
-                    subtitle: 'Chat ilimitado y más',
-                    isHighlighted: true,
-                    onTap: () => context.push(RouteConstants.paywall),
-                  ),
-                if (isPremium)
-                  SettingsItem(
-                    icon: Icons.credit_card,
-                    title: 'Gestionar suscripción',
-                    subtitle: 'Cambiar plan o cancelar',
-                    onTap: () async {
-                      await launchUrl(
-                        Uri.parse('https://apps.apple.com/account/subscriptions'),
-                        mode: LaunchMode.externalApplication,
-                      );
-                    },
-                  ),
               ],
             ),
 
@@ -271,6 +260,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   subtitle: 'Mensajes guardados',
                   onTap: () => context.push(RouteConstants.savedMessages),
                 ),
+                // Premium: gestionar suscripción discreto en Preferencias
+                if (isPremium)
+                  SettingsItem(
+                    icon: Icons.credit_card,
+                    title: 'Gestionar suscripción',
+                    subtitle: 'Cambiar plan o cancelar',
+                    onTap: () async {
+                      await launchUrl(
+                        Uri.parse('https://apps.apple.com/account/subscriptions'),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
+                  ),
               ],
             ),
 
