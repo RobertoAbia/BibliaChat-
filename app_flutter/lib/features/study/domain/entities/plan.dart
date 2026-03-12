@@ -20,8 +20,12 @@ class Plan {
     required this.createdAt,
   });
 
-  /// Icon as IconData based on the icon name stored in DB
+  /// Returns emoji for the plan. DB stores emoji directly (👑, 💰, etc.)
   String get iconEmoji {
+    if (icon == null || icon!.isEmpty) return '📖';
+    // If icon is already an emoji (not a legacy icon code), return directly
+    if (!icon!.contains('_') && icon!.length <= 4) return icon!;
+    // Legacy icon codes fallback
     switch (icon) {
       case 'self_improvement':
         return '🙏';
