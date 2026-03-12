@@ -531,10 +531,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (_isViewingToday) {
       progress = ref.watch(todayProgressProvider);
     } else {
-      // Día pasado: completado = 100%, no completado = 0%
-      final completedDates = ref.watch(weekCompletionProvider).valueOrNull ?? <String>{};
-      final dateStr = '${_selectedDate.year}-${_selectedDate.month.toString().padLeft(2, '0')}-${_selectedDate.day.toString().padLeft(2, '0')}';
-      progress = completedDates.contains(dateStr) ? 100 : 0;
+      // Día pasado: progreso basado en slides vistos (0%, 33%, 66%, 100%)
+      final pastViewedSlides = ref.watch(viewedSlidesForDateProvider(_selectedDate)).valueOrNull ?? <int>{};
+      progress = (pastViewedSlides.length / 3 * 100).round();
     }
 
     return Padding(
