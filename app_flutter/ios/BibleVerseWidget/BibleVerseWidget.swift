@@ -110,7 +110,7 @@ struct SmallVerseView: View {
                 .offset(x: 50, y: -40)
 
             // Content
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 0) {
                 // Header
                 HStack(spacing: 4) {
                     Image(systemName: "book.closed.fill")
@@ -122,7 +122,7 @@ struct SmallVerseView: View {
                         .tracking(1)
                 }
 
-                Spacer()
+                Spacer(minLength: 6)
 
                 // Verse text
                 Text(entry.verseText)
@@ -131,7 +131,7 @@ struct SmallVerseView: View {
                     .lineLimit(4)
                     .minimumScaleFactor(0.7)
 
-                Spacer()
+                Spacer(minLength: 6)
 
                 // Reference
                 Text(entry.verseRef)
@@ -180,10 +180,10 @@ struct MediumVerseView: View {
                         Image(systemName: "book.closed.fill")
                             .font(.system(size: 11))
                             .foregroundColor(Color.widgetGoldLight)
-                        Text("VERSÍCULO DEL DÍA")
+                        Text("VERSÍCULO DE LA HORA")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundColor(Color.widgetGoldLight)
-                            .tracking(1.2)
+                            .tracking(1.0)
                     }
 
                     Spacer()
@@ -245,7 +245,7 @@ struct BibleVerseWidget: Widget {
                 BibleVerseWidgetEntryView(entry: entry)
             }
         }
-        .configurationDisplayName("Versículo del día")
+        .configurationDisplayName("Versículo de la hora")
         .description("Un versículo bíblico inspirador que cambia cada hora.")
         .supportedFamilies(supportedFamilies)
     }
