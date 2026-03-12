@@ -260,19 +260,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   subtitle: 'Mensajes guardados',
                   onTap: () => context.push(RouteConstants.savedMessages),
                 ),
-                // Premium: gestionar suscripción discreto en Preferencias
-                if (isPremium)
-                  SettingsItem(
-                    icon: Icons.credit_card,
-                    title: 'Gestionar suscripción',
-                    subtitle: 'Cambiar plan o cancelar',
-                    onTap: () async {
-                      await launchUrl(
-                        Uri.parse('https://apps.apple.com/account/subscriptions'),
-                        mode: LaunchMode.externalApplication,
-                      );
-                    },
-                  ),
               ],
             ),
 
@@ -304,6 +291,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     );
                   },
                 ),
+                // Premium: gestionar suscripción discreto en Información
+                if (isPremium)
+                  SettingsItem(
+                    icon: Icons.credit_card,
+                    title: 'Gestionar suscripción',
+                    subtitle: 'Cambiar plan o cancelar',
+                    onTap: () async {
+                      await launchUrl(
+                        Uri.parse('https://apps.apple.com/account/subscriptions'),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
+                  ),
                 SettingsItem(
                   icon: Icons.description_outlined,
                   title: 'Términos de uso',
