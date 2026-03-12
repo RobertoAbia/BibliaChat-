@@ -194,7 +194,7 @@ struct MediumVerseView: View {
                         .foregroundColor(Color.white.opacity(0.4))
                 }
 
-                Spacer()
+                Spacer(minLength: 8)
 
                 // Verse text — big and prominent
                 Text("\u{201C}\(entry.verseText)\u{201D}")
@@ -203,7 +203,7 @@ struct MediumVerseView: View {
                     .lineLimit(3)
                     .minimumScaleFactor(0.75)
 
-                Spacer()
+                Spacer(minLength: 8)
 
                 // Reference with subtle gold accent
                 HStack(spacing: 6) {
