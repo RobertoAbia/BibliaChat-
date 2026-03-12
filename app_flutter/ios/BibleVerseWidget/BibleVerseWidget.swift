@@ -230,7 +230,17 @@ struct BibleVerseWidget: Widget {
         StaticConfiguration(kind: kind, provider: BibleVerseProvider()) { entry in
             if #available(iOS 17.0, *) {
                 BibleVerseWidgetEntryView(entry: entry)
-                    .containerBackground(.fill.tertiary, for: .widget)
+                    .containerBackground(for: .widget) {
+                        LinearGradient(
+                            gradient: Gradient(colors: [
+                                Color.widgetGradientStart,
+                                Color.widgetGradientMid,
+                                Color.widgetGradientEnd
+                            ]),
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    }
             } else {
                 BibleVerseWidgetEntryView(entry: entry)
             }
