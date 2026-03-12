@@ -291,7 +291,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     );
                   },
                 ),
-                // Premium: gestionar suscripción discreto en Información
+                SettingsItem(
+                  icon: Icons.description_outlined,
+                  title: 'Términos de uso',
+                  onTap: () => context.push(RouteConstants.termsConditions),
+                ),
+                SettingsItem(
+                  icon: Icons.privacy_tip_outlined,
+                  title: 'Política de privacidad',
+                  onTap: () => context.push(RouteConstants.privacyPolicy),
+                ),
+                // Premium: gestionar suscripción al final de Información
                 if (isPremium)
                   SettingsItem(
                     icon: Icons.credit_card,
@@ -304,16 +314,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       );
                     },
                   ),
-                SettingsItem(
-                  icon: Icons.description_outlined,
-                  title: 'Términos de uso',
-                  onTap: () => context.push(RouteConstants.termsConditions),
-                ),
-                SettingsItem(
-                  icon: Icons.privacy_tip_outlined,
-                  title: 'Política de privacidad',
-                  onTap: () => context.push(RouteConstants.privacyPolicy),
-                ),
               ],
             ),
 
