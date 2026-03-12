@@ -110,7 +110,7 @@ struct SmallVerseView: View {
                 .offset(x: 50, y: -40)
 
             // Content
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 6) {
                 // Header
                 HStack(spacing: 4) {
                     Image(systemName: "book.closed.fill")
@@ -122,8 +122,6 @@ struct SmallVerseView: View {
                         .tracking(1)
                 }
 
-                Spacer(minLength: 6)
-
                 // Verse text
                 Text(entry.verseText)
                     .font(.system(size: 13, weight: .semibold, design: .serif))
@@ -131,15 +129,13 @@ struct SmallVerseView: View {
                     .lineLimit(4)
                     .minimumScaleFactor(0.7)
 
-                Spacer(minLength: 6)
-
                 // Reference
                 Text(entry.verseRef)
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(Color.white.opacity(0.6))
             }
             .padding(14)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
@@ -173,7 +169,7 @@ struct MediumVerseView: View {
                 .offset(x: -80, y: 70)
 
             // Content
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
                 // Header bar
                 HStack {
                     HStack(spacing: 6) {
@@ -194,16 +190,12 @@ struct MediumVerseView: View {
                         .foregroundColor(Color.white.opacity(0.4))
                 }
 
-                Spacer(minLength: 8)
-
                 // Verse text — big and prominent
                 Text("\u{201C}\(entry.verseText)\u{201D}")
                     .font(.system(size: 15, weight: .semibold, design: .serif))
                     .foregroundColor(.white)
                     .lineLimit(3)
                     .minimumScaleFactor(0.75)
-
-                Spacer(minLength: 8)
 
                 // Reference with subtle gold accent
                 HStack(spacing: 6) {
@@ -216,7 +208,7 @@ struct MediumVerseView: View {
                 }
             }
             .padding(16)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }
