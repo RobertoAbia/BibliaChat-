@@ -56,6 +56,16 @@ struct BibleVerseEntry: TimelineEntry {
     let verseRef: String
 }
 
+// MARK: - Color Palette
+
+extension Color {
+    static let widgetGradientStart = Color(red: 0.16, green: 0.22, blue: 0.42)   // Deep navy blue
+    static let widgetGradientMid = Color(red: 0.22, green: 0.28, blue: 0.52)     // Medium blue
+    static let widgetGradientEnd = Color(red: 0.30, green: 0.25, blue: 0.50)     // Purple-blue
+    static let widgetGold = Color(red: 0.83, green: 0.69, blue: 0.22)            // #D4AF37
+    static let widgetGoldLight = Color(red: 0.91, green: 0.79, blue: 0.40)       // #E8C967
+}
+
 // MARK: - Widget Views
 
 /// Lock Screen widget (iOS 16+ accessoryRectangular)
@@ -63,13 +73,13 @@ struct LockScreenVerseView: View {
     let entry: BibleVerseEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
+        VStack(alignment: .leading, spacing: 1) {
             Text(entry.verseText)
-                .font(.system(size: 12, weight: .medium))
+                .font(.system(size: 11, weight: .medium))
                 .lineLimit(3)
                 .minimumScaleFactor(0.8)
             Text(entry.verseRef)
-                .font(.system(size: 10, weight: .light))
+                .font(.system(size: 9, weight: .light))
                 .foregroundColor(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -81,34 +91,56 @@ struct SmallVerseView: View {
     let entry: BibleVerseEntry
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Image(systemName: "book.closed.fill")
-                .font(.system(size: 14))
-                .foregroundColor(.orange)
-
-            Text(entry.verseText)
-                .font(.system(size: 13, weight: .medium))
-                .lineLimit(5)
-                .minimumScaleFactor(0.7)
-
-            Spacer()
-
-            Text(entry.verseRef)
-                .font(.system(size: 11, weight: .light))
-                .foregroundColor(.secondary)
-        }
-        .padding(12)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(
+        ZStack {
+            // Background gradient
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color(red: 0.96, green: 0.97, blue: 1.0),
-                    Color.white
+                    Color.widgetGradientStart,
+                    Color.widgetGradientMid,
+                    Color.widgetGradientEnd
                 ]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-        )
+
+            // Decorative circle (subtle)
+            Circle()
+                .fill(Color.white.opacity(0.05))
+                .frame(width: 120, height: 120)
+                .offset(x: 50, y: -40)
+
+            // Content
+            VStack(alignment: .leading, spacing: 4) {
+                // Header
+                HStack(spacing: 4) {
+                    Image(systemName: "book.closed.fill")
+                        .font(.system(size: 10))
+                        .foregroundColor(Color.widgetGoldLight)
+                    Text("VERSÍCULO")
+                        .font(.system(size: 9, weight: .bold))
+                        .foregroundColor(Color.widgetGoldLight)
+                        .tracking(1)
+                }
+
+                Spacer()
+
+                // Verse text
+                Text(entry.verseText)
+                    .font(.system(size: 13, weight: .semibold, design: .serif))
+                    .foregroundColor(.white)
+                    .lineLimit(4)
+                    .minimumScaleFactor(0.7)
+
+                Spacer()
+
+                // Reference
+                Text(entry.verseRef)
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(Color.white.opacity(0.6))
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        }
     }
 }
 
@@ -117,39 +149,75 @@ struct MediumVerseView: View {
     let entry: BibleVerseEntry
 
     var body: some View {
-        HStack(spacing: 12) {
-            VStack {
-                Image(systemName: "book.closed.fill")
-                    .font(.system(size: 24))
-                    .foregroundColor(.orange)
-            }
-            .frame(width: 44)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(entry.verseText)
-                    .font(.system(size: 14, weight: .medium))
-                    .lineLimit(4)
-                    .minimumScaleFactor(0.8)
-
-                Text(entry.verseRef)
-                    .font(.system(size: 12, weight: .light))
-                    .foregroundColor(.secondary)
-            }
-
-            Spacer()
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
-        .background(
+        ZStack {
+            // Background gradient
             LinearGradient(
                 gradient: Gradient(colors: [
-                    Color(red: 0.96, green: 0.97, blue: 1.0),
-                    Color.white
+                    Color.widgetGradientStart,
+                    Color.widgetGradientMid,
+                    Color.widgetGradientEnd
                 ]),
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
             )
-        )
+
+            // Decorative circles (subtle depth)
+            Circle()
+                .fill(Color.white.opacity(0.04))
+                .frame(width: 200, height: 200)
+                .offset(x: 120, y: -60)
+
+            Circle()
+                .fill(Color.white.opacity(0.03))
+                .frame(width: 150, height: 150)
+                .offset(x: -80, y: 70)
+
+            // Content
+            VStack(alignment: .leading, spacing: 0) {
+                // Header bar
+                HStack {
+                    HStack(spacing: 6) {
+                        Image(systemName: "book.closed.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(Color.widgetGoldLight)
+                        Text("VERSÍCULO DEL DÍA")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(Color.widgetGoldLight)
+                            .tracking(1.2)
+                    }
+
+                    Spacer()
+
+                    // Cross icon
+                    Image(systemName: "cross.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(Color.white.opacity(0.4))
+                }
+
+                Spacer()
+
+                // Verse text — big and prominent
+                Text("\u{201C}\(entry.verseText)\u{201D}")
+                    .font(.system(size: 15, weight: .semibold, design: .serif))
+                    .foregroundColor(.white)
+                    .lineLimit(3)
+                    .minimumScaleFactor(0.75)
+
+                Spacer()
+
+                // Reference with subtle gold accent
+                HStack(spacing: 6) {
+                    RoundedRectangle(cornerRadius: 1)
+                        .fill(Color.widgetGold)
+                        .frame(width: 16, height: 2)
+                    Text(entry.verseRef)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(Color.white.opacity(0.7))
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        }
     }
 }
 
