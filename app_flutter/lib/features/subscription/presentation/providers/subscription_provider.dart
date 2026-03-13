@@ -82,6 +82,11 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
   }
 
   Future<void> _checkPremiumStatus() async {
+    // Esperar a que RevenueCat esté listo (init es fire-and-forget en splash)
+    for (int i = 0; i < 10; i++) {
+      if (_revenueCatService.isAvailable) break;
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
     final isPremium = await _revenueCatService.checkPremiumStatus();
     state = state.copyWith(isPremium: isPremium, isLoading: false);
     // Guardar en cache para siguiente apertura
