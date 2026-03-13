@@ -106,6 +106,17 @@ class RevenueCatService {
     }
   }
 
+  /// Switch RevenueCat to a different user (e.g. after login)
+  Future<void> logIn(String userId) async {
+    if (!isAvailable) return;
+    try {
+      await Purchases.logIn(userId);
+      debugPrint('RevenueCat: logIn successful for $userId');
+    } catch (e) {
+      debugPrint('RevenueCat: logIn error - $e');
+    }
+  }
+
   Future<CustomerInfo?> getCustomerInfo() async {
     if (!isAvailable) return null;
     try {

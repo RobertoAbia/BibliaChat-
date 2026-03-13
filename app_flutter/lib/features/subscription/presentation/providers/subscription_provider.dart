@@ -60,7 +60,7 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
     // Leer valor cacheado de SharedPreferences (instantáneo, sin red)
     final prefs = await SharedPreferences.getInstance();
     final cachedPremium = prefs.getBool('is_premium') ?? false;
-    state = state.copyWith(isPremium: cachedPremium, isLoading: false);
+    state = state.copyWith(isPremium: cachedPremium);
 
     _customerInfoSubscription = _revenueCatService.customerInfoStream.listen(
       (customerInfo) {
