@@ -42,6 +42,7 @@ class _PrePaywallScreenState extends State<PrePaywallScreen> {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
+          bottom: false,
           child: Column(
             children: [
               Expanded(

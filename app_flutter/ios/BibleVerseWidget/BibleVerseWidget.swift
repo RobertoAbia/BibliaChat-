@@ -15,37 +15,105 @@ struct BibleVerseProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (BibleVerseEntry) -> Void) {
-        completion(getEntry())
+        completion(getEntryForDate(Date()))
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<BibleVerseEntry>) -> Void) {
-        let entry = getEntry()
-
-        // Update every hour (at the start of next hour)
+        // Generate entries for the next 24 hours (one per hour)
+        var entries: [BibleVerseEntry] = []
         let calendar = Calendar.current
-        let nextHour = calendar.nextDate(
-            after: Date(),
-            matching: DateComponents(minute: 0),
-            matchingPolicy: .nextTime
-        ) ?? Date().addingTimeInterval(3600)
+        let now = Date()
 
-        let timeline = Timeline(entries: [entry], policy: .after(nextHour))
+        // Current hour entry
+        entries.append(getEntryForDate(now))
+
+        // Pre-generate next 23 hours so widget never shows stale data
+        for hourOffset in 1...23 {
+            if let futureDate = calendar.date(byAdding: .hour, value: hourOffset, to: now) {
+                let roundedDate = calendar.nextDate(
+                    after: calendar.date(byAdding: .hour, value: hourOffset - 1, to: now)!,
+                    matching: DateComponents(minute: 0),
+                    matchingPolicy: .nextTime
+                ) ?? futureDate
+                entries.append(getEntryForDate(roundedDate))
+            }
+        }
+
+        // Refresh timeline after 24 hours
+        let refreshDate = calendar.date(byAdding: .hour, value: 24, to: now)
+            ?? now.addingTimeInterval(86400)
+
+        let timeline = Timeline(entries: entries, policy: .after(refreshDate))
         completion(timeline)
     }
 
-    private func getEntry() -> BibleVerseEntry {
-        let userDefaults = UserDefaults(suiteName: appGroupId)
-        let text = userDefaults?.string(forKey: "verse_text")
-            ?? "El Señor es mi pastor; nada me falta."
-        let ref = userDefaults?.string(forKey: "verse_ref")
-            ?? "Salmos 23:1"
+    /// Calculate the verse for a specific date/hour independently (no app needed).
+    /// Mirrors the Flutter logic in widget_service.dart `_getVerseForCurrentHour()`.
+    private func getEntryForDate(_ date: Date) -> BibleVerseEntry {
+        let verses = loadVerses()
 
+        guard !verses.isEmpty else {
+            return BibleVerseEntry(
+                date: date,
+                verseText: "El Señor es mi pastor; nada me falta.",
+                verseRef: "Salmos 23:1"
+            )
+        }
+
+        let calendar = Calendar.current
+        let dayOfYear = calendar.ordinality(of: .day, in: .year, for: date) ?? 1
+        let year = calendar.component(.year, from: date)
+        let hour = calendar.component(.hour, from: date)
+
+        // Same seed algorithm as Flutter: Random(dayOfYear * 1000 + year)
+        let seed = dayOfYear * 1000 + year
+        let shuffledIndices = seededShuffle(count: verses.count, seed: seed)
+        let index = shuffledIndices[hour % shuffledIndices.count]
+
+        let verse = verses[index]
         return BibleVerseEntry(
-            date: Date(),
-            verseText: text,
-            verseRef: ref
+            date: date,
+            verseText: verse.text,
+            verseRef: verse.ref
         )
     }
+
+    /// Load verses from App Group UserDefaults (synced by Flutter).
+    /// Falls back to Flutter-pushed single verse if JSON not available.
+    private func loadVerses() -> [Verse] {
+        let userDefaults = UserDefaults(suiteName: appGroupId)
+
+        // Try to load full verses JSON (synced by Flutter on app open)
+        if let jsonString = userDefaults?.string(forKey: "verses_json"),
+           let data = jsonString.data(using: .utf8),
+           let decoded = try? JSONDecoder().decode([Verse].self, from: data) {
+            return decoded
+        }
+
+        return []
+    }
+
+    /// Deterministic shuffle using a simple hash-based index selection.
+    /// Produces a consistent verse for each (day, hour) combination.
+    private func seededShuffle(count: Int, seed: Int) -> [Int] {
+        var indices = Array(0..<count)
+        var state = UInt64(abs(seed))
+
+        // Fisher-Yates shuffle with simple LCG
+        for i in stride(from: count - 1, through: 1, by: -1) {
+            state = state &* 6364136223846793005 &+ 1442695040888963407
+            let j = Int(state >> 33) % (i + 1)
+            indices.swapAt(i, j)
+        }
+
+        return indices
+    }
+}
+
+/// Verse model for JSON decoding
+struct Verse: Codable {
+    let ref: String
+    let text: String
 }
 
 // MARK: - Entry

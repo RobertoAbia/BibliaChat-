@@ -51,6 +51,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
+          bottom: false,
           child: Column(
             children: [
               // Contenido scrollable

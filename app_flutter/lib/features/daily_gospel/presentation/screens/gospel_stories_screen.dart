@@ -273,6 +273,7 @@ class _GospelStoriesScreenState extends State<GospelStoriesScreen>
           ),
         ),
         child: SafeArea(
+          bottom: false,
           child: Column(
             children: [
               // Main content con gesture detector para navegación de slides

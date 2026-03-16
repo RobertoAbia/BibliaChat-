@@ -413,6 +413,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
+          bottom: false,
           child: Column(
             children: [
               _buildAppBar(chatState),
@@ -738,9 +739,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
   }
 
   void _showDeleteDialog(ChatState chatState) {
+    final router = GoRouter.of(context); // Capturar GoRouter desde contexto de la PANTALLA
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         backgroundColor: AppTheme.surfaceDark,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -758,7 +760,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: Text(
               'Cancelar',
               style: TextStyle(color: AppTheme.textSecondary),
@@ -766,11 +768,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           ),
           TextButton(
             onPressed: () async {
-              // Guardar referencias ANTES de cerrar el diálogo
-              final scaffoldMessenger = ScaffoldMessenger.of(context);
-              final navigator = Navigator.of(context);
-
-              navigator.pop(); // Cerrar diálogo
+              final scaffoldMessenger = ScaffoldMessenger.of(dialogContext);
+              Navigator.pop(dialogContext); // Cerrar diálogo
 
               final success = await ref
                   .read(chatNotifierProvider(_chatIdentifier).notifier)
@@ -780,7 +779,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                 // Refrescar lista de chats
                 ref.read(userChatsRefreshProvider.notifier).state++;
 
-                // Mostrar confirmación con estilo premium
+                // Mostrar confirmación
                 scaffoldMessenger.showSnackBar(
                   SnackBar(
                     content: Row(
@@ -820,8 +819,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                   ),
                 );
 
-                // Volver a la lista
-                navigator.pop();
+                // Volver a la lista con GoRouter
+                router.pop();
               }
             },
             child: Text(

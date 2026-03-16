@@ -40,44 +40,86 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
     }
   }
 
-  Future<void> _showTimePicker() async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: widget.reminderTime,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.dark(
-              primary: AppTheme.primaryColor,
-              onPrimary: AppTheme.textOnPrimary,
-              surface: AppTheme.surfaceDark,
-              onSurface: AppTheme.textPrimary,
-            ),
-            timePickerTheme: TimePickerThemeData(
-              backgroundColor: AppTheme.backgroundDark,
-              hourMinuteShape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              dayPeriodShape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
+  void _showHourPicker() {
+    final initialIndex = widget.reminderTime.hour;
+    int selectedHour = initialIndex;
 
-    if (picked != null) {
-      widget.onTimeChanged(picked);
-    }
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: 300,
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceDark,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: const Color(0xFFD0D8E4).withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text('Cancelar', style: TextStyle(color: AppTheme.textSecondary)),
+                  ),
+                  Text(
+                    'Hora del recordatorio',
+                    style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      widget.onTimeChanged(TimeOfDay(hour: selectedHour, minute: 0));
+                      Navigator.pop(ctx);
+                    },
+                    child: Text('OK', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: Color(0xFFD0D8E4)),
+            // Hour wheel
+            Expanded(
+              child: ListWheelScrollView.useDelegate(
+                controller: FixedExtentScrollController(initialItem: initialIndex),
+                itemExtent: 48,
+                physics: const FixedExtentScrollPhysics(),
+                onSelectedItemChanged: (index) => selectedHour = index,
+                childDelegate: ListWheelChildBuilderDelegate(
+                  childCount: 24,
+                  builder: (context, index) {
+                    return Center(
+                      child: Text(
+                        _formatHour(index),
+                        style: TextStyle(
+                          color: AppTheme.textPrimary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatHour(int hour) {
+    if (hour == 0) return '12:00 AM';
+    if (hour < 12) return '$hour:00 AM';
+    if (hour == 12) return '12:00 PM';
+    return '${hour - 12}:00 PM';
   }
 
   String _formatTime(TimeOfDay time) {
-    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
-    final minute = time.minute.toString().padLeft(2, '0');
-    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
-    return '$hour:$minute $period';
+    return _formatHour(time.hour);
   }
 
   @override
@@ -307,7 +349,7 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
                       ? Padding(
                           padding: const EdgeInsets.only(top: 20),
                           child: GestureDetector(
-                            onTap: _showTimePicker,
+                            onTap: _showHourPicker,
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(20),
                               child: BackdropFilter(

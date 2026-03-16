@@ -113,6 +113,7 @@ class PlanDetailScreen extends ConsumerWidget {
                         ),
                       ),
                       child: SafeArea(
+                        bottom: false,
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [

@@ -120,20 +120,28 @@ class NotificationService {
 
   /// Obtiene el token FCM y lo guarda en Supabase.
   /// Timeout de 5s para evitar que bloquee la splash (iOS sin APNs se cuelga).
+  /// Retry una vez si falla (conexión lenta al abrir la app).
   Future<void> _saveToken(String userId) async {
-    try {
-      final token = await _messaging.getToken().timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => null,
-      );
-      if (token != null) {
-        await _saveTokenToSupabase(token, userId);
-        debugPrint('FCM token saved for user: $userId');
-      } else {
-        debugPrint('FCM token is null (timeout or permission required on iOS)');
+    for (int attempt = 0; attempt < 2; attempt++) {
+      try {
+        final token = await _messaging.getToken().timeout(
+          const Duration(seconds: 5),
+          onTimeout: () => null,
+        );
+        if (token != null) {
+          await _saveTokenToSupabase(token, userId);
+          debugPrint('FCM token saved for user: $userId');
+          return; // Success, no retry needed
+        } else {
+          debugPrint('FCM token is null (timeout or permission required on iOS)');
+          return; // null token = iOS without permission, no point retrying
+        }
+      } catch (e) {
+        debugPrint('Error getting/saving FCM token (attempt ${attempt + 1}): $e');
+        if (attempt == 0) {
+          await Future.delayed(const Duration(seconds: 2));
+        }
       }
-    } catch (e) {
-      debugPrint('Error getting/saving FCM token: $e');
     }
   }
 
@@ -351,13 +359,20 @@ class NotificationService {
     }
   }
 
-  /// Limpia el badge del icono de la app (iOS)
-  /// Usa flutter_app_badger que llama directamente a la API nativa de iOS
+  /// Limpia el badge del icono de la app y las notificaciones entregadas.
+  /// Sin limpiar las notificaciones del centro, iOS puede mantener el badge.
   Future<void> clearBadge() async {
     try {
       FlutterAppBadger.removeBadge();
     } catch (e) {
       debugPrint('Error clearing badge: $e');
+    }
+    // Limpiar notificaciones entregadas del notification center
+    // (solo si local notifications ya fueron inicializadas)
+    try {
+      await _localNotifications.cancelAll();
+    } catch (_) {
+      // Puede fallar si _localNotifications no fue inicializado (sin permiso)
     }
   }
 

@@ -165,6 +165,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           gradient: AppTheme.backgroundGradient,
         ),
         child: SafeArea(
+          bottom: false,
           child: Column(
             children: [
               // Progress indicator with back button (show only on question pages)

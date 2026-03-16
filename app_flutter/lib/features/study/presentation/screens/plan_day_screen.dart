@@ -608,6 +608,7 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
             );
           },
           loading: () => SafeArea(
+            bottom: false,
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
               child: Column(
