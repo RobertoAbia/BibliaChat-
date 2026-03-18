@@ -92,6 +92,14 @@ class NotificationService {
 
     _isInitialized = true;
     debugPrint('NotificationService initialized for user: $userId');
+
+    // Safety net: reintentar guardado de token después de 15s
+    // Para cuando APNs no estaba listo en los intentos iniciales
+    Future.delayed(const Duration(seconds: 15), () {
+      if (_currentUserId != null) {
+        _saveToken(_currentUserId!);
+      }
+    });
   }
 
   /// Pide permiso de notificaciones si aún no lo tiene.
