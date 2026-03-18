@@ -30,7 +30,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final isEmailUnverified = authStatus == AuthStatus.emailUnverified;
     final email = ref.watch(currentEmailProvider);
     final isPremium = ref.watch(isPremiumProvider);
-    final isSubscriptionLoaded = !ref.watch(subscriptionProvider).isLoading;
     final profileAsync = ref.watch(currentUserProfileProvider);
     final profileName = profileAsync.valueOrNull?.name;
 
@@ -198,7 +197,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               title: 'Cuenta',
               items: [
                 // No premium: CTA prominente arriba de todo (hide while loading)
-                if (isSubscriptionLoaded && !isPremium)
+                if (!isPremium)
                   SettingsItem(
                     icon: Icons.workspace_premium,
                     title: 'Pásate a Premium',
@@ -303,7 +302,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   onTap: () => context.push(RouteConstants.privacyPolicy),
                 ),
                 // Premium: gestionar suscripción al final de Información (hide while loading)
-                if (isSubscriptionLoaded && isPremium)
+                if (isPremium)
                   SettingsItem(
                     icon: Icons.credit_card,
                     title: 'Gestionar suscripción',
