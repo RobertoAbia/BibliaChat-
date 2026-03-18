@@ -119,43 +119,52 @@ class NotificationService {
   }
 
   /// Obtiene el token FCM y lo guarda en Supabase.
-  /// En iOS, getToken() REQUIERE permiso de notificaciones (necesita APNs token).
-  /// Sin permiso, devuelve null — se reintenta después en requestPermissionIfNeeded().
+  /// En iOS, getToken() REQUIERE APNs token (que necesita permiso).
+  /// Reintenta hasta 3 veces con delays si APNs no está listo.
   Future<void> _saveToken(String userId) async {
-    try {
-      // En iOS, verificar que APNs token existe antes de pedir FCM token
-      if (Platform.isIOS) {
-        final apnsToken = await _messaging.getAPNSToken();
-        if (apnsToken == null) {
-          debugPrint('FCM: APNs token not available (permission not granted yet on iOS)');
-          return; // Se reintentará en requestPermissionIfNeeded() tras conceder permiso
-        }
-      }
-
-      final token = await _messaging.getToken().timeout(
-        const Duration(seconds: 10),
-        onTimeout: () => null,
-      );
-      if (token != null) {
-        await _saveTokenToSupabase(token, userId);
-        debugPrint('FCM token saved for user: $userId');
-      } else {
-        debugPrint('FCM token null after 10s timeout');
-      }
-    } catch (e) {
-      debugPrint('Error getting/saving FCM token: $e');
-      // Retry once after delay
+    for (int attempt = 0; attempt < 3; attempt++) {
       try {
-        await Future.delayed(const Duration(seconds: 3));
+        // En iOS, verificar que APNs token existe antes de pedir FCM token
+        if (Platform.isIOS) {
+          final apnsToken = await _messaging.getAPNSToken();
+          if (apnsToken == null) {
+            // Comprobar si ya tiene permiso pero APNs aún no registró
+            final settings = await _messaging.getNotificationSettings();
+            final hasPermission =
+                settings.authorizationStatus == AuthorizationStatus.authorized ||
+                settings.authorizationStatus == AuthorizationStatus.provisional;
+
+            if (hasPermission && attempt < 2) {
+              // Tiene permiso pero APNs no listo — esperar y reintentar
+              debugPrint('FCM: APNs not ready yet, retry in ${3 + attempt * 3}s (attempt ${attempt + 1})');
+              await Future.delayed(Duration(seconds: 3 + attempt * 3));
+              continue;
+            }
+            debugPrint('FCM: APNs token not available (no permission or max retries)');
+            return;
+          }
+        }
+
         final token = await _messaging.getToken().timeout(
-          const Duration(seconds: 15),
+          const Duration(seconds: 10),
           onTimeout: () => null,
         );
         if (token != null) {
           await _saveTokenToSupabase(token, userId);
-          debugPrint('FCM token saved on retry for user: $userId');
+          debugPrint('FCM token saved for user: $userId');
+          return; // Success
+        } else {
+          debugPrint('FCM token null after 10s timeout (attempt ${attempt + 1})');
+          if (attempt < 2) {
+            await Future.delayed(const Duration(seconds: 3));
+          }
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('Error getting/saving FCM token (attempt ${attempt + 1}): $e');
+        if (attempt < 2) {
+          await Future.delayed(const Duration(seconds: 3));
+        }
+      }
     }
   }
 
