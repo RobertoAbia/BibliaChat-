@@ -244,7 +244,15 @@ class _ShareImageScreenState extends State<ShareImageScreen> {
       final file = File(imagePath);
       await file.writeAsBytes(imageBytes);
 
-      await Share.shareXFiles([XFile(imagePath)]);
+      final box = context.findRenderObject() as RenderBox?;
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(imagePath)],
+          sharePositionOrigin: box != null
+              ? box.localToGlobal(Offset.zero) & box.size
+              : Rect.zero,
+        ),
+      );
 
       // Log analytics event
       final backgroundType = _customBackgroundImage != null
@@ -739,7 +747,7 @@ class _ShareImageScreenState extends State<ShareImageScreen> {
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
           child: SizedBox(
             width: double.infinity,
-            height: 52,
+            height: 56,
             child: ElevatedButton(
               onPressed: _isSharing ? null : _showShareOptions,
               style: ElevatedButton.styleFrom(
