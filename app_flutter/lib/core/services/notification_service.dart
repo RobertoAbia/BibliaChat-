@@ -127,52 +127,21 @@ class NotificationService {
   }
 
   /// Obtiene el token FCM y lo guarda en Supabase.
-  /// En iOS, getToken() REQUIERE APNs token (que necesita permiso).
-  /// Reintenta hasta 3 veces con delays si APNs no está listo.
+  /// getToken() internamente espera a APNs en iOS. No pre-comprobar.
   Future<void> _saveToken(String userId) async {
-    for (int attempt = 0; attempt < 3; attempt++) {
-      try {
-        // En iOS, verificar que APNs token existe antes de pedir FCM token
-        if (Platform.isIOS) {
-          final apnsToken = await _messaging.getAPNSToken();
-          if (apnsToken == null) {
-            // Comprobar si ya tiene permiso pero APNs aún no registró
-            final settings = await _messaging.getNotificationSettings();
-            final hasPermission =
-                settings.authorizationStatus == AuthorizationStatus.authorized ||
-                settings.authorizationStatus == AuthorizationStatus.provisional;
-
-            if (hasPermission && attempt < 2) {
-              // Tiene permiso pero APNs no listo — esperar y reintentar
-              debugPrint('FCM: APNs not ready yet, retry in ${3 + attempt * 3}s (attempt ${attempt + 1})');
-              await Future.delayed(Duration(seconds: 3 + attempt * 3));
-              continue;
-            }
-            debugPrint('FCM: APNs token not available (no permission or max retries)');
-            return;
-          }
-        }
-
-        final token = await _messaging.getToken().timeout(
-          const Duration(seconds: 10),
-          onTimeout: () => null,
-        );
-        if (token != null) {
-          await _saveTokenToSupabase(token, userId);
-          debugPrint('FCM token saved for user: $userId');
-          return; // Success
-        } else {
-          debugPrint('FCM token null after 10s timeout (attempt ${attempt + 1})');
-          if (attempt < 2) {
-            await Future.delayed(const Duration(seconds: 3));
-          }
-        }
-      } catch (e) {
-        debugPrint('Error getting/saving FCM token (attempt ${attempt + 1}): $e');
-        if (attempt < 2) {
-          await Future.delayed(const Duration(seconds: 3));
-        }
+    try {
+      final token = await _messaging.getToken().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => null,
+      );
+      if (token != null) {
+        await _saveTokenToSupabase(token, userId);
+        debugPrint('FCM token saved for user: $userId');
+      } else {
+        debugPrint('FCM token null (timeout or no permission on iOS)');
       }
+    } catch (e) {
+      debugPrint('Error saving FCM token: $e');
     }
   }
 
@@ -197,15 +166,9 @@ class NotificationService {
     if (authorized) {
       AnalyticsService().logNotificationPermissionGranted();
       // Fire-and-forget: no bloquear el toggle
-      // Intento 1: a los 5s (APNs normalmente tarda 1-3s tras conceder permiso)
-      Future.delayed(const Duration(seconds: 5), () async {
+      // getToken() espera internamente a APNs, pero damos 3s de margen
+      Future.delayed(const Duration(seconds: 3), () async {
         await _setupLocalNotifications();
-        if (_currentUserId != null) {
-          await _saveToken(_currentUserId!);
-        }
-      });
-      // Intento 2: a los 20s (backup para redes lentas)
-      Future.delayed(const Duration(seconds: 20), () async {
         if (_currentUserId != null) {
           await _saveToken(_currentUserId!);
         }
