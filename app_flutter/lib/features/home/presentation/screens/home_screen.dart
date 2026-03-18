@@ -843,7 +843,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     totalDays: activePlan.plan.daysTotal,
                     progressPercent: activePlan.progressPercent,
                     onTap: () {
-                      context.push('/study/day/${activePlan.userPlan.id}');
+                      if (activePlan.isLockedForToday) {
+                        _showLockedPlanDialog(context);
+                      } else {
+                        context.push('/study/day/${activePlan.userPlan.id}');
+                      }
                     },
                   ),
                   const SizedBox(height: 32),
@@ -1544,6 +1548,73 @@ class _GospelErrorCard extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  void _showLockedPlanDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: const Color(0xFFD0D8E4).withOpacity(0.3)),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.schedule_rounded,
+                color: AppTheme.primaryColor,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Reflexiona sobre lo aprendido hoy',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Mañana podrás continuar con tu plan',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text('Entendido', style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+            ),
+          ],
         ),
       ),
     );

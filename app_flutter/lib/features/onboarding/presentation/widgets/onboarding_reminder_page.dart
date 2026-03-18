@@ -83,26 +83,49 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
             const Divider(height: 1, color: Color(0xFFD0D8E4)),
             // Hour wheel
             Expanded(
-              child: ListWheelScrollView.useDelegate(
-                controller: FixedExtentScrollController(initialItem: initialIndex),
-                itemExtent: 48,
-                physics: const FixedExtentScrollPhysics(),
-                onSelectedItemChanged: (index) => selectedHour = index,
-                childDelegate: ListWheelChildBuilderDelegate(
-                  childCount: 24,
-                  builder: (context, index) {
-                    return Center(
-                      child: Text(
-                        _formatHour(index),
-                        style: TextStyle(
-                          color: AppTheme.textPrimary,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w500,
+              child: Stack(
+                children: [
+                  // Selection indicator lines
+                  Center(
+                    child: Container(
+                      height: 48,
+                      margin: const EdgeInsets.symmetric(horizontal: 24),
+                      decoration: BoxDecoration(
+                        border: Border.symmetric(
+                          horizontal: BorderSide(
+                            color: AppTheme.primaryColor.withOpacity(0.3),
+                            width: 1.5,
+                          ),
                         ),
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                  // Wheel
+                  ListWheelScrollView.useDelegate(
+                    controller: FixedExtentScrollController(initialItem: initialIndex),
+                    itemExtent: 48,
+                    physics: const FixedExtentScrollPhysics(),
+                    diameterRatio: 1.5,
+                    magnification: 1.2,
+                    useMagnifier: true,
+                    onSelectedItemChanged: (index) => selectedHour = index,
+                    childDelegate: ListWheelChildBuilderDelegate(
+                      childCount: 24,
+                      builder: (context, index) {
+                        return Center(
+                          child: Text(
+                            _formatHour(index),
+                            style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
