@@ -58,9 +58,10 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
     }
 
     // Leer valor cacheado de SharedPreferences (instantáneo, sin red)
+    // isLoading: false inmediatamente — Settings muestra opción sin esperar a RevenueCat
     final prefs = await SharedPreferences.getInstance();
     final cachedPremium = prefs.getBool('is_premium') ?? false;
-    state = state.copyWith(isPremium: cachedPremium);
+    state = state.copyWith(isPremium: cachedPremium, isLoading: false);
 
     _customerInfoSubscription = _revenueCatService.customerInfoStream.listen(
       (customerInfo) {
@@ -68,9 +69,9 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       },
     );
 
-    // RevenueCat comprueba en background y corrige si cambió
-    await _checkPremiumStatus();
-    await _loadOfferings();
+    // RevenueCat comprueba en background y actualiza si cambió
+    _checkPremiumStatus();
+    _loadOfferings();
   }
 
   void _updatePremiumStatus(CustomerInfo customerInfo) {
