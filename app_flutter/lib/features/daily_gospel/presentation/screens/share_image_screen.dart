@@ -245,13 +245,11 @@ class _ShareImageScreenState extends State<ShareImageScreen> {
       await file.writeAsBytes(imageBytes);
 
       final box = context.findRenderObject() as RenderBox?;
-      await SharePlus.instance.share(
-        ShareParams(
-          files: [XFile(imagePath)],
-          sharePositionOrigin: box != null
-              ? box.localToGlobal(Offset.zero) & box.size
-              : Rect.zero,
-        ),
+      await Share.shareXFiles(
+        [XFile(imagePath)],
+        sharePositionOrigin: box != null
+            ? box.localToGlobal(Offset.zero) & box.size
+            : null,
       );
 
       // Log analytics event
