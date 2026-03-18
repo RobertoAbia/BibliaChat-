@@ -119,29 +119,43 @@ class NotificationService {
   }
 
   /// Obtiene el token FCM y lo guarda en Supabase.
-  /// Timeout de 5s para evitar que bloquee la splash (iOS sin APNs se cuelga).
-  /// Retry una vez si falla (conexión lenta al abrir la app).
+  /// En iOS, getToken() REQUIERE permiso de notificaciones (necesita APNs token).
+  /// Sin permiso, devuelve null — se reintenta después en requestPermissionIfNeeded().
   Future<void> _saveToken(String userId) async {
-    for (int attempt = 0; attempt < 2; attempt++) {
+    try {
+      // En iOS, verificar que APNs token existe antes de pedir FCM token
+      if (Platform.isIOS) {
+        final apnsToken = await _messaging.getAPNSToken();
+        if (apnsToken == null) {
+          debugPrint('FCM: APNs token not available (permission not granted yet on iOS)');
+          return; // Se reintentará en requestPermissionIfNeeded() tras conceder permiso
+        }
+      }
+
+      final token = await _messaging.getToken().timeout(
+        const Duration(seconds: 10),
+        onTimeout: () => null,
+      );
+      if (token != null) {
+        await _saveTokenToSupabase(token, userId);
+        debugPrint('FCM token saved for user: $userId');
+      } else {
+        debugPrint('FCM token null after 10s timeout');
+      }
+    } catch (e) {
+      debugPrint('Error getting/saving FCM token: $e');
+      // Retry once after delay
       try {
+        await Future.delayed(const Duration(seconds: 3));
         final token = await _messaging.getToken().timeout(
-          const Duration(seconds: 5),
+          const Duration(seconds: 15),
           onTimeout: () => null,
         );
         if (token != null) {
           await _saveTokenToSupabase(token, userId);
-          debugPrint('FCM token saved for user: $userId');
-          return; // Success, no retry needed
-        } else {
-          debugPrint('FCM token is null (timeout or permission required on iOS)');
-          return; // null token = iOS without permission, no point retrying
+          debugPrint('FCM token saved on retry for user: $userId');
         }
-      } catch (e) {
-        debugPrint('Error getting/saving FCM token (attempt ${attempt + 1}): $e');
-        if (attempt == 0) {
-          await Future.delayed(const Duration(seconds: 2));
-        }
-      }
+      } catch (_) {}
     }
   }
 
