@@ -196,11 +196,20 @@ class NotificationService {
 
     if (authorized) {
       AnalyticsService().logNotificationPermissionGranted();
-      // Guardar token FCM ahora que tenemos permiso (el momento clave en iOS)
-      await _setupLocalNotifications();
-      if (_currentUserId != null) {
-        await _saveToken(_currentUserId!);
-      }
+      // Fire-and-forget: no bloquear el toggle
+      // Intento 1: a los 5s (APNs normalmente tarda 1-3s tras conceder permiso)
+      Future.delayed(const Duration(seconds: 5), () async {
+        await _setupLocalNotifications();
+        if (_currentUserId != null) {
+          await _saveToken(_currentUserId!);
+        }
+      });
+      // Intento 2: a los 20s (backup para redes lentas)
+      Future.delayed(const Duration(seconds: 20), () async {
+        if (_currentUserId != null) {
+          await _saveToken(_currentUserId!);
+        }
+      });
     } else {
       AnalyticsService().logNotificationPermissionDenied();
     }
