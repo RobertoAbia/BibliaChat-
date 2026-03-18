@@ -196,6 +196,11 @@ class NotificationService {
 
     if (authorized) {
       AnalyticsService().logNotificationPermissionGranted();
+      // Guardar token FCM ahora que tenemos permiso (el momento clave en iOS)
+      await _setupLocalNotifications();
+      if (_currentUserId != null) {
+        await _saveToken(_currentUserId!);
+      }
     } else {
       AnalyticsService().logNotificationPermissionDenied();
     }
