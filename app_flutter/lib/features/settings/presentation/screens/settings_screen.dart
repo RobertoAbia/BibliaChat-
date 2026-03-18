@@ -285,9 +285,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   icon: Icons.share_outlined,
                   title: 'Compartir con un amigo',
                   onTap: () {
-                    Share.share(
-                      '¡Descubre Biblia Chat! La app cristiana que entiende tu fe, tu idioma y tu cultura. 🙏',
-                      subject: 'Te recomiendo Biblia Chat',
+                    SharePlus.instance.share(
+                      ShareParams(
+                        text: '¡Descubre Biblia Chat! La app cristiana que entiende tu fe, tu idioma y tu cultura. 🙏',
+                        subject: 'Te recomiendo Biblia Chat',
+                      ),
                     );
                   },
                 ),
