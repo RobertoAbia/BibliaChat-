@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblia Chat - Tu compañero cristiano con IA</title>
+    <meta name="description" content="La app cristiana hecha para hispanohablantes. Chat con IA, reflexiones diarias, planes de estudio bíblico y versículos personalizados.">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(180deg, #1A1A2E 0%, #16162A 100%);
+            color: #E8E8F0;
+            line-height: 1.7;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Hero */
+        .hero {
+            text-align: center;
+            padding: 60px 0 40px;
+        }
+
+        .hero-icon {
+            width: 100px;
+            height: 100px;
+            border-radius: 24px;
+            margin: 0 auto 28px;
+            box-shadow: 0 8px 32px rgba(52, 152, 229, 0.3);
+            overflow: hidden;
+        }
+
+        .hero-icon img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .hero h1 {
+            font-size: 2.4rem;
+            font-weight: 700;
+            color: #FFFFFF;
+            line-height: 1.2;
+            margin-bottom: 12px;
+        }
+
+        .hero h1 span {
+            background: linear-gradient(135deg, #3498E5, #5DADE2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero .subtitle {
+            font-size: 1.2rem;
+            color: #9090A0;
+            margin-bottom: 32px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #3498E5, #2980D9);
+            color: white;
+            text-decoration: none;
+            padding: 16px 36px;
+            border-radius: 14px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            box-shadow: 0 4px 20px rgba(52, 152, 229, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .cta-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 28px rgba(52, 152, 229, 0.5);
+        }
+
+        .cta-button svg {
+            width: 22px;
+            height: 22px;
+            fill: white;
+        }
+
+        .store-badge {
+            margin-top: 16px;
+            font-size: 0.85rem;
+            color: #707080;
+        }
+
+        /* Features */
+        .features {
+            padding: 40px 0;
+        }
+
+        .features-title {
+            text-align: center;
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 36px;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .feature-grid {
+                grid-template-columns: 1fr;
+            }
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 24px;
+            backdrop-filter: blur(8px);
+        }
+
+        .feature-card .icon {
+            width: 44px;
+            height: 44px;
+            background: rgba(52, 152, 229, 0.15);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 14px;
+            font-size: 22px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 8px;
+        }
+
+        .feature-card p {
+            font-size: 0.9rem;
+            color: #9090A0;
+            line-height: 1.5;
+        }
+
+        /* Denominaciones */
+        .denominations {
+            text-align: center;
+            padding: 40px 0;
+        }
+
+        .denominations h2 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 12px;
+        }
+
+        .denominations p {
+            color: #9090A0;
+            margin-bottom: 24px;
+            max-width: 500px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .denom-pills {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .denom-pill {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 8px 18px;
+            font-size: 0.85rem;
+            color: #B0B0C0;
+        }
+
+        /* Testimonial / Stats */
+        .stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            padding: 40px 0;
+            text-align: center;
+        }
+
+        @media (max-width: 600px) {
+            .stats {
+                grid-template-columns: 1fr;
+                gap: 16px;
+            }
+        }
+
+        .stat-item h3 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3498E5, #5DADE2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .stat-item p {
+            font-size: 0.9rem;
+            color: #9090A0;
+            margin-top: 4px;
+        }
+
+        /* CTA bottom */
+        .cta-bottom {
+            text-align: center;
+            padding: 40px 0 20px;
+        }
+
+        .cta-bottom h2 {
+            font-size: 1.6rem;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 8px;
+        }
+
+        .cta-bottom p {
+            color: #9090A0;
+            margin-bottom: 24px;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 40px 0 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+        }
+
+        .footer p {
+            font-size: 0.8rem;
+            color: #606070;
+        }
+
+        .footer a {
+            color: #707080;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            color: #9090A0;
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 24px;
+            margin-bottom: 16px;
+            font-size: 0.85rem;
+        }
+
+        /* Divider */
+        .divider {
+            height: 1px;
+            background: rgba(255, 255, 255, 0.06);
+            margin: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- Hero -->
+        <section class="hero">
+            <div class="hero-icon">
+                <img src="https://is1-ssl.mzstatic.com/image/thumb/Purple211/v4/placeholder/placeholder.png/512x512bb.jpg"
+                     alt="Biblia Chat"
+                     onerror="this.parentElement.innerHTML='<div style=&quot;width:100%;height:100%;background:linear-gradient(135deg,#3498E5,#2980D9);display:flex;align-items:center;justify-content:center;font-size:40px;color:white&quot;>&#10013;</div>'">
+            </div>
+            <h1>Tu fe, <span>tu idioma</span>,<br>tu cultura</h1>
+            <p class="subtitle">La app cristiana hecha para hispanohablantes. Inteligencia artificial que entiende tu denominacion y tu cultura.</p>
+            <a href="https://apps.apple.com/app/biblia-chat-oracion-diaria/id6757599822" class="cta-button">
+                <svg viewBox="0 0 24 24"><path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 21.99 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 21.99C7.79 22.03 6.8 20.68 5.96 19.47C4.25 16.97 2.94 12.45 4.7 9.39C5.57 7.87 7.13 6.91 8.82 6.88C10.1 6.86 11.32 7.75 12.11 7.75C12.89 7.75 14.37 6.68 15.92 6.84C16.57 6.87 18.39 7.1 19.56 8.82C19.47 8.88 17.39 10.1 17.41 12.63C17.44 15.65 20.06 16.66 20.09 16.67C20.06 16.74 19.67 18.11 18.71 19.5ZM13 3.5C13.73 2.67 14.94 2.04 15.94 2C16.07 3.17 15.6 4.35 14.9 5.19C14.21 6.04 13.07 6.7 11.95 6.61C11.8 5.46 12.36 4.26 13 3.5Z"/></svg>
+                Descargar en App Store
+            </a>
+            <p class="store-badge">Disponible en iPhone y iPad · iOS 14.5+</p>
+        </section>
+
+        <hr class="divider">
+
+        <!-- Features -->
+        <section class="features">
+            <h2 class="features-title">Todo lo que necesitas para tu fe</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <div class="icon">💬</div>
+                    <h3>Chat con IA</h3>
+                    <p>Conversa con un amigo cristiano que entiende tu fe. Pide oraciones, resuelve dudas biblicas o habla de lo que necesites.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">📖</div>
+                    <h3>Reflexiones diarias</h3>
+                    <p>3 reflexiones basadas en el evangelio del dia. Resumen, concepto clave y ejercicio practico en formato Stories.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">📚</div>
+                    <h3>Planes de estudio</h3>
+                    <p>19 planes tematicos de 7 dias. Desde los pecados capitales hasta planes personalizados segun tu momento de fe.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="icon">🔒</div>
+                    <h3>Versiculo en pantalla</h3>
+                    <p>Widget para pantalla de bloqueo e inicio. 500 versiculos inspiradores que cambian cada hora.</p>
+                </div>
+            </div>
+        </section>
+
+        <hr class="divider">
+
+        <!-- Denominaciones -->
+        <section class="denominations">
+            <h2>Se adapta a tu fe</h2>
+            <p>Biblia Chat entiende tu denominacion y personaliza cada respuesta segun tu tradicion cristiana.</p>
+            <div class="denom-pills">
+                <span class="denom-pill">Catolica</span>
+                <span class="denom-pill">Evangelica</span>
+                <span class="denom-pill">Pentecostal</span>
+                <span class="denom-pill">Bautista</span>
+                <span class="denom-pill">Metodista</span>
+                <span class="denom-pill">Adventista</span>
+                <span class="denom-pill">Luterana</span>
+                <span class="denom-pill">Ortodoxa</span>
+                <span class="denom-pill">Sin denominacion</span>
+            </div>
+        </section>
+
+        <hr class="divider">
+
+        <!-- Stats -->
+        <section class="stats">
+            <div class="stat-item">
+                <h3>500</h3>
+                <p>Versiculos en español</p>
+            </div>
+            <div class="stat-item">
+                <h3>19</h3>
+                <p>Planes de estudio</p>
+            </div>
+            <div class="stat-item">
+                <h3>24/7</h3>
+                <p>Compañero de fe</p>
+            </div>
+        </section>
+
+        <hr class="divider">
+
+        <!-- CTA bottom -->
+        <section class="cta-bottom">
+            <h2>Comienza tu viaje espiritual</h2>
+            <p>3 dias gratis. Cancela en cualquier momento.</p>
+            <a href="https://apps.apple.com/app/biblia-chat-oracion-diaria/id6757599822" class="cta-button">
+                <svg viewBox="0 0 24 24"><path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 21.99 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 21.99C7.79 22.03 6.8 20.68 5.96 19.47C4.25 16.97 2.94 12.45 4.7 9.39C5.57 7.87 7.13 6.91 8.82 6.88C10.1 6.86 11.32 7.75 12.11 7.75C12.89 7.75 14.37 6.68 15.92 6.84C16.57 6.87 18.39 7.1 19.56 8.82C19.47 8.88 17.39 10.1 17.41 12.63C17.44 15.65 20.06 16.66 20.09 16.67C20.06 16.74 19.67 18.11 18.71 19.5ZM13 3.5C13.73 2.67 14.94 2.04 15.94 2C16.07 3.17 15.6 4.35 14.9 5.19C14.21 6.04 13.07 6.7 11.95 6.61C11.8 5.46 12.36 4.26 13 3.5Z"/></svg>
+                Descargar gratis
+            </a>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="https://releasemvps.com/biblia-chat-cristiano-privacy">Politica de Privacidad</a>
+                <a href="https://releasemvps.com/biblia-chat-cristiano-terminos-y-condiciones">Terminos y Condiciones</a>
+                <a href="mailto:info@releasemvps.com">Contacto</a>
+            </div>
+            <p>Desarrollado por Bikain OU (Estonia, UE) · &copy; 2026 Bikain OU</p>
+        </footer>
+
+    </div>
+</body>
+</html>
