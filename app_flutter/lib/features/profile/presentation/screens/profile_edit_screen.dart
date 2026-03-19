@@ -507,30 +507,13 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
               trailing: Text(
                 state.reminderTime != null
                     ? _formatTime(state.reminderTime!)
-                    : '08:00',
+                    : '8:00 AM',
                 style: TextStyle(
                   color: AppTheme.primaryColor,
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              onTap: () async {
-                final time = await showTimePicker(
-                  context: context,
-                  initialTime: state.reminderTime != null
-                      ? TimeOfDay.fromDateTime(state.reminderTime!)
-                      : const TimeOfDay(hour: 8, minute: 0),
-                );
-                if (time != null) {
-                  final now = DateTime.now();
-                  notifier.updateReminderTime(DateTime(
-                    now.year,
-                    now.month,
-                    now.day,
-                    time.hour,
-                    time.minute,
-                  ));
-                }
-              },
+              onTap: () => _showHourPicker(state, notifier),
             ),
         ],
       ),
@@ -538,9 +521,115 @@ class _ProfileEditScreenState extends ConsumerState<ProfileEditScreen> {
   }
 
   String _formatTime(DateTime time) {
-    final hour = time.hour.toString().padLeft(2, '0');
-    final minute = time.minute.toString().padLeft(2, '0');
-    return '$hour:$minute';
+    final h = time.hour;
+    if (h == 0) return '12:00 AM';
+    if (h < 12) return '$h:00 AM';
+    if (h == 12) return '12:00 PM';
+    return '${h - 12}:00 PM';
+  }
+
+  void _showHourPicker(ProfileEditState state, ProfileEditNotifier notifier) {
+    final initialHour = state.reminderTime != null
+        ? state.reminderTime!.hour
+        : 8;
+    int selectedHour = initialHour;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: 300,
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceDark,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: const Color(0xFFD0D8E4).withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text('Cancelar', style: TextStyle(color: AppTheme.textSecondary)),
+                  ),
+                  Text(
+                    'Hora del recordatorio',
+                    style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      final now = DateTime.now();
+                      notifier.updateReminderTime(DateTime(
+                        now.year, now.month, now.day, selectedHour, 0,
+                      ));
+                      Navigator.pop(ctx);
+                    },
+                    child: Text('OK', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: Color(0xFFD0D8E4)),
+            Expanded(
+              child: Stack(
+                children: [
+                  // Selection indicator lines
+                  Center(
+                    child: Container(
+                      height: 48,
+                      margin: const EdgeInsets.symmetric(horizontal: 24),
+                      decoration: BoxDecoration(
+                        border: Border.symmetric(
+                          horizontal: BorderSide(
+                            color: AppTheme.primaryColor.withOpacity(0.3),
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Wheel
+                  ListWheelScrollView.useDelegate(
+                    controller: FixedExtentScrollController(initialItem: initialHour),
+                    itemExtent: 48,
+                    physics: const FixedExtentScrollPhysics(),
+                    diameterRatio: 1.5,
+                    magnification: 1.2,
+                    useMagnifier: true,
+                    onSelectedItemChanged: (index) => selectedHour = index,
+                    childDelegate: ListWheelChildBuilderDelegate(
+                      childCount: 24,
+                      builder: (context, index) {
+                        return Center(
+                          child: Text(
+                            _formatHourLabel(index),
+                            style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatHourLabel(int hour) {
+    if (hour == 0) return '12:00 AM';
+    if (hour < 12) return '$hour:00 AM';
+    if (hour == 12) return '12:00 PM';
+    return '${hour - 12}:00 PM';
   }
 
   void _showDiscardDialog() {

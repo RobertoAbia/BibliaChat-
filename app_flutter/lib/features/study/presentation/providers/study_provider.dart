@@ -79,12 +79,14 @@ class ActivePlanData {
   final Plan plan;
   final PlanDay currentPlanDay;
   final int completedDays;
+  final bool isLockedForToday;
 
   ActivePlanData({
     required this.userPlan,
     required this.plan,
     required this.currentPlanDay,
     required this.completedDays,
+    this.isLockedForToday = false,
   });
 
   double get progressPercent {
@@ -100,24 +102,36 @@ final activePlanDataProvider = FutureProvider<ActivePlanData?>((ref) async {
   final repository = ref.watch(studyRepositoryProvider);
   final datasource = ref.watch(studyDatasourceProvider);
 
-  // Ejecutar las 3 queries en paralelo (son independientes entre sí)
+  // Ejecutar las 4 queries en paralelo (son independientes entre sí)
   final results = await Future.wait([
     repository.getPlanById(userPlan.planId),
     datasource.getPlanDayByNumber(userPlan.planId, userPlan.currentDay),
     repository.getCompletedDays(userPlan.id),
+    datasource.getLastCompletedDate(userPlan.id),
   ]);
 
   final plan = results[0] as Plan?;
   final currentDay = results[1] as PlanDay?;
   final completedDays = results[2] as List<UserPlanDay>;
+  final lastCompleted = results[3] as DateTime?;
 
   if (plan == null || currentDay == null) return null;
+
+  // Lock if last completed day was today (and not day 1 of a fresh plan)
+  bool isLocked = false;
+  if (lastCompleted != null && userPlan.currentDay > 1) {
+    final now = DateTime.now();
+    isLocked = lastCompleted.year == now.year &&
+        lastCompleted.month == now.month &&
+        lastCompleted.day == now.day;
+  }
 
   return ActivePlanData(
     userPlan: userPlan,
     plan: plan,
     currentPlanDay: currentDay,
     completedDays: completedDays.length,
+    isLockedForToday: isLocked,
   );
 });
 

@@ -66,6 +66,9 @@
 				</array>
 			</dict>
 		</array>
+		<!-- Home Widget App Group -->
+		<key>AppGroupId</key>
+		<string>group.ee.bikain.bibliachat</string>
 		<key>UIStatusBarHidden</key>
 		<false/>
 		<!-- Export compliance: app only uses standard HTTPS (no custom encryption) -->

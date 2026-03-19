@@ -168,6 +168,23 @@ class StudyRemoteDatasource {
     }
   }
 
+  /// Get the last completed date for a plan (to check daily lock)
+  Future<DateTime?> getLastCompletedDate(String userPlanId) async {
+    final response = await _supabase
+        .from('user_plan_days')
+        .select('completed_at')
+        .eq('user_plan_id', userPlanId)
+        .not('completed_at', 'is', null)
+        .order('completed_at', ascending: false)
+        .limit(1)
+        .maybeSingle();
+
+    if (response != null && response['completed_at'] != null) {
+      return DateTime.parse(response['completed_at'] as String);
+    }
+    return null;
+  }
+
   /// Advance to next day in the plan
   Future<void> advanceToNextDay(String userPlanId, int nextDay, bool isLastDay) async {
     if (isLastDay) {

@@ -22,6 +22,7 @@ import '../../features/onboarding/presentation/screens/onboarding_screen.dart';
 import '../../features/profile/presentation/screens/profile_edit_screen.dart';
 import '../../features/saved_messages/presentation/screens/saved_messages_screen.dart';
 import '../../features/settings/presentation/screens/settings_screen.dart';
+import '../../features/settings/presentation/screens/widget_setup_screen.dart';
 import '../../features/study/presentation/screens/plan_day_screen.dart';
 import '../../features/study/presentation/screens/plan_detail_screen.dart';
 import '../../features/study/presentation/screens/study_screen.dart';
@@ -206,6 +207,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 path: 'saved-messages',
                 name: 'savedMessages',
                 builder: (context, state) => const SavedMessagesScreen(),
+              ),
+              GoRoute(
+                path: 'widget-setup',
+                name: 'widgetSetup',
+                builder: (context, state) => const WidgetSetupScreen(),
               ),
               GoRoute(
                 path: 'privacy-policy',

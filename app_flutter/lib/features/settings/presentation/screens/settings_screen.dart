@@ -196,6 +196,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               context,
               title: 'Cuenta',
               items: [
+                // No premium: CTA prominente arriba de todo (hide while loading)
+                if (!isPremium)
+                  SettingsItem(
+                    icon: Icons.workspace_premium,
+                    title: 'Pásate a Premium',
+                    subtitle: 'Chat ilimitado y más',
+                    isHighlighted: true,
+                    onTap: () => context.push(RouteConstants.paywall),
+                  ),
                 SettingsItem(
                   icon: Icons.person_outline,
                   title: 'Editar Perfil',
@@ -232,26 +241,6 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     subtitle: email,
                     onTap: () {},
                   ),
-                if (!isPremium)
-                  SettingsItem(
-                    icon: Icons.workspace_premium,
-                    title: 'Pásate a Premium',
-                    subtitle: 'Chat ilimitado y más',
-                    isHighlighted: true,
-                    onTap: () => context.push(RouteConstants.paywall),
-                  ),
-                if (isPremium)
-                  SettingsItem(
-                    icon: Icons.credit_card,
-                    title: 'Gestionar suscripción',
-                    subtitle: 'Cambiar plan o cancelar',
-                    onTap: () async {
-                      await launchUrl(
-                        Uri.parse('https://apps.apple.com/account/subscriptions'),
-                        mode: LaunchMode.externalApplication,
-                      );
-                    },
-                  ),
               ],
             ),
 
@@ -259,6 +248,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               context,
               title: 'Preferencias',
               items: [
+                SettingsItem(
+                  icon: Icons.widgets_outlined,
+                  title: 'Widget de versículos',
+                  subtitle: 'Añádelo a tu pantalla',
+                  onTap: () => context.push(RouteConstants.widgetSetup),
+                ),
                 SettingsItem(
                   icon: Icons.favorite_outline,
                   title: 'Mis Reflexiones',
@@ -290,9 +285,13 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   icon: Icons.share_outlined,
                   title: 'Compartir con un amigo',
                   onTap: () {
+                    final box = context.findRenderObject() as RenderBox?;
                     Share.share(
                       '¡Descubre Biblia Chat! La app cristiana que entiende tu fe, tu idioma y tu cultura. 🙏',
                       subject: 'Te recomiendo Biblia Chat',
+                      sharePositionOrigin: box != null
+                          ? box.localToGlobal(Offset.zero) & box.size
+                          : null,
                     );
                   },
                 ),
@@ -306,6 +305,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   title: 'Política de privacidad',
                   onTap: () => context.push(RouteConstants.privacyPolicy),
                 ),
+                // Premium: gestionar suscripción al final de Información (hide while loading)
+                if (isPremium)
+                  SettingsItem(
+                    icon: Icons.credit_card,
+                    title: 'Gestionar suscripción',
+                    subtitle: 'Cambiar plan o cancelar',
+                    onTap: () async {
+                      await launchUrl(
+                        Uri.parse('https://apps.apple.com/account/subscriptions'),
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
+                  ),
               ],
             ),
 

@@ -44,11 +44,14 @@ class NotificationService {
     // Si ya está inicializado pero cambió el usuario, solo actualizamos el token
     if (_isInitialized && _currentUserId != userId) {
       _currentUserId = userId;
+
       await _saveToken(userId);
       return;
     }
 
-    if (_isInitialized) return;
+    if (_isInitialized) {
+      return;
+    }
 
     _currentUserId = userId;
 
@@ -92,6 +95,14 @@ class NotificationService {
 
     _isInitialized = true;
     debugPrint('NotificationService initialized for user: $userId');
+
+    // Safety net: reintentar guardado de token después de 15s
+    // Para cuando APNs no estaba listo en los intentos iniciales
+    Future.delayed(const Duration(seconds: 15), () {
+      if (_currentUserId != null) {
+        _saveToken(_currentUserId!);
+      }
+    });
   }
 
   /// Pide permiso de notificaciones si aún no lo tiene.
@@ -119,21 +130,33 @@ class NotificationService {
   }
 
   /// Obtiene el token FCM y lo guarda en Supabase.
-  /// Timeout de 5s para evitar que bloquee la splash (iOS sin APNs se cuelga).
+  /// En iOS, hay que esperar a que APNs token esté disponible antes de llamar getToken().
   Future<void> _saveToken(String userId) async {
     try {
+      // En iOS, esperar a que APNs token esté disponible (polling)
+      if (Platform.isIOS) {
+        String? apnsToken;
+        for (int i = 0; i < 10; i++) {
+          apnsToken = await _messaging.getAPNSToken();
+          if (apnsToken != null) {
+            break;
+          }
+          await Future.delayed(const Duration(seconds: 2));
+        }
+        if (apnsToken == null) {
+          return;
+        }
+      }
+
       final token = await _messaging.getToken().timeout(
-        const Duration(seconds: 5),
+        const Duration(seconds: 10),
         onTimeout: () => null,
       );
       if (token != null) {
         await _saveTokenToSupabase(token, userId);
-        debugPrint('FCM token saved for user: $userId');
       } else {
-        debugPrint('FCM token is null (timeout or permission required on iOS)');
       }
     } catch (e) {
-      debugPrint('Error getting/saving FCM token: $e');
     }
   }
 
@@ -157,6 +180,14 @@ class NotificationService {
 
     if (authorized) {
       AnalyticsService().logNotificationPermissionGranted();
+      // Fire-and-forget: no bloquear el toggle
+      Future.delayed(const Duration(seconds: 5), () async {
+        await _setupLocalNotifications();
+        if (_currentUserId != null) {
+          await _saveToken(_currentUserId!);
+        } else {
+        }
+      });
     } else {
       AnalyticsService().logNotificationPermissionDenied();
     }
@@ -213,7 +244,6 @@ class NotificationService {
         'p_platform': platform,
       });
 
-      debugPrint('FCM token saved to Supabase');
     } catch (e) {
       debugPrint('Error saving FCM token: $e');
     }
@@ -351,13 +381,20 @@ class NotificationService {
     }
   }
 
-  /// Limpia el badge del icono de la app (iOS)
-  /// Usa flutter_app_badger que llama directamente a la API nativa de iOS
+  /// Limpia el badge del icono de la app y las notificaciones entregadas.
+  /// Sin limpiar las notificaciones del centro, iOS puede mantener el badge.
   Future<void> clearBadge() async {
     try {
       FlutterAppBadger.removeBadge();
     } catch (e) {
       debugPrint('Error clearing badge: $e');
+    }
+    // Limpiar notificaciones entregadas del notification center
+    // (solo si local notifications ya fueron inicializadas)
+    try {
+      await _localNotifications.cancelAll();
+    } catch (_) {
+      // Puede fallar si _localNotifications no fue inicializado (sin permiso)
     }
   }
 

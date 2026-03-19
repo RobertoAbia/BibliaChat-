@@ -29,7 +29,12 @@ final dailyGospelProvider = FutureProvider<DailyGospel?>((ref) async {
   final cachedProfile = ref.read(currentUserProfileProvider).valueOrNull;
   final bibleVersion = cachedProfile?.bibleVersionCode ?? 'RVR1960';
 
-  return await repository.getTodaysGospel(bibleVersion);
+  var gospel = await repository.getTodaysGospel(bibleVersion);
+  if (gospel == null) {
+    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    gospel = await repository.getGospelForDate(yesterday, bibleVersion);
+  }
+  return gospel;
 });
 
 /// Provider para evangelio de una fecha específica

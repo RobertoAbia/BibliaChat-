@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/services/analytics_service.dart';
+import '../../../../core/services/revenue_cat_service.dart';
+import '../../../subscription/presentation/providers/subscription_provider.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/repositories/auth_repository.dart';
 
@@ -92,8 +94,9 @@ class AuthNotifierState {
 /// Notifier para operaciones de autenticación
 class AuthNotifier extends StateNotifier<AuthNotifierState> {
   final AuthRepository _repository;
+  final Ref _ref;
 
-  AuthNotifier(this._repository) : super(AuthNotifierState.initial());
+  AuthNotifier(this._repository, this._ref) : super(AuthNotifierState.initial());
 
   /// Resetea el estado a inicial
   void reset() {
@@ -136,6 +139,12 @@ class AuthNotifier extends StateNotifier<AuthNotifierState> {
       state = AuthNotifierState.success();
       // Log analytics event
       AnalyticsService().logLogin(method: 'email');
+      // Switch RevenueCat to the real user ID and re-check premium
+      final newUserId = Supabase.instance.client.auth.currentUser?.id;
+      if (newUserId != null) {
+        await RevenueCatService.instance.logIn(newUserId);
+        _ref.read(subscriptionProvider.notifier).refresh();
+      }
       return true;
     } else {
       state = AuthNotifierState.error(
@@ -282,5 +291,5 @@ class AuthNotifier extends StateNotifier<AuthNotifierState> {
 final authNotifierProvider =
     StateNotifierProvider<AuthNotifier, AuthNotifierState>((ref) {
   final repository = ref.watch(authRepositoryProvider);
-  return AuthNotifier(repository);
+  return AuthNotifier(repository, ref);
 });

@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import 'package:app_settings/app_settings.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/services/notification_service.dart';
@@ -29,55 +31,200 @@ class OnboardingReminderPage extends StatefulWidget {
 class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
   Future<void> _handleToggle(bool value) async {
     if (value) {
-      // Al activar, pedir permiso de notificaciones
+      // Comprobar si ya denegó antes (iOS no muestra popup dos veces)
+      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        // Ya denegó — mostrar diálogo para abrir Ajustes
+        if (mounted) _showNotificationPermissionDialog();
+        return;
+      }
+
+      // Pedir permiso de notificaciones
       final granted = await NotificationService().requestPermission();
       if (granted) {
         widget.onToggle(true);
       }
-      // Si deniega, no activar el toggle
     } else {
       widget.onToggle(false);
     }
   }
 
-  Future<void> _showTimePicker() async {
-    final TimeOfDay? picked = await showTimePicker(
+  void _showNotificationPermissionDialog() {
+    showDialog(
       context: context,
-      initialTime: widget.reminderTime,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.dark(
-              primary: AppTheme.primaryColor,
-              onPrimary: AppTheme.textOnPrimary,
-              surface: AppTheme.surfaceDark,
-              onSurface: AppTheme.textPrimary,
-            ),
-            timePickerTheme: TimePickerThemeData(
-              backgroundColor: AppTheme.backgroundDark,
-              hourMinuteShape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: const Color(0xFFD0D8E4).withOpacity(0.3)),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                shape: BoxShape.circle,
               ),
-              dayPeriodShape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+              child: const Icon(
+                Icons.notifications_off_rounded,
+                color: Colors.orange,
+                size: 32,
               ),
             ),
-          ),
-          child: child!,
-        );
-      },
+            const SizedBox(height: 20),
+            Text(
+              'Notificaciones desactivadas',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Para recibir recordatorios, activa las notificaciones en los Ajustes de tu dispositivo.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  AppSettings.openAppSettings(type: AppSettingsType.notification);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text('Abrir Ajustes', style: TextStyle(fontWeight: FontWeight.w600)),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Ahora no', style: TextStyle(color: AppTheme.textSecondary)),
+            ),
+          ],
+        ),
+      ),
     );
+  }
 
-    if (picked != null) {
-      widget.onTimeChanged(picked);
-    }
+  void _showHourPicker() {
+    final initialIndex = widget.reminderTime.hour;
+    int selectedHour = initialIndex;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        height: 300,
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceDark,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: const Color(0xFFD0D8E4).withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            // Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text('Cancelar', style: TextStyle(color: AppTheme.textSecondary)),
+                  ),
+                  Text(
+                    'Hora del recordatorio',
+                    style: TextStyle(color: AppTheme.textPrimary, fontWeight: FontWeight.w600),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      widget.onTimeChanged(TimeOfDay(hour: selectedHour, minute: 0));
+                      Navigator.pop(ctx);
+                    },
+                    child: Text('OK', style: TextStyle(color: AppTheme.primaryColor, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1, color: Color(0xFFD0D8E4)),
+            // Hour wheel
+            Expanded(
+              child: Stack(
+                children: [
+                  // Selection indicator lines
+                  Center(
+                    child: Container(
+                      height: 48,
+                      margin: const EdgeInsets.symmetric(horizontal: 24),
+                      decoration: BoxDecoration(
+                        border: Border.symmetric(
+                          horizontal: BorderSide(
+                            color: AppTheme.primaryColor.withOpacity(0.3),
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Wheel
+                  ListWheelScrollView.useDelegate(
+                    controller: FixedExtentScrollController(initialItem: initialIndex),
+                    itemExtent: 48,
+                    physics: const FixedExtentScrollPhysics(),
+                    diameterRatio: 1.5,
+                    magnification: 1.2,
+                    useMagnifier: true,
+                    onSelectedItemChanged: (index) => selectedHour = index,
+                    childDelegate: ListWheelChildBuilderDelegate(
+                      childCount: 24,
+                      builder: (context, index) {
+                        return Center(
+                          child: Text(
+                            _formatHour(index),
+                            style: TextStyle(
+                              color: AppTheme.textPrimary,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _formatHour(int hour) {
+    if (hour == 0) return '12:00 AM';
+    if (hour < 12) return '$hour:00 AM';
+    if (hour == 12) return '12:00 PM';
+    return '${hour - 12}:00 PM';
   }
 
   String _formatTime(TimeOfDay time) {
-    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
-    final minute = time.minute.toString().padLeft(2, '0');
-    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
-    return '$hour:$minute $period';
+    return _formatHour(time.hour);
   }
 
   @override
@@ -307,7 +454,7 @@ class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
                       ? Padding(
                           padding: const EdgeInsets.only(top: 20),
                           child: GestureDetector(
-                            onTap: _showTimePicker,
+                            onTap: _showHourPicker,
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(20),
                               child: BackdropFilter(
