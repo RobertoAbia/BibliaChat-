@@ -33,6 +33,16 @@ class NotificationService {
   bool _timezoneInitialized = false;
   String? _currentUserId;
 
+  /// DEBUG TEMPORAL: escribe log en Supabase para diagnosticar FCM
+  Future<void> _debugLog(String message) async {
+    try {
+      await Supabase.instance.client.from('debug_logs').insert({
+        'user_id': _currentUserId ?? 'unknown',
+        'message': message,
+      });
+    } catch (_) {}
+  }
+
   /// Inicializa el servicio de notificaciones.
   /// Siempre guarda el token FCM (en Android funciona sin permiso).
   /// Para pedir permiso de mostrar notificaciones, llamar requestPermissionIfNeeded().
@@ -44,13 +54,18 @@ class NotificationService {
     // Si ya está inicializado pero cambió el usuario, solo actualizamos el token
     if (_isInitialized && _currentUserId != userId) {
       _currentUserId = userId;
+      _debugLog('init: user changed to $userId, re-saving token');
       await _saveToken(userId);
       return;
     }
 
-    if (_isInitialized) return;
+    if (_isInitialized) {
+      _debugLog('init: already initialized, skipping');
+      return;
+    }
 
     _currentUserId = userId;
+    _debugLog('init: starting for user $userId');
 
     // 1. Configurar handler para mensajes en background
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -129,19 +144,22 @@ class NotificationService {
   /// Obtiene el token FCM y lo guarda en Supabase.
   /// getToken() internamente espera a APNs en iOS. No pre-comprobar.
   Future<void> _saveToken(String userId) async {
+    _debugLog('_saveToken: starting for $userId');
     try {
+      _debugLog('_saveToken: calling getToken() with 10s timeout');
       final token = await _messaging.getToken().timeout(
         const Duration(seconds: 10),
         onTimeout: () => null,
       );
       if (token != null) {
+        _debugLog('_saveToken: got token ${token.substring(0, 20)}..., saving to Supabase');
         await _saveTokenToSupabase(token, userId);
-        debugPrint('FCM token saved for user: $userId');
+        _debugLog('_saveToken: SUCCESS saved to Supabase');
       } else {
-        debugPrint('FCM token null (timeout or no permission on iOS)');
+        _debugLog('_saveToken: token is NULL (timeout or no permission)');
       }
     } catch (e) {
-      debugPrint('Error saving FCM token: $e');
+      _debugLog('_saveToken: ERROR $e');
     }
   }
 
@@ -163,14 +181,18 @@ class NotificationService {
         settings.authorizationStatus == AuthorizationStatus.authorized ||
             settings.authorizationStatus == AuthorizationStatus.provisional;
 
+    _debugLog('requestPermission: authorized=$authorized');
     if (authorized) {
       AnalyticsService().logNotificationPermissionGranted();
       // Fire-and-forget: no bloquear el toggle
-      // getToken() espera internamente a APNs, pero damos 3s de margen
+      _debugLog('requestPermission: scheduling token save in 3s');
       Future.delayed(const Duration(seconds: 3), () async {
+        _debugLog('requestPermission: 3s delay fired, saving token now');
         await _setupLocalNotifications();
         if (_currentUserId != null) {
           await _saveToken(_currentUserId!);
+        } else {
+          _debugLog('requestPermission: _currentUserId is NULL!');
         }
       });
     } else {
@@ -223,14 +245,16 @@ class NotificationService {
   Future<void> _saveTokenToSupabase(String token, String userId) async {
     try {
       final platform = Platform.isIOS ? 'ios' : 'android';
+      _debugLog('_saveTokenToSupabase: calling RPC register_device_token platform=$platform');
 
       await Supabase.instance.client.rpc('register_device_token', params: {
         'p_token': token,
         'p_platform': platform,
       });
 
-      debugPrint('FCM token saved to Supabase');
+      _debugLog('_saveTokenToSupabase: RPC SUCCESS');
     } catch (e) {
+      _debugLog('_saveTokenToSupabase: RPC ERROR $e');
       debugPrint('Error saving FCM token: $e');
     }
   }
