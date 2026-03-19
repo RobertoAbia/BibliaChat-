@@ -9,10 +9,6 @@ import FirebaseMessaging
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
-
-    // Registrar explícitamente para notificaciones remotas (APNs)
-    application.registerForRemoteNotifications()
-
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

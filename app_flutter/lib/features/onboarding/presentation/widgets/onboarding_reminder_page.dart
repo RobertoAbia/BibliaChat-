@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import 'package:app_settings/app_settings.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/services/notification_service.dart';
@@ -29,15 +31,99 @@ class OnboardingReminderPage extends StatefulWidget {
 class _OnboardingReminderPageState extends State<OnboardingReminderPage> {
   Future<void> _handleToggle(bool value) async {
     if (value) {
-      // Al activar, pedir permiso de notificaciones
+      // Comprobar si ya denegó antes (iOS no muestra popup dos veces)
+      final settings = await FirebaseMessaging.instance.getNotificationSettings();
+      if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        // Ya denegó — mostrar diálogo para abrir Ajustes
+        if (mounted) _showNotificationPermissionDialog();
+        return;
+      }
+
+      // Pedir permiso de notificaciones
       final granted = await NotificationService().requestPermission();
       if (granted) {
         widget.onToggle(true);
       }
-      // Si deniega, no activar el toggle
     } else {
       widget.onToggle(false);
     }
+  }
+
+  void _showNotificationPermissionDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: const Color(0xFFD0D8E4).withOpacity(0.3)),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.notifications_off_rounded,
+                color: Colors.orange,
+                size: 32,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Notificaciones desactivadas',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppTheme.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Para recibir recordatorios, activa las notificaciones en los Ajustes de tu dispositivo.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text('Ahora no', style: TextStyle(color: AppTheme.textSecondary)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      AppSettings.openAppSettings(type: AppSettingsType.notification);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Abrir Ajustes', style: TextStyle(fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _showHourPicker() {
