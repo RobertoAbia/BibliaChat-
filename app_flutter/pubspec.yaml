@@ -1,7 +1,7 @@
 name: biblia_chat
 description: "App cristiana para hispanohablantes - Tu fe, tu idioma, tu cultura."
 publish_to: 'none'
-version: 1.0.0+30
+version: 1.0.0+31
 
 environment:
   sdk: ^3.5.4
