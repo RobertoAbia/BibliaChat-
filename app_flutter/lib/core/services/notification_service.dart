@@ -142,21 +142,39 @@ class NotificationService {
   }
 
   /// Obtiene el token FCM y lo guarda en Supabase.
-  /// getToken() internamente espera a APNs en iOS. No pre-comprobar.
+  /// En iOS, hay que esperar a que APNs token esté disponible antes de llamar getToken().
   Future<void> _saveToken(String userId) async {
     _debugLog('_saveToken: starting for $userId');
     try {
-      _debugLog('_saveToken: calling getToken() with 10s timeout');
+      // En iOS, esperar a que APNs token esté disponible (polling)
+      if (Platform.isIOS) {
+        String? apnsToken;
+        for (int i = 0; i < 10; i++) {
+          apnsToken = await _messaging.getAPNSToken();
+          if (apnsToken != null) {
+            _debugLog('_saveToken: APNs token ready after ${i * 2}s');
+            break;
+          }
+          _debugLog('_saveToken: APNs not ready, waiting 2s (attempt ${i + 1}/10)');
+          await Future.delayed(const Duration(seconds: 2));
+        }
+        if (apnsToken == null) {
+          _debugLog('_saveToken: APNs token still null after 20s, giving up');
+          return;
+        }
+      }
+
+      _debugLog('_saveToken: calling getToken()');
       final token = await _messaging.getToken().timeout(
         const Duration(seconds: 10),
         onTimeout: () => null,
       );
       if (token != null) {
-        _debugLog('_saveToken: got token ${token.substring(0, 20)}..., saving to Supabase');
+        _debugLog('_saveToken: got token ${token.substring(0, 20)}..., saving');
         await _saveTokenToSupabase(token, userId);
         _debugLog('_saveToken: SUCCESS saved to Supabase');
       } else {
-        _debugLog('_saveToken: token is NULL (timeout or no permission)');
+        _debugLog('_saveToken: token is NULL after getToken()');
       }
     } catch (e) {
       _debugLog('_saveToken: ERROR $e');
@@ -185,9 +203,9 @@ class NotificationService {
     if (authorized) {
       AnalyticsService().logNotificationPermissionGranted();
       // Fire-and-forget: no bloquear el toggle
-      _debugLog('requestPermission: scheduling token save in 3s');
-      Future.delayed(const Duration(seconds: 3), () async {
-        _debugLog('requestPermission: 3s delay fired, saving token now');
+      _debugLog('requestPermission: scheduling token save in 5s');
+      Future.delayed(const Duration(seconds: 5), () async {
+        _debugLog('requestPermission: 5s delay fired, saving token now');
         await _setupLocalNotifications();
         if (_currentUserId != null) {
           await _saveToken(_currentUserId!);
