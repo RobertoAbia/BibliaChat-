@@ -33,16 +33,6 @@ class NotificationService {
   bool _timezoneInitialized = false;
   String? _currentUserId;
 
-  /// DEBUG TEMPORAL: escribe log en Supabase para diagnosticar FCM
-  Future<void> _debugLog(String message) async {
-    try {
-      await Supabase.instance.client.from('debug_logs').insert({
-        'user_id': _currentUserId ?? 'unknown',
-        'message': message,
-      });
-    } catch (_) {}
-  }
-
   /// Inicializa el servicio de notificaciones.
   /// Siempre guarda el token FCM (en Android funciona sin permiso).
   /// Para pedir permiso de mostrar notificaciones, llamar requestPermissionIfNeeded().
@@ -54,18 +44,16 @@ class NotificationService {
     // Si ya está inicializado pero cambió el usuario, solo actualizamos el token
     if (_isInitialized && _currentUserId != userId) {
       _currentUserId = userId;
-      _debugLog('init: user changed to $userId, re-saving token');
+
       await _saveToken(userId);
       return;
     }
 
     if (_isInitialized) {
-      _debugLog('init: already initialized, skipping');
       return;
     }
 
     _currentUserId = userId;
-    _debugLog('init: starting for user $userId');
 
     // 1. Configurar handler para mensajes en background
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
@@ -144,7 +132,6 @@ class NotificationService {
   /// Obtiene el token FCM y lo guarda en Supabase.
   /// En iOS, hay que esperar a que APNs token esté disponible antes de llamar getToken().
   Future<void> _saveToken(String userId) async {
-    _debugLog('_saveToken: starting for $userId');
     try {
       // En iOS, esperar a que APNs token esté disponible (polling)
       if (Platform.isIOS) {
@@ -152,32 +139,24 @@ class NotificationService {
         for (int i = 0; i < 10; i++) {
           apnsToken = await _messaging.getAPNSToken();
           if (apnsToken != null) {
-            _debugLog('_saveToken: APNs token ready after ${i * 2}s');
             break;
           }
-          _debugLog('_saveToken: APNs not ready, waiting 2s (attempt ${i + 1}/10)');
           await Future.delayed(const Duration(seconds: 2));
         }
         if (apnsToken == null) {
-          _debugLog('_saveToken: APNs token still null after 20s, giving up');
           return;
         }
       }
 
-      _debugLog('_saveToken: calling getToken()');
       final token = await _messaging.getToken().timeout(
         const Duration(seconds: 10),
         onTimeout: () => null,
       );
       if (token != null) {
-        _debugLog('_saveToken: got token ${token.substring(0, 20)}..., saving');
         await _saveTokenToSupabase(token, userId);
-        _debugLog('_saveToken: SUCCESS saved to Supabase');
       } else {
-        _debugLog('_saveToken: token is NULL after getToken()');
       }
     } catch (e) {
-      _debugLog('_saveToken: ERROR $e');
     }
   }
 
@@ -199,18 +178,14 @@ class NotificationService {
         settings.authorizationStatus == AuthorizationStatus.authorized ||
             settings.authorizationStatus == AuthorizationStatus.provisional;
 
-    _debugLog('requestPermission: authorized=$authorized');
     if (authorized) {
       AnalyticsService().logNotificationPermissionGranted();
       // Fire-and-forget: no bloquear el toggle
-      _debugLog('requestPermission: scheduling token save in 5s');
       Future.delayed(const Duration(seconds: 5), () async {
-        _debugLog('requestPermission: 5s delay fired, saving token now');
         await _setupLocalNotifications();
         if (_currentUserId != null) {
           await _saveToken(_currentUserId!);
         } else {
-          _debugLog('requestPermission: _currentUserId is NULL!');
         }
       });
     } else {
@@ -263,16 +238,13 @@ class NotificationService {
   Future<void> _saveTokenToSupabase(String token, String userId) async {
     try {
       final platform = Platform.isIOS ? 'ios' : 'android';
-      _debugLog('_saveTokenToSupabase: calling RPC register_device_token platform=$platform');
 
       await Supabase.instance.client.rpc('register_device_token', params: {
         'p_token': token,
         'p_platform': platform,
       });
 
-      _debugLog('_saveTokenToSupabase: RPC SUCCESS');
     } catch (e) {
-      _debugLog('_saveTokenToSupabase: RPC ERROR $e');
       debugPrint('Error saving FCM token: $e');
     }
   }
