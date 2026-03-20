@@ -203,6 +203,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     setState(() {
                       _currentPage = page;
                     });
+                    // Funnel tracking
+                    const stepNames = [
+                      'welcome', 'consent', 'intro', 'name', 'age',
+                      'gender', 'country', 'denomination', 'motive',
+                      'motive_detail', 'support', 'commitment',
+                      'reminder', 'analyzing', 'summary', 'plan_preview',
+                    ];
+                    if (page < stepNames.length) {
+                      AnalyticsService().logOnboardingStep(
+                        stepNumber: page,
+                        stepName: stepNames[page],
+                      );
+                    }
                   },
                   children: [
                     // Page 0: Welcome

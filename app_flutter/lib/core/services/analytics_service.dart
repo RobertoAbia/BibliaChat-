@@ -14,6 +14,21 @@ class AnalyticsService {
 
   // ============ ONBOARDING ============
 
+  /// Tracking de cada paso del onboarding (funnel)
+  Future<void> logOnboardingStep({
+    required int stepNumber,
+    required String stepName,
+  }) async {
+    if (kIsWeb) return;
+    await _analytics.logEvent(
+      name: 'onboarding_step',
+      parameters: {
+        'step_number': stepNumber,
+        'step_name': stepName,
+      },
+    );
+  }
+
   /// Usuario completa el onboarding
   Future<void> logOnboardingComplete({
     required String denomination,
