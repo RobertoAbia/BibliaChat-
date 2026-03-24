@@ -1,7 +1,7 @@
   name: Send Push Notifications                                                                                                                                                                                                                                                                                         
   on:
     schedule:
-      - cron: '0 * * * *'
+      - cron: '29 * * * *'
     workflow_dispatch:
       inputs:
         notification_type:
