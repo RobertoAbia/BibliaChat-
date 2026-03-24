@@ -968,6 +968,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
                           controller: _messageController,
                           focusNode: _messageFocusNode,
                           cursorColor: AppTheme.textPrimary,
+                          textCapitalization: TextCapitalization.sentences,
                           enabled: !isSending,
                           style: const TextStyle(
                             color: AppTheme.textPrimary,

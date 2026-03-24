@@ -290,22 +290,7 @@ class NotificationService {
   /// Navega a la pantalla especificada
   void _navigateToScreen(String screen) {
     if (_router == null) return;
-
-    switch (screen) {
-      case 'stories':
-        _router!.go('/home/stories');
-        break;
-      case 'study':
-        _router!.go('/study');
-        break;
-      case 'chat':
-        _router!.go('/chat');
-        break;
-      case 'home':
-      default:
-        _router!.go('/home');
-        break;
-    }
+    _router!.go('/home');
   }
 
   /// Programa una notificación local para recordar que el trial termina en 2 días.

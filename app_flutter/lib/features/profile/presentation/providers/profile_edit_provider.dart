@@ -130,6 +130,11 @@ class ProfileEditNotifier extends StateNotifier<ProfileEditState> {
   /// Actualiza si el recordatorio está activo
   void updateReminderEnabled(bool value) {
     state = state.copyWith(reminderEnabled: value);
+    // Si activa el recordatorio y no tiene hora, poner 08:00 por defecto
+    if (value && state.reminderTime == null) {
+      final now = DateTime.now();
+      state = state.copyWith(reminderTime: DateTime(now.year, now.month, now.day, 8, 0));
+    }
   }
 
   /// Actualiza el valor original de reminderEnabled (para sincronizar la baseline
