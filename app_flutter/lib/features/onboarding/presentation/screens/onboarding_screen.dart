@@ -136,10 +136,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         return state.name != null;
       case 4: // Age
         return state.ageGroup != null;
-      case 5: // Gender
-        return state.gender != null;
-      case 6: // Country
-        return state.origin != null;
+      case 5: // Gender - optional (Apple requires it)
+        return true;
+      case 6: // Country - optional (Apple requires it)
+        return true;
       case 7: // Denomination
         return state.denomination != null;
       case 8: // Faith motivation - requires selection
