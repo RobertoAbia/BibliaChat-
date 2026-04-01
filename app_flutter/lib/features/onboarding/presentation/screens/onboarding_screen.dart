@@ -284,7 +284,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           verseReference: 'Salmo 139:14',
                           title: 'Dios nos creó única y maravillosamente.',
                           subtitle: '¿Cuál es tu género?',
-                          hint: 'Opcional — puedes saltar este paso',
+                          subtitleHint: 'Opcional — puedes saltar este paso',
                           options: const [
                             SelectionOption(key: 'male', label: 'Hombre'),
                             SelectionOption(key: 'female', label: 'Mujer'),

@@ -23,6 +23,7 @@ class OnboardingSelectionPage extends StatelessWidget {
   final String title;
   final String subtitle;
   final String? hint;
+  final String? subtitleHint; // Simple grey text below subtitle
   final List<SelectionOption> options;
   final String? selectedKey;
   final Set<String>? selectedKeys; // For multi-select
@@ -35,6 +36,7 @@ class OnboardingSelectionPage extends StatelessWidget {
     required this.title,
     required this.subtitle,
     this.hint,
+    this.subtitleHint,
     required this.options,
     this.selectedKey,
     this.selectedKeys,
@@ -63,6 +65,17 @@ class OnboardingSelectionPage extends StatelessWidget {
                         fontWeight: FontWeight.w600,
                       ),
                 ),
+
+                // Simple grey hint below subtitle (e.g. "Optional")
+                if (subtitleHint != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    subtitleHint!,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: AppTheme.textTertiary,
+                        ),
+                  ),
+                ],
 
                 // Optional hint (e.g. for multi-select)
                 if (hint != null) ...[
