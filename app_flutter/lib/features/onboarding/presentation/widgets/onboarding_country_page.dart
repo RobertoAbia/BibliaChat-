@@ -187,7 +187,7 @@ class _OnboardingCountryPageState extends State<OnboardingCountryPage> {
             child: SafeArea(
               top: false,
               child: Opacity(
-                opacity: _selectedCode != null ? 1.0 : 0.4,
+                opacity: 1.0,
                 child: SizedBox(
                   width: double.infinity,
                   height: 56,
@@ -204,7 +204,7 @@ class _OnboardingCountryPageState extends State<OnboardingCountryPage> {
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: _selectedCode != null ? widget.onNext : null,
+                      onPressed: widget.onNext,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
