@@ -284,13 +284,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                           verseReference: 'Salmo 139:14',
                           title: 'Dios nos creó única y maravillosamente.',
                           subtitle: '¿Cuál es tu género?',
+                          hint: 'Opcional — puedes saltar este paso',
                           options: const [
                             SelectionOption(key: 'male', label: 'Hombre'),
                             SelectionOption(key: 'female', label: 'Mujer'),
                           ],
                           selectedKey: state.gender,
                           onSelect: (key) => notifier.setGender(key),
-                          onNext: _canProceed() ? _nextPage : null,
+                          onNext: _nextPage,
                         );
                       },
                     ),
@@ -302,7 +303,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                         return OnboardingCountryPage(
                           onSelect: (originGroup) => notifier.setOrigin(originGroup),
                           onCountryCodeSelect: (code) => notifier.setCountryCode(code),
-                          onNext: _canProceed() ? _nextPage : null,
+                          onNext: _nextPage,
                         );
                       },
                     ),

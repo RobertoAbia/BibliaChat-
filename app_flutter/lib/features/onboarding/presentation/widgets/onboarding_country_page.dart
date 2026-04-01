@@ -89,7 +89,17 @@ class _OnboardingCountryPageState extends State<OnboardingCountryPage> {
                 ),
           ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 6),
+
+          // Optional hint
+          Text(
+            'Opcional — puedes saltar este paso',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppTheme.textTertiary,
+                ),
+          ),
+
+          const SizedBox(height: 18),
 
           // Dropdown
           Expanded(
