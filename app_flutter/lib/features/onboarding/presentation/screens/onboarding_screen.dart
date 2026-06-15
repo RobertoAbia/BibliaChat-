@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -81,17 +83,19 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       );
       // Invalidar el provider de perfil para que se recargue con los nuevos datos
       ref.invalidate(currentUserProfileProvider);
-      // Auto-assign recommended plan based on motive+detail
+      // Auto-assign recommended plan based on motive+detail (fire-and-forget:
+      // no bloquea la navegación al paywall; es no-crítico).
       final planId = _getRecommendedPlanId(state.motive, state.motiveDetail);
-      if (planId != null) {
-        final userId = Supabase.instance.client.auth.currentUser?.id;
-        if (userId != null) {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (planId != null && userId != null) {
+        final datasource = ref.read(studyDatasourceProvider);
+        unawaited(() async {
           try {
-            await ref.read(studyDatasourceProvider).startPlan(userId, planId);
+            await datasource.startPlan(userId, planId);
           } catch (_) {
             // Non-critical: plan assignment can fail silently
           }
-        }
+        }());
       }
       // Mostrar pantallas intro antes del paywall
       context.go(RouteConstants.prePaywall);

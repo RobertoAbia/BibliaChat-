@@ -1,19 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../providers/subscription_provider.dart';
 
-class PrePaywallScreen extends StatefulWidget {
+class PrePaywallScreen extends ConsumerStatefulWidget {
   const PrePaywallScreen({super.key});
 
   @override
-  State<PrePaywallScreen> createState() => _PrePaywallScreenState();
+  ConsumerState<PrePaywallScreen> createState() => _PrePaywallScreenState();
 }
 
-class _PrePaywallScreenState extends State<PrePaywallScreen> {
+class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
   final _pageController = PageController();
   int _currentPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Prewarm: instanciar el provider de suscripción para que RevenueCat empiece
+    // a cargar los offerings mientras el usuario lee esta pantalla. Así el paywall
+    // aparece con los precios reales al instante, no con placeholders.
+    ref.read(subscriptionProvider);
+  }
 
   @override
   void dispose() {
