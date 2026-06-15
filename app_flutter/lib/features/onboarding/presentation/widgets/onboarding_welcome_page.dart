@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/att_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/glass_container.dart';
 
@@ -69,6 +70,15 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
 
     _controller.forward();
     _pulseController.repeat(reverse: true);
+
+    // ATT (App Tracking Transparency): primer lanzamiento, en cuanto la UI
+    // es visible. Pequeño delay para que la app esté en foreground (iOS no
+    // muestra el prompt si se pide demasiado pronto). No-op fuera de iOS.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 500), () {
+        AttService().requestPermission();
+      });
+    });
   }
 
   @override

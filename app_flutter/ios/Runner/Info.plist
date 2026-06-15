@@ -48,6 +48,9 @@
 		<!-- Photo Library Access for sharing images -->
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>Necesitamos acceso a tu galería para usar una foto como fondo de tu reflexión</string>
+		<!-- App Tracking Transparency (atribución de campañas) -->
+		<key>NSUserTrackingUsageDescription</key>
+		<string>Usamos esto para mostrarte contenido y ofertas más relevantes y para medir nuestras campañas. No vendemos tus datos.</string>
 		<!-- Background Modes for Push Notifications -->
 		<key>UIBackgroundModes</key>
 		<array>

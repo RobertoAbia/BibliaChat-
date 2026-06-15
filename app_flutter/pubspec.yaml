@@ -53,6 +53,9 @@ dependencies:
   # Payments (RevenueCat)
   purchases_flutter: ^8.3.1
 
+  # Attribution (iOS App Tracking Transparency)
+  app_tracking_transparency: ^2.0.6+1
+
   # Firebase (Analytics + Notifications)
   firebase_core: ^3.9.0
   firebase_messaging: ^15.1.6

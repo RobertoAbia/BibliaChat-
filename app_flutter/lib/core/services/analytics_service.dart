@@ -48,6 +48,15 @@ class AnalyticsService {
     );
   }
 
+  /// Resultado del prompt de ATT (App Tracking Transparency) en iOS
+  Future<void> logAttPromptResult(String status) async {
+    if (kIsWeb) return;
+    await _analytics.logEvent(
+      name: 'att_prompt_result',
+      parameters: {'status': status},
+    );
+  }
+
   // ============ CHAT ============
 
   /// Usuario envía un mensaje en el chat
