@@ -5,6 +5,7 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/services/analytics_service.dart';
+import '../../../../core/services/revenue_cat_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../legal/presentation/screens/privacy_policy_screen.dart';
 import '../../../legal/presentation/screens/terms_conditions_screen.dart';
@@ -24,6 +25,8 @@ class PaywallScreen extends ConsumerStatefulWidget {
 class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   bool _trialEnabled = true; // true = mensual con trial, false = anual
   bool _canClose = false;
+  bool _isEligibleForTrial = true; // optimista; se actualiza tras consultar RC
+  bool _eligibilityChecked = false;
 
   @override
   void initState() {
@@ -39,6 +42,12 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     }
   }
 
+  Future<void> _checkEligibility(String productId) async {
+    final eligible =
+        await RevenueCatService.instance.isEligibleForTrial(productId);
+    if (mounted) setState(() => _isEligibleForTrial = eligible);
+  }
+
   @override
   Widget build(BuildContext context) {
     final subscriptionState = ref.watch(subscriptionProvider);
@@ -48,6 +57,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final monthlyPrice = monthlyPackage?.storeProduct.priceString ?? '\$14.99';
     final annualPrice = annualPackage?.storeProduct.priceString ?? '\$39.99';
     final isPurchasing = subscriptionState.isPurchasing;
+
+    // Comprobar elegibilidad de trial cuando el paquete mensual esté cargado.
+    if (monthlyPackage != null && !_eligibilityChecked) {
+      _eligibilityChecked = true;
+      final productId = monthlyPackage.storeProduct.identifier;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkEligibility(productId);
+      });
+    }
 
     return Scaffold(
       body: Container(
@@ -103,10 +121,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
                       const SizedBox(height: 24),
 
-                      // Toggle trial (siempre visible)
-                      _buildTrialToggle(),
-
-                      const SizedBox(height: 12),
+                      // Toggle trial — solo si el usuario es elegible para el trial
+                      if (_isEligibleForTrial) ...[
+                        _buildTrialToggle(),
+                        const SizedBox(height: 12),
+                      ],
 
                       // Plan mensual (mock data si RevenueCat no carga)
                       _buildMonthlyCard(monthlyPrice),
@@ -189,9 +208,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  _trialEnabled
+                                  (_isEligibleForTrial && _trialEnabled)
                                       ? 'Pruebalo gratis'
-                                      : 'Continuar',
+                                      : 'Suscribete',
                                   style: const TextStyle(
                                     fontSize: 17,
                                     fontWeight: FontWeight.w600,
@@ -389,9 +408,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
-              'Prueba gratuita de 3 dias',
-              style: TextStyle(
+            Text(
+              _isEligibleForTrial ? 'Prueba gratuita de 3 dias' : 'Acceso Mensual',
+              style: const TextStyle(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
                 color: AppTheme.textPrimary,
@@ -399,7 +418,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              'Despues, $price cada mes. Sin cobros ahora',
+              _isEligibleForTrial
+                  ? 'Despues, $price cada mes. Sin cobros ahora'
+                  : '$price cada mes',
               style: const TextStyle(
                 fontSize: 14,
                 color: AppTheme.textSecondary,

@@ -63,6 +63,22 @@ class RevenueCatService {
     }
   }
 
+  /// Comprueba si el usuario es elegible para el trial del producto dado.
+  /// Devuelve false si ya consumió el trial o si no se puede determinar, así
+  /// nunca prometemos un trial que Apple va a denegar (cobraría de inmediato).
+  Future<bool> isEligibleForTrial(String productId) async {
+    if (!isAvailable) return false;
+    try {
+      final result =
+          await Purchases.checkTrialOrIntroductoryPriceEligibility([productId]);
+      return result[productId]?.status ==
+          IntroEligibilityStatus.introEligibilityStatusEligible;
+    } catch (e) {
+      if (kDebugMode) debugPrint('RevenueCat: eligibility check failed - $e');
+      return false;
+    }
+  }
+
   Future<Offerings?> getOfferings() async {
     if (!isAvailable) return null;
     try {
