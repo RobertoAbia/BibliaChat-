@@ -47,6 +47,17 @@ class RevenueCatService {
       await Purchases.configure(configuration);
       _isInitialized = true;
       debugPrint('RevenueCat: Initialized successfully');
+
+      // Apple Search Ads: recolecta el token de AdServices y lo envía a Apple
+      // vía RevenueCat (atribución de revenue por keyword/campaña).
+      // Solo iOS 14.3+; en Android es no-op. El token solo es fetchable en
+      // las primeras ~24h del install.
+      try {
+        await Purchases.enableAdServicesAttributionTokenCollection();
+        debugPrint('RevenueCat: AdServices attribution token collection enabled');
+      } catch (e) {
+        if (kDebugMode) debugPrint('RevenueCat: AdServices token failed - $e');
+      }
     } catch (e) {
       debugPrint('RevenueCat: Init error - $e');
     }
