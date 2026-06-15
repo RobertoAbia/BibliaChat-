@@ -4,8 +4,12 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../providers/subscription_provider.dart';
 
+/// Pantalla "trial preview" antes del paywall: título personalizado
+/// (nombre + 3 días gratis + objetivo del onboarding) + timeline de 3 días +
+/// microcopy + CTA. También precalienta RevenueCat para que el paywall sea instantáneo.
 class PrePaywallScreen extends ConsumerStatefulWidget {
   const PrePaywallScreen({super.key});
 
@@ -14,9 +18,6 @@ class PrePaywallScreen extends ConsumerStatefulWidget {
 }
 
 class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
-  final _pageController = PageController();
-  int _currentPage = 0;
-
   @override
   void initState() {
     super.initState();
@@ -26,27 +27,35 @@ class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
     ref.read(subscriptionProvider);
   }
 
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
+  /// Objetivo legible según el motivo elegido en el onboarding.
+  String _objectivePhrase(String? motive) {
+    switch (motive) {
+      case 'difficult_moment':
+        return 'atravesar este momento difícil con fe';
+      case 'spiritual_growth':
+        return 'crecer en tu fe';
+      case 'feeling_distant':
+        return 'reconectar con Dios';
+      case 'understand_bible':
+        return 'entender mejor la Palabra';
+      default:
+        return 'fortalecer tu fe';
+    }
   }
 
-  void _next() {
-    if (_currentPage == 0) {
-      _pageController.animateToPage(
-        1,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeOutCubic,
-      );
-      setState(() => _currentPage = 1);
-    } else {
-      context.go('${RouteConstants.paywall}?gate=true');
-    }
+  void _continue() {
+    context.go('${RouteConstants.paywall}?gate=true');
   }
 
   @override
   Widget build(BuildContext context) {
+    final profile = ref.watch(currentUserProfileProvider).valueOrNull;
+    final name = profile?.name;
+    final objective = _objectivePhrase(profile?.motive);
+    final namePrefix = (name != null && name.trim().isNotEmpty)
+        ? '${name.trim()}, aquí tienes '
+        : 'Aquí tienes ';
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -56,74 +65,90 @@ class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
           bottom: false,
           child: Column(
             children: [
+              // Contenido scrollable
               Expanded(
-                child: PageView(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 40),
+
+                      // Título personalizado
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(text: namePrefix),
+                            const TextSpan(
+                              text: '3 días gratis',
+                              style: TextStyle(color: AppTheme.primaryColor),
+                            ),
+                            TextSpan(text: ' para $objective'),
+                          ],
+                        ),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: AppTheme.textPrimary,
+                          height: 1.25,
+                        ),
+                      ),
+
+                      const SizedBox(height: 44),
+
+                      // Timeline de 3 días
+                      _buildTimelineItem(
+                        title: 'Hoy',
+                        subtitle: 'Acceso completo a Biblia Chat',
+                        isLast: false,
+                      ),
+                      _buildTimelineItem(
+                        title: 'Día 2',
+                        subtitle: 'Te avisaremos antes de cualquier cobro',
+                        isLast: false,
+                      ),
+                      _buildTimelineItem(
+                        title: 'Día 3',
+                        subtitle: 'Termina tu prueba — cancela cuando quieras',
+                        isLast: true,
+                      ),
+
+                      const SizedBox(height: 16),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Microcopy: hoy no pagas nada
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    _buildPage([
-                      const TextSpan(
-                        text: 'Ofrecemos\n',
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.w400,
-                          color: AppTheme.textPrimary,
-                          height: 1.4,
+                    const Icon(
+                      Icons.check_circle,
+                      size: 16,
+                      color: AppTheme.primaryColor,
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        'Hoy no pagas nada. Cancela cuando quieras.',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.textSecondary,
                         ),
+                        textAlign: TextAlign.center,
                       ),
-                      TextSpan(
-                        text: '3 dias gratis\n',
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.primaryColor,
-                          height: 1.4,
-                        ),
-                      ),
-                      const TextSpan(
-                        text: 'para que todos puedan\nacercarse a Dios',
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.w400,
-                          color: AppTheme.textPrimary,
-                          height: 1.4,
-                        ),
-                      ),
-                    ]),
-                    _buildPage([
-                      const TextSpan(
-                        text: 'Recibiras un\nrecordatorio ',
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.w400,
-                          color: AppTheme.textPrimary,
-                          height: 1.4,
-                        ),
-                      ),
-                      TextSpan(
-                        text: '2 dias',
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.primaryColor,
-                          height: 1.4,
-                        ),
-                      ),
-                      const TextSpan(
-                        text: '\nantes de que termine\ntu prueba',
-                        style: TextStyle(
-                          fontSize: 30,
-                          fontWeight: FontWeight.w400,
-                          color: AppTheme.textPrimary,
-                          height: 1.4,
-                        ),
-                      ),
-                    ]),
+                    ),
                   ],
                 ),
               ),
 
-              // Botón Continuar
+              const SizedBox(height: 12),
+
+              // CTA
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: SizedBox(
@@ -142,7 +167,7 @@ class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: _next,
+                      onPressed: _continue,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         shadowColor: Colors.transparent,
@@ -157,7 +182,7 @@ class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Continuar',
+                            'Empieza mis 3 días gratis',
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w600,
@@ -181,14 +206,65 @@ class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
     );
   }
 
-  Widget _buildPage(List<TextSpan> spans) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32),
-        child: Text.rich(
-          TextSpan(children: spans),
-          textAlign: TextAlign.center,
-        ),
+  Widget _buildTimelineItem({
+    required String title,
+    required String subtitle,
+    required bool isLast,
+  }) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Círculo + conector vertical
+          Column(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: const BoxDecoration(
+                  gradient: AppTheme.goldGradient,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check, size: 20, color: Colors.white),
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    color: AppTheme.primaryColor.withOpacity(0.25),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: 16),
+          // Texto
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(bottom: isLast ? 0 : 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
