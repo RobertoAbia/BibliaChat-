@@ -86,7 +86,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RouteConstants.paywall,
         name: 'paywall',
-        builder: (context, state) => const PaywallScreen(),
+        builder: (context, state) => PaywallScreen(
+          gate: state.uri.queryParameters['gate'] == 'true',
+        ),
       ),
 
       // Purchase success (sin bottom navigation)

@@ -11,7 +11,11 @@ import '../../../legal/presentation/screens/terms_conditions_screen.dart';
 import '../providers/subscription_provider.dart';
 
 class PaywallScreen extends ConsumerStatefulWidget {
-  const PaywallScreen({super.key});
+  /// Si true, el paywall actúa de puerta (hard paywall): sin botón de cerrar.
+  /// Las aperturas contextuales (Ajustes, etc.) lo dejan en false y son cerrables.
+  final bool gate;
+
+  const PaywallScreen({super.key, this.gate = false});
 
   @override
   ConsumerState<PaywallScreen> createState() => _PaywallScreenState();
@@ -256,9 +260,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           ),
         ),
       ),
-      // Boton X flotante
+      // Boton X flotante — oculto en modo gate (hard paywall: no se puede cerrar)
       floatingActionButtonLocation: FloatingActionButtonLocation.miniStartTop,
-      floatingActionButton: Padding(
+      floatingActionButton: widget.gate
+          ? null
+          : Padding(
         padding: const EdgeInsets.only(top: 4),
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
@@ -475,8 +481,17 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     } else if (!_trialEnabled && annualPackage != null) {
       _handlePurchase(annualPackage);
     } else {
-      // RevenueCat no cargó productos — dejar pasar sin compra
-      if (context.canPop()) {
+      // RevenueCat no cargó productos
+      if (widget.gate) {
+        // Hard paywall: no dejar pasar. Reintentar cargar productos.
+        ref.read(subscriptionProvider.notifier).refresh();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cargando planes, inténtalo de nuevo en un momento'),
+            backgroundColor: Color(0xFF1A2740),
+          ),
+        );
+      } else if (context.canPop()) {
         context.pop();
       } else {
         context.go(RouteConstants.home);

@@ -30,7 +30,7 @@ class _PrePaywallScreenState extends State<PrePaywallScreen> {
       );
       setState(() => _currentPage = 1);
     } else {
-      context.go(RouteConstants.paywall);
+      context.go('${RouteConstants.paywall}?gate=true');
     }
   }
 
