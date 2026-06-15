@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_constants.dart';
+import '../../../../core/services/notifications_prompt_service.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class PurchaseSuccessScreen extends StatefulWidget {
@@ -39,6 +40,12 @@ class _PurchaseSuccessScreenState extends State<PurchaseSuccessScreen>
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _continue() async {
+    // Priming de notificaciones tras pagar (solo se muestra una vez).
+    await NotificationsPromptService.showIfNotShown(context);
+    if (mounted) context.go(RouteConstants.home);
   }
 
   @override
@@ -198,7 +205,7 @@ class _PurchaseSuccessScreenState extends State<PurchaseSuccessScreen>
                         ],
                       ),
                       child: ElevatedButton(
-                        onPressed: () => context.go(RouteConstants.home),
+                        onPressed: _continue,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/providers/story_viewed_provider.dart';
+import '../../../../core/services/notifications_prompt_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/daily_progress_provider.dart';
 import '../../../../core/widgets/glass_container.dart';
@@ -38,6 +39,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (mounted && !_forceReady) {
         setState(() => _forceReady = true);
       }
+    });
+
+    // Priming de notificaciones para usuarios free (que no pasaron por compra).
+    // Si ya se mostró (p.ej. tras pagar), es no-op gracias al flag.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) NotificationsPromptService.showIfNotShown(context);
     });
   }
 
