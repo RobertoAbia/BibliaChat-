@@ -137,16 +137,31 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
                       const SizedBox(height: 16),
 
-                      // Texto legal
-                      const Center(
-                        child: Text(
-                          'Cancela en cualquier momento, sin compromiso.',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppTheme.textSecondary,
+                      // Microcopy bajo los planes: con check cuando hay trial seleccionado
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (_isEligibleForTrial && _trialEnabled) ...[
+                            Icon(
+                              Icons.check_circle,
+                              size: 16,
+                              color: AppTheme.primaryColor,
+                            ),
+                            const SizedBox(width: 6),
+                          ],
+                          Flexible(
+                            child: Text(
+                              (_isEligibleForTrial && _trialEnabled)
+                                  ? 'Hoy no pagas nada. Cancela cuando quieras.'
+                                  : 'Cancela en cualquier momento, sin compromiso.',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppTheme.textSecondary,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
+                        ],
                       ),
 
                       const SizedBox(height: 8),
