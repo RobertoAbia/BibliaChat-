@@ -95,7 +95,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: RouteConstants.purchaseSuccess,
         name: 'purchaseSuccess',
-        builder: (context, state) => const PurchaseSuccessScreen(),
+        builder: (context, state) => PurchaseSuccessScreen(
+          isTrialStart: state.uri.queryParameters['trial'] == 'true',
+        ),
       ),
 
       // Main App with Bottom Navigation

@@ -2,11 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_constants.dart';
+import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/notifications_prompt_service.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class PurchaseSuccessScreen extends StatefulWidget {
-  const PurchaseSuccessScreen({super.key});
+  /// True si esta compra inició realmente un trial (usuario elegible + plan
+  /// con trial). Solo entonces se programa el recordatorio de fin de prueba.
+  final bool isTrialStart;
+
+  const PurchaseSuccessScreen({super.key, this.isTrialStart = false});
 
   @override
   State<PurchaseSuccessScreen> createState() => _PurchaseSuccessScreenState();
@@ -45,6 +50,11 @@ class _PurchaseSuccessScreenState extends State<PurchaseSuccessScreen>
   Future<void> _continue() async {
     // Priming de notificaciones tras pagar (solo se muestra una vez).
     await NotificationsPromptService.showIfNotShown(context);
+    // Recordatorio de fin de trial: solo si esta compra inició un trial real.
+    // Se programa DESPUÉS del priming, cuando ya se ha concedido el permiso.
+    if (widget.isTrialStart) {
+      await NotificationService().scheduleTrialReminder();
+    }
     if (mounted) context.go(RouteConstants.home);
   }
 

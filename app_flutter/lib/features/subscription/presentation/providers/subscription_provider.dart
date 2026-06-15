@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/services/analytics_service.dart';
-import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/revenue_cat_service.dart';
 
 // Estado de la suscripción
@@ -122,16 +121,13 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       state = state.copyWith(isPremium: true, isPurchasing: false);
       _savePremiumCache(true);
 
-      // Solo loguear y notificar si es una compra nueva (no ya suscrito)
+      // Solo loguear si es una compra nueva (no ya suscrito).
+      // El recordatorio de trial se programa en PurchaseSuccessScreen (tras el
+      // priming y solo si la compra inició un trial real), no aquí.
       if (!wasPremium) {
         final planType = package.packageType == PackageType.annual ? 'annual' : 'monthly';
         AnalyticsService().logSubscriptionStarted(planType: planType);
         AnalyticsService().setUserProperties(isPremium: true);
-
-        // Programar recordatorio solo si el producto tiene trial (plan mensual)
-        if (package.storeProduct.introductoryPrice != null) {
-          NotificationService().scheduleTrialReminder();
-        }
       }
 
       return !wasPremium; // false si ya era premium (no navegar a success)

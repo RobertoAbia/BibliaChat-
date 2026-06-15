@@ -536,9 +536,13 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   }
 
   Future<void> _handlePurchase(Package package) async {
+    // ¿Esta compra inicia un trial real? Solo si el usuario es elegible y tiene
+    // el plan con trial (mensual) seleccionado. Se captura ANTES de comprar
+    // porque después de comprar la elegibilidad siempre da false.
+    final wasTrialStart = _isEligibleForTrial && _trialEnabled;
     final success = await ref.read(subscriptionProvider.notifier).purchasePackage(package);
     if (success && mounted) {
-      context.go(RouteConstants.purchaseSuccess);
+      context.go('${RouteConstants.purchaseSuccess}?trial=$wasTrialStart');
     }
   }
 

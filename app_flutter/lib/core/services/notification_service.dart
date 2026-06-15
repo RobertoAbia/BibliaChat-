@@ -308,13 +308,12 @@ class NotificationService {
           settings.authorizationStatus == AuthorizationStatus.provisional;
 
       if (!hasPermission) {
-        final granted = await requestPermission();
-        if (!granted) {
-          debugPrint('Trial reminder: notification permission denied');
-          return;
-        }
-        await _setupLocalNotifications();
+        // El permiso se pide en el priming (NotificationsPromptService), no aquí.
+        // Sin permiso, no programamos (y NO disparamos el prompt nativo).
+        debugPrint('Trial reminder: sin permiso de notificaciones, no se programa');
+        return;
       }
+      await _setupLocalNotifications();
 
       // Inicializar timezone si no se ha hecho
       if (!_timezoneInitialized) {
