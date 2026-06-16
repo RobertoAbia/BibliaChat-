@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:flutter/foundation.dart';
@@ -13,8 +14,10 @@ class RemoteConfigService {
   factory RemoteConfigService() => _instance;
   RemoteConfigService._internal();
 
-  /// Clave en Remote Config: step_names a ocultar, separados por coma.
-  /// Ej: "age,gender,reminder". Vacío = no se oculta nada (default).
+  /// Clave en Remote Config: step_names a ocultar. Acepta dos formatos:
+  ///  - Texto plano separado por coma: `age,gender,reminder`
+  ///  - JSON array: `["age","gender","reminder"]`
+  /// Vacío = no se oculta nada (default).
   static const String hiddenStepsKey = 'onboarding_hidden_steps';
 
   FirebaseRemoteConfig? _rc;
@@ -44,8 +47,27 @@ class RemoteConfigService {
   }
 
   /// Conjunto de step_names del onboarding que deben ocultarse.
+  /// Tolera tanto JSON array (`["a","b"]`) como lista plana (`a,b`).
   Set<String> get hiddenOnboardingSteps {
-    final raw = _rc?.getString(hiddenStepsKey) ?? '';
+    final raw = (_rc?.getString(hiddenStepsKey) ?? '').trim();
+    if (raw.isEmpty) return {};
+
+    // Formato JSON array: ["a","b"]
+    if (raw.startsWith('[')) {
+      try {
+        final decoded = jsonDecode(raw);
+        if (decoded is List) {
+          return decoded
+              .map((e) => e.toString().trim())
+              .where((s) => s.isNotEmpty)
+              .toSet();
+        }
+      } catch (_) {
+        // JSON malformado → cae al parseo por comas.
+      }
+    }
+
+    // Formato lista plana: a,b,c
     return raw
         .split(',')
         .map((s) => s.trim())
