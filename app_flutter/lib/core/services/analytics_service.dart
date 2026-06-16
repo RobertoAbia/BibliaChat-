@@ -270,6 +270,17 @@ class AnalyticsService {
     );
   }
 
+  // ============ REVIEW ============
+
+  /// Se solicita la review nativa al usuario (pico emocional del onboarding)
+  Future<void> logReviewPromptShown({required String source}) async {
+    if (kIsWeb) return;
+    await _analytics.logEvent(
+      name: 'review_prompt_shown',
+      parameters: {'source': source},
+    );
+  }
+
   // ============ USER PROPERTIES ============
 
   /// Establece propiedades del usuario para segmentación

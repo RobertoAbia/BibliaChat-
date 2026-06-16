@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:in_app_review/in_app_review.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -20,6 +22,7 @@ import '../widgets/onboarding_intro_page.dart';
 import '../widgets/onboarding_consent_page.dart';
 import '../widgets/onboarding_plan_preview_page.dart';
 import '../widgets/onboarding_summary_page.dart';
+import '../widgets/onboarding_verse_page.dart';
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -31,7 +34,15 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 16; // Welcome + Consent + Intro + Nombre + 9 preguntas + Analyzing + Summary + Ready
+  final int _totalPages = 17; // Welcome + Consent + Intro + Nombre + 9 preguntas + Analyzing + Summary + Verse + Plan preview
+
+  @override
+  void initState() {
+    super.initState();
+    // PageView.onPageChanged no se dispara para la página inicial, así que
+    // registramos manualmente el primer paso (welcome) para cerrar el funnel.
+    AnalyticsService().logOnboardingStep(stepNumber: 0, stepName: 'welcome');
+  }
 
   @override
   void dispose() {
@@ -56,6 +67,22 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOut,
       );
+    }
+  }
+
+  /// Pide la review nativa en el pico emocional (tras revelar el versículo
+  /// personalizado), antes de llegar al paywall. No-crítico: si no está
+  /// disponible o falla, se ignora silenciosamente.
+  Future<void> _requestReview() async {
+    if (kIsWeb) return;
+    try {
+      final inAppReview = InAppReview.instance;
+      if (await inAppReview.isAvailable()) {
+        await inAppReview.requestReview();
+        AnalyticsService().logReviewPromptShown(source: 'onboarding_verse');
+      }
+    } catch (_) {
+      // Non-critical
     }
   }
 
@@ -173,7 +200,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           child: Column(
             children: [
               // Progress indicator with back button (show only on question pages)
-              if (_currentPage > 2 && _currentPage < _totalPages - 3)
+              if (_currentPage > 2 && _currentPage < _totalPages - 4)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 24, 0),
                   child: Row(
@@ -212,7 +239,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       'welcome', 'consent', 'intro', 'name', 'age',
                       'gender', 'country', 'denomination', 'motive',
                       'motive_detail', 'support', 'commitment',
-                      'reminder', 'analyzing', 'summary', 'plan_preview',
+                      'reminder', 'analyzing', 'summary', 'verse',
+                      'plan_preview',
                     ];
                     if (page < stepNames.length) {
                       AnalyticsService().logOnboardingStep(
@@ -519,7 +547,20 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       },
                     ),
 
-                    // Page 15: Plan preview (replaces Ready page)
+                    // Page 15: Personalized verse reveal (WOW + review request)
+                    Builder(
+                      builder: (context) {
+                        final state = ref.watch(onboardingProvider);
+                        return OnboardingVersePage(
+                          name: state.name,
+                          motive: state.motive,
+                          onReveal: _requestReview,
+                          onContinue: _nextPage,
+                        );
+                      },
+                    ),
+
+                    // Page 16: Plan preview (replaces Ready page)
                     Builder(
                       builder: (context) {
                         final state = ref.watch(onboardingProvider);
@@ -651,8 +692,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildProgressBar() {
-    // Progress from page 1 to page 5 (actual question pages)
-    final progress = (_currentPage - 1) / (_totalPages - 4);
+    // Progress over the question pages (3-12); las páginas finales
+    // (analyzing, summary, verse, plan preview) no muestran barra.
+    final progress = (_currentPage - 1) / (_totalPages - 5);
 
     return Container(
       height: 4,
