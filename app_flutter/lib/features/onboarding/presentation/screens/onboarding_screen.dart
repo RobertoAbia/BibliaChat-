@@ -9,6 +9,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/services/analytics_service.dart';
+import '../../../../core/services/remote_config_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../../study/presentation/providers/study_provider.dart';
@@ -24,6 +25,15 @@ import '../widgets/onboarding_plan_preview_page.dart';
 import '../widgets/onboarding_summary_page.dart';
 import '../widgets/onboarding_verse_page.dart';
 
+/// Descriptor de un paso del onboarding (independiente del índice fijo).
+class _OnbStep {
+  final String name; // step_name (analytics + Remote Config)
+  final bool showProgress; // muestra barra de progreso + botón atrás
+  final bool protected; // no puede ocultarse desde Remote Config
+
+  const _OnbStep(this.name, {this.showProgress = false, this.protected = false});
+}
+
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -34,14 +44,43 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  final int _totalPages = 17; // Welcome + Consent + Intro + Nombre + 9 preguntas + Analyzing + Summary + Verse + Plan preview
+
+  /// Orden canónico de todos los pasos. `protected` = nunca ocultable
+  /// (welcome es la entrada y lleva el consentimiento implícito; plan_preview
+  /// dispara el alta). El resto puede ocultarse vía Remote Config.
+  static const List<_OnbStep> _allSteps = [
+    _OnbStep('welcome', protected: true),
+    _OnbStep('consent'),
+    _OnbStep('intro'),
+    _OnbStep('name', showProgress: true),
+    _OnbStep('age', showProgress: true),
+    _OnbStep('gender', showProgress: true),
+    _OnbStep('country', showProgress: true),
+    _OnbStep('denomination', showProgress: true),
+    _OnbStep('motive', showProgress: true),
+    _OnbStep('motive_detail', showProgress: true),
+    _OnbStep('support', showProgress: true),
+    _OnbStep('commitment', showProgress: true),
+    _OnbStep('reminder', showProgress: true),
+    _OnbStep('analyzing'),
+    _OnbStep('summary'),
+    _OnbStep('verse'),
+    _OnbStep('plan_preview', protected: true),
+  ];
+
+  /// Pasos visibles tras aplicar Remote Config (calculado una vez).
+  late final List<_OnbStep> _steps;
 
   @override
   void initState() {
     super.initState();
+    final hidden = RemoteConfigService().hiddenOnboardingSteps;
+    _steps = _allSteps
+        .where((s) => s.protected || !hidden.contains(s.name))
+        .toList();
     // PageView.onPageChanged no se dispara para la página inicial, así que
-    // registramos manualmente el primer paso (welcome) para cerrar el funnel.
-    AnalyticsService().logOnboardingStep(stepNumber: 0, stepName: 'welcome');
+    // registramos manualmente el primer paso para cerrar el funnel.
+    AnalyticsService().logOnboardingStep(stepNumber: 0, stepName: _steps.first.name);
   }
 
   @override
@@ -51,7 +90,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _nextPage() {
-    if (_currentPage < _totalPages - 1) {
+    if (_currentPage < _steps.length - 1) {
       FocusScope.of(context).unfocus();
       _pageController.nextPage(
         duration: const Duration(milliseconds: 400),
@@ -160,36 +199,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     return _motiveDetailPlanMap['$motive:$motiveDetail'];
   }
 
-  bool _canProceed() {
-    final state = ref.watch(onboardingProvider);
-    switch (_currentPage) {
-      case 3: // Name - required
-        return state.name != null;
-      case 4: // Age
-        return state.ageGroup != null;
-      case 5: // Gender - optional (Apple requires it)
-        return true;
-      case 6: // Country - optional (Apple requires it)
-        return true;
-      case 7: // Denomination
-        return state.denomination != null;
-      case 8: // Faith motivation - requires selection
-        return state.motive != null;
-      case 9: // Motive detail - requires selection
-        return state.motiveDetail != null;
-      case 10: // Support type (multi-select)
-        return state.supportTypes.isNotEmpty;
-      case 11: // Commitment - requires selection
-        return state.commitmentLevel != null;
-      case 12: // Reminder - optional, always can proceed
-        return true;
-      default:
-        return true;
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
+    final showProgress = _steps[_currentPage].showProgress;
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -199,8 +211,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           bottom: false,
           child: Column(
             children: [
-              // Progress indicator with back button (show only on question pages)
-              if (_currentPage > 2 && _currentPage < _totalPages - 4)
+              // Progress indicator with back button (solo en páginas de pregunta)
+              if (showProgress)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 24, 0),
                   child: Row(
@@ -235,343 +247,14 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                       _currentPage = page;
                     });
                     // Funnel tracking
-                    const stepNames = [
-                      'welcome', 'consent', 'intro', 'name', 'age',
-                      'gender', 'country', 'denomination', 'motive',
-                      'motive_detail', 'support', 'commitment',
-                      'reminder', 'analyzing', 'summary', 'verse',
-                      'plan_preview',
-                    ];
-                    if (page < stepNames.length) {
+                    if (page < _steps.length) {
                       AnalyticsService().logOnboardingStep(
                         stepNumber: page,
-                        stepName: stepNames[page],
+                        stepName: _steps[page].name,
                       );
                     }
                   },
-                  children: [
-                    // Page 0: Welcome
-                    OnboardingWelcomePage(
-                      onGetStarted: _nextPage,
-                      onLogin: () => context.push(RouteConstants.login),
-                    ),
-
-                    // Page 1: Privacy consent
-                    OnboardingConsentPage(
-                      onNext: _nextPage,
-                      onPrivacyPolicy: () => context.push(RouteConstants.privacyPolicy),
-                      onTermsConditions: () => context.push(RouteConstants.termsConditions),
-                    ),
-
-                    // Page 2: Intro
-                    OnboardingIntroPage(
-                      onNext: _nextPage,
-                    ),
-
-                    // Page 3: Name
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        final notifier = ref.read(onboardingProvider.notifier);
-                        return OnboardingNamePage(
-                          currentName: state.name,
-                          onNameChanged: (name) => notifier.setName(name),
-                          onNext: _canProceed() ? _nextPage : null,
-                        );
-                      },
-                    ),
-
-                    // Page 4: Age selection
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        final notifier = ref.read(onboardingProvider.notifier);
-                        final name = state.name;
-                        return OnboardingSelectionPage(
-                          verseReference: 'Salmo 90:12',
-                          title: 'Enséñanos a contar bien nuestros días.',
-                          subtitle: name != null
-                              ? '$name, ¿cuál es tu grupo de edad?'
-                              : '¿Cuál es tu grupo de edad?',
-                          options: const [
-                            SelectionOption(key: '18-24', label: '18-24'),
-                            SelectionOption(key: '25-34', label: '25-34'),
-                            SelectionOption(key: '35-44', label: '35-44'),
-                            SelectionOption(key: '45-54', label: '45-54'),
-                            SelectionOption(key: '55+', label: '55+'),
-                          ],
-                          selectedKey: state.ageGroup,
-                          onSelect: (key) => notifier.setAgeGroup(key),
-                          onNext: _canProceed() ? _nextPage : null,
-                        );
-                      },
-                    ),
-
-                    // Page 5: Gender selection
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        final notifier = ref.read(onboardingProvider.notifier);
-                        return OnboardingSelectionPage(
-                          verseReference: 'Salmo 139:14',
-                          title: 'Dios nos creó única y maravillosamente.',
-                          subtitle: '¿Cuál es tu género?',
-                          subtitleHint: 'Opcional — puedes saltar este paso',
-                          options: const [
-                            SelectionOption(key: 'male', label: 'Hombre'),
-                            SelectionOption(key: 'female', label: 'Mujer'),
-                          ],
-                          selectedKey: state.gender,
-                          onSelect: (key) => notifier.setGender(key),
-                          onNext: _nextPage,
-                        );
-                      },
-                    ),
-
-                    // Page 6: Country selection
-                    Builder(
-                      builder: (context) {
-                        final notifier = ref.read(onboardingProvider.notifier);
-                        return OnboardingCountryPage(
-                          onSelect: (originGroup) => notifier.setOrigin(originGroup),
-                          onCountryCodeSelect: (code) => notifier.setCountryCode(code),
-                          onNext: _nextPage,
-                        );
-                      },
-                    ),
-
-                    // Page 7: Denomination selection
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        final notifier = ref.read(onboardingProvider.notifier);
-                        return OnboardingSelectionPage(
-                          verseReference: 'Efesios 4:5',
-                          title: 'Un solo Señor, una sola fe, un solo bautismo.',
-                          subtitle: '¿Cuál es tu tradición cristiana?',
-                          options: const [
-                            SelectionOption(
-                              key: 'catolica',
-                              label: 'Católica',
-                              icon: Icons.church,
-                            ),
-                            SelectionOption(
-                              key: 'evangelica',
-                              label: 'Evangélica',
-                              icon: Icons.menu_book,
-                            ),
-                            SelectionOption(
-                              key: 'pentecostal',
-                              label: 'Pentecostal',
-                              icon: Icons.local_fire_department,
-                            ),
-                            SelectionOption(
-                              key: 'bautista',
-                              label: 'Bautista',
-                              icon: Icons.water_drop,
-                            ),
-                            SelectionOption(
-                              key: 'otra',
-                              label: 'Otra / Sin denominación',
-                              icon: Icons.diversity_3,
-                            ),
-                          ],
-                          selectedKey: state.denomination,
-                          onSelect: (key) => notifier.setDenomination(key),
-                          onNext: _canProceed() ? _nextPage : null,
-                        );
-                      },
-                    ),
-
-                    // Page 8: Faith motivation
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        final notifier = ref.read(onboardingProvider.notifier);
-                        final name = state.name;
-                        final isFemale = state.gender == 'female';
-                        return OnboardingSelectionPage(
-                          verseReference: 'Filipenses 1:6',
-                          title: 'El que comenzó en vosotros la buena obra, la perfeccionará.',
-                          subtitle: name != null
-                              ? '$name, ¿por qué es importante para ti trabajar en tu Fe ahora?'
-                              : '¿Por qué es importante para ti trabajar en tu Fe ahora?',
-                          options: [
-                            const SelectionOption(
-                              key: 'difficult_moment',
-                              label: 'Estoy pasando por un momento difícil',
-                              icon: Icons.favorite,
-                            ),
-                            const SelectionOption(
-                              key: 'spiritual_growth',
-                              label: 'Quiero crecer espiritualmente',
-                              icon: Icons.auto_awesome,
-                            ),
-                            SelectionOption(
-                              key: 'feeling_distant',
-                              label: isFemale
-                                  ? 'Me siento alejada de Dios'
-                                  : 'Me siento alejado de Dios',
-                              icon: Icons.explore,
-                            ),
-                            const SelectionOption(
-                              key: 'understand_bible',
-                              label: 'Quiero entender mejor la Biblia',
-                              icon: Icons.menu_book,
-                            ),
-                          ],
-                          selectedKey: state.motive,
-                          onSelect: (key) => notifier.setMotive(key),
-                          onNext: _canProceed() ? _nextPage : null,
-                        );
-                      },
-                    ),
-
-                    // Page 9: Motive detail (follow-up to Faith motivation)
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        final notifier = ref.read(onboardingProvider.notifier);
-                        final config = _getMotiveDetailConfig(state.motive);
-                        return OnboardingSelectionPage(
-                          verseReference: config.verseReference,
-                          title: config.verseText,
-                          subtitle: config.question,
-                          options: config.options,
-                          selectedKey: state.motiveDetail,
-                          onSelect: (key) => notifier.setMotiveDetail(key),
-                          onNext: _canProceed() ? _nextPage : null,
-                        );
-                      },
-                    ),
-
-                    // Page 10: Support type
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        final notifier = ref.read(onboardingProvider.notifier);
-                        return OnboardingSelectionPage(
-                          verseReference: 'Isaías 41:10',
-                          title: 'No temas, porque yo estoy contigo.',
-                          subtitle: '¿Cómo quieres que te ayudemos en Biblia Chat?',
-                          hint: 'Puedes seleccionar más de una opción',
-                          options: const [
-                            SelectionOption(
-                              key: 'talk_faith',
-                              label: 'Quiero hablar sobre mi fe con alguien que me entienda',
-                              icon: Icons.forum,
-                            ),
-                            SelectionOption(
-                              key: 'daily_reflection',
-                              label: 'Me gustaría recibir una reflexión bíblica cada mañana',
-                              icon: Icons.wb_sunny,
-                            ),
-                            SelectionOption(
-                              key: 'guided_plans',
-                              label: 'Quiero aprender de la Biblia con planes guiados',
-                              icon: Icons.menu_book,
-                            ),
-                          ],
-                          selectedKeys: state.supportTypes,
-                          onSelect: (key) => notifier.toggleSupportType(key),
-                          onNext: _canProceed() ? _nextPage : null,
-                        );
-                      },
-                    ),
-
-                    // Page 11: Commitment
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        final notifier = ref.read(onboardingProvider.notifier);
-                        final isFemale = state.gender == 'female';
-                        return OnboardingSelectionPage(
-                          verseReference: 'Josué 1:9',
-                          title: 'Sé fuerte y valiente, porque el Señor tu Dios estará contigo.',
-                          subtitle: '¿Qué nivel de compromiso tienes con cumplir tus objetivos?',
-                          options: [
-                            SelectionOption(
-                              key: 'high',
-                              label: isFemale
-                                  ? 'Estoy totalmente comprometida'
-                                  : 'Estoy totalmente comprometido',
-                              icon: Icons.local_fire_department,
-                            ),
-                            SelectionOption(
-                              key: 'low',
-                              label: isFemale
-                                  ? 'No estoy muy comprometida, mis objetivos no son tan importantes para mí'
-                                  : 'No estoy muy comprometido, mis objetivos no son tan importantes para mí',
-                              icon: Icons.sentiment_neutral,
-                            ),
-                          ],
-                          selectedKey: state.commitmentLevel,
-                          onSelect: (key) => notifier.setCommitmentLevel(key),
-                          onNext: _canProceed() ? _nextPage : null,
-                        );
-                      },
-                    ),
-
-                    // Page 12: Reminder
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        final notifier = ref.read(onboardingProvider.notifier);
-                        return OnboardingReminderPage(
-                          reminderEnabled: state.reminderEnabled,
-                          reminderTime: state.reminderTime,
-                          onToggle: (value) => notifier.setReminderEnabled(value),
-                          onTimeChanged: (value) => notifier.setReminderTime(value),
-                          onNext: _nextPage,
-                        );
-                      },
-                    ),
-
-                    // Page 13: Analyzing
-                    OnboardingAnalyzingPage(
-                      onComplete: _nextPage,
-                    ),
-
-                    // Page 14: Motivational summary
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        return OnboardingSummaryPage(
-                          name: state.name,
-                          motive: state.motive,
-                          motiveDetail: state.motiveDetail,
-                          supportTypes: state.supportTypes,
-                          gender: state.gender,
-                          onNext: _nextPage,
-                        );
-                      },
-                    ),
-
-                    // Page 15: Personalized verse reveal (WOW + review request)
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        return OnboardingVersePage(
-                          name: state.name,
-                          motive: state.motive,
-                          onReveal: _requestReview,
-                          onContinue: _nextPage,
-                        );
-                      },
-                    ),
-
-                    // Page 16: Plan preview (replaces Ready page)
-                    Builder(
-                      builder: (context) {
-                        final state = ref.watch(onboardingProvider);
-                        return OnboardingPlanPreviewPage(
-                          motive: state.motive,
-                          motiveDetail: state.motiveDetail,
-                          onStart: _completeOnboarding,
-                        );
-                      },
-                    ),
-                  ],
+                  children: _steps.map((s) => _buildStep(s.name)).toList(),
                 ),
               ),
             ],
@@ -579,6 +262,338 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         ),
       ),
     );
+  }
+
+  /// Construye el widget de cada paso por su `step_name`.
+  Widget _buildStep(String name) {
+    switch (name) {
+      case 'welcome':
+        return OnboardingWelcomePage(
+          onGetStarted: _nextPage,
+          onLogin: () => context.push(RouteConstants.login),
+          onPrivacyPolicy: () => context.push(RouteConstants.privacyPolicy),
+          onTermsConditions: () => context.push(RouteConstants.termsConditions),
+        );
+
+      case 'consent':
+        return OnboardingConsentPage(
+          onNext: _nextPage,
+          onPrivacyPolicy: () => context.push(RouteConstants.privacyPolicy),
+          onTermsConditions: () => context.push(RouteConstants.termsConditions),
+        );
+
+      case 'intro':
+        return OnboardingIntroPage(
+          onNext: _nextPage,
+        );
+
+      case 'name':
+        return Builder(
+          builder: (context) {
+            final state = ref.watch(onboardingProvider);
+            final notifier = ref.read(onboardingProvider.notifier);
+            return OnboardingNamePage(
+              currentName: state.name,
+              onNameChanged: (name) => notifier.setName(name),
+              onNext: state.name != null ? _nextPage : null,
+            );
+          },
+        );
+
+      case 'age':
+        return Builder(
+          builder: (context) {
+            final state = ref.watch(onboardingProvider);
+            final notifier = ref.read(onboardingProvider.notifier);
+            final name = state.name;
+            return OnboardingSelectionPage(
+              verseReference: 'Salmo 90:12',
+              title: 'Enséñanos a contar bien nuestros días.',
+              subtitle: name != null
+                  ? '$name, ¿cuál es tu grupo de edad?'
+                  : '¿Cuál es tu grupo de edad?',
+              options: const [
+                SelectionOption(key: '18-24', label: '18-24'),
+                SelectionOption(key: '25-34', label: '25-34'),
+                SelectionOption(key: '35-44', label: '35-44'),
+                SelectionOption(key: '45-54', label: '45-54'),
+                SelectionOption(key: '55+', label: '55+'),
+              ],
+              selectedKey: state.ageGroup,
+              onSelect: (key) => notifier.setAgeGroup(key),
+              onNext: state.ageGroup != null ? _nextPage : null,
+            );
+          },
+        );
+
+      case 'gender':
+        return Builder(
+          builder: (context) {
+            final state = ref.watch(onboardingProvider);
+            final notifier = ref.read(onboardingProvider.notifier);
+            return OnboardingSelectionPage(
+              verseReference: 'Salmo 139:14',
+              title: 'Dios nos creó única y maravillosamente.',
+              subtitle: '¿Cuál es tu género?',
+              subtitleHint: 'Opcional — puedes saltar este paso',
+              options: const [
+                SelectionOption(key: 'male', label: 'Hombre'),
+                SelectionOption(key: 'female', label: 'Mujer'),
+              ],
+              selectedKey: state.gender,
+              onSelect: (key) => notifier.setGender(key),
+              onNext: _nextPage,
+            );
+          },
+        );
+
+      case 'country':
+        return Builder(
+          builder: (context) {
+            final notifier = ref.read(onboardingProvider.notifier);
+            return OnboardingCountryPage(
+              onSelect: (originGroup) => notifier.setOrigin(originGroup),
+              onCountryCodeSelect: (code) => notifier.setCountryCode(code),
+              onNext: _nextPage,
+            );
+          },
+        );
+
+      case 'denomination':
+        return Builder(
+          builder: (context) {
+            final state = ref.watch(onboardingProvider);
+            final notifier = ref.read(onboardingProvider.notifier);
+            return OnboardingSelectionPage(
+              verseReference: 'Efesios 4:5',
+              title: 'Un solo Señor, una sola fe, un solo bautismo.',
+              subtitle: '¿Cuál es tu tradición cristiana?',
+              options: const [
+                SelectionOption(
+                  key: 'catolica',
+                  label: 'Católica',
+                  icon: Icons.church,
+                ),
+                SelectionOption(
+                  key: 'evangelica',
+                  label: 'Evangélica',
+                  icon: Icons.menu_book,
+                ),
+                SelectionOption(
+                  key: 'pentecostal',
+                  label: 'Pentecostal',
+                  icon: Icons.local_fire_department,
+                ),
+                SelectionOption(
+                  key: 'bautista',
+                  label: 'Bautista',
+                  icon: Icons.water_drop,
+                ),
+                SelectionOption(
+                  key: 'otra',
+                  label: 'Otra / Sin denominación',
+                  icon: Icons.diversity_3,
+                ),
+              ],
+              selectedKey: state.denomination,
+              onSelect: (key) => notifier.setDenomination(key),
+              onNext: state.denomination != null ? _nextPage : null,
+            );
+          },
+        );
+
+      case 'motive':
+        return Builder(
+          builder: (context) {
+            final state = ref.watch(onboardingProvider);
+            final notifier = ref.read(onboardingProvider.notifier);
+            final name = state.name;
+            final isFemale = state.gender == 'female';
+            return OnboardingSelectionPage(
+              verseReference: 'Filipenses 1:6',
+              title: 'El que comenzó en vosotros la buena obra, la perfeccionará.',
+              subtitle: name != null
+                  ? '$name, ¿por qué es importante para ti trabajar en tu Fe ahora?'
+                  : '¿Por qué es importante para ti trabajar en tu Fe ahora?',
+              options: [
+                const SelectionOption(
+                  key: 'difficult_moment',
+                  label: 'Estoy pasando por un momento difícil',
+                  icon: Icons.favorite,
+                ),
+                const SelectionOption(
+                  key: 'spiritual_growth',
+                  label: 'Quiero crecer espiritualmente',
+                  icon: Icons.auto_awesome,
+                ),
+                SelectionOption(
+                  key: 'feeling_distant',
+                  label: isFemale
+                      ? 'Me siento alejada de Dios'
+                      : 'Me siento alejado de Dios',
+                  icon: Icons.explore,
+                ),
+                const SelectionOption(
+                  key: 'understand_bible',
+                  label: 'Quiero entender mejor la Biblia',
+                  icon: Icons.menu_book,
+                ),
+              ],
+              selectedKey: state.motive,
+              onSelect: (key) => notifier.setMotive(key),
+              onNext: state.motive != null ? _nextPage : null,
+            );
+          },
+        );
+
+      case 'motive_detail':
+        return Builder(
+          builder: (context) {
+            final state = ref.watch(onboardingProvider);
+            final notifier = ref.read(onboardingProvider.notifier);
+            final config = _getMotiveDetailConfig(state.motive);
+            return OnboardingSelectionPage(
+              verseReference: config.verseReference,
+              title: config.verseText,
+              subtitle: config.question,
+              options: config.options,
+              selectedKey: state.motiveDetail,
+              onSelect: (key) => notifier.setMotiveDetail(key),
+              onNext: state.motiveDetail != null ? _nextPage : null,
+            );
+          },
+        );
+
+      case 'support':
+        return Builder(
+          builder: (context) {
+            final state = ref.watch(onboardingProvider);
+            final notifier = ref.read(onboardingProvider.notifier);
+            return OnboardingSelectionPage(
+              verseReference: 'Isaías 41:10',
+              title: 'No temas, porque yo estoy contigo.',
+              subtitle: '¿Cómo quieres que te ayudemos en Biblia Chat?',
+              hint: 'Puedes seleccionar más de una opción',
+              options: const [
+                SelectionOption(
+                  key: 'talk_faith',
+                  label: 'Quiero hablar sobre mi fe con alguien que me entienda',
+                  icon: Icons.forum,
+                ),
+                SelectionOption(
+                  key: 'daily_reflection',
+                  label: 'Me gustaría recibir una reflexión bíblica cada mañana',
+                  icon: Icons.wb_sunny,
+                ),
+                SelectionOption(
+                  key: 'guided_plans',
+                  label: 'Quiero aprender de la Biblia con planes guiados',
+                  icon: Icons.menu_book,
+                ),
+              ],
+              selectedKeys: state.supportTypes,
+              onSelect: (key) => notifier.toggleSupportType(key),
+              onNext: state.supportTypes.isNotEmpty ? _nextPage : null,
+            );
+          },
+        );
+
+      case 'commitment':
+        return Builder(
+          builder: (context) {
+            final state = ref.watch(onboardingProvider);
+            final notifier = ref.read(onboardingProvider.notifier);
+            final isFemale = state.gender == 'female';
+            return OnboardingSelectionPage(
+              verseReference: 'Josué 1:9',
+              title: 'Sé fuerte y valiente, porque el Señor tu Dios estará contigo.',
+              subtitle: '¿Qué nivel de compromiso tienes con cumplir tus objetivos?',
+              options: [
+                SelectionOption(
+                  key: 'high',
+                  label: isFemale
+                      ? 'Estoy totalmente comprometida'
+                      : 'Estoy totalmente comprometido',
+                  icon: Icons.local_fire_department,
+                ),
+                SelectionOption(
+                  key: 'low',
+                  label: isFemale
+                      ? 'No estoy muy comprometida, mis objetivos no son tan importantes para mí'
+                      : 'No estoy muy comprometido, mis objetivos no son tan importantes para mí',
+                  icon: Icons.sentiment_neutral,
+                ),
+              ],
+              selectedKey: state.commitmentLevel,
+              onSelect: (key) => notifier.setCommitmentLevel(key),
+              onNext: state.commitmentLevel != null ? _nextPage : null,
+            );
+          },
+        );
+
+      case 'reminder':
+        return Builder(
+          builder: (context) {
+            final state = ref.watch(onboardingProvider);
+            final notifier = ref.read(onboardingProvider.notifier);
+            return OnboardingReminderPage(
+              reminderEnabled: state.reminderEnabled,
+              reminderTime: state.reminderTime,
+              onToggle: (value) => notifier.setReminderEnabled(value),
+              onTimeChanged: (value) => notifier.setReminderTime(value),
+              onNext: _nextPage,
+            );
+          },
+        );
+
+      case 'analyzing':
+        return OnboardingAnalyzingPage(
+          onComplete: _nextPage,
+        );
+
+      case 'summary':
+        return Builder(
+          builder: (context) {
+            final state = ref.watch(onboardingProvider);
+            return OnboardingSummaryPage(
+              name: state.name,
+              motive: state.motive,
+              motiveDetail: state.motiveDetail,
+              supportTypes: state.supportTypes,
+              gender: state.gender,
+              onNext: _nextPage,
+            );
+          },
+        );
+
+      case 'verse':
+        return Builder(
+          builder: (context) {
+            final state = ref.watch(onboardingProvider);
+            return OnboardingVersePage(
+              name: state.name,
+              motive: state.motive,
+              onReveal: _requestReview,
+              onContinue: _nextPage,
+            );
+          },
+        );
+
+      case 'plan_preview':
+        return Builder(
+          builder: (context) {
+            final state = ref.watch(onboardingProvider);
+            return OnboardingPlanPreviewPage(
+              motive: state.motive,
+              motiveDetail: state.motiveDetail,
+              onStart: _completeOnboarding,
+            );
+          },
+        );
+
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   _MotiveDetailConfig _getMotiveDetailConfig(String? motive) {
@@ -692,9 +707,13 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Widget _buildProgressBar() {
-    // Progress over the question pages (3-12); las páginas finales
-    // (analyzing, summary, verse, plan preview) no muestran barra.
-    final progress = (_currentPage - 1) / (_totalPages - 5);
+    // Progreso sobre las páginas de pregunta visibles (las finales —analyzing,
+    // summary, verse, plan preview— no muestran barra).
+    final questionSteps = _steps.where((s) => s.showProgress).toList();
+    final currentIndex = questionSteps.indexOf(_steps[_currentPage]);
+    final progress = questionSteps.isEmpty
+        ? 0.0
+        : (currentIndex + 1) / questionSteps.length;
 
     return Container(
       height: 4,

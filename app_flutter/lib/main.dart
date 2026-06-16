@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app.dart';
+import 'core/services/remote_config_service.dart';
 import 'firebase_options.dart';
 
 Future<void> main() async {
@@ -22,6 +23,10 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
+  // Remote Config (rápido: aplica valores cacheados, fetch en background).
+  // Debe estar listo antes de construir el onboarding (lee qué pasos ocultar).
+  await RemoteConfigService().init();
 
   // Initialize Supabase with deep link support
   await Supabase.initialize(

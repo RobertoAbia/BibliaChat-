@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/services/att_service.dart';
@@ -7,11 +8,15 @@ import '../../../../core/widgets/glass_container.dart';
 class OnboardingWelcomePage extends StatefulWidget {
   final VoidCallback onGetStarted;
   final VoidCallback? onLogin;
+  final VoidCallback? onPrivacyPolicy;
+  final VoidCallback? onTermsConditions;
 
   const OnboardingWelcomePage({
     super.key,
     required this.onGetStarted,
     this.onLogin,
+    this.onPrivacyPolicy,
+    this.onTermsConditions,
   });
 
   @override
@@ -263,7 +268,15 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
                       ),
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 12),
+
+                    // Consentimiento implícito: base legal al pulsar "Comenzar"
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: _buildLegalLine(context),
+                    ),
+
+                    const SizedBox(height: 4),
 
                     // Ya tengo cuenta
                     if (widget.onLogin != null)
@@ -287,6 +300,39 @@ class _OnboardingWelcomePageState extends State<OnboardingWelcomePage>
           ],
         );
       },
+    );
+  }
+
+  Widget _buildLegalLine(BuildContext context) {
+    final linkStyle = TextStyle(
+      color: AppTheme.primaryColor,
+      fontWeight: FontWeight.w600,
+      decoration: TextDecoration.underline,
+      decorationColor: AppTheme.primaryColor.withOpacity(0.5),
+    );
+    return Text.rich(
+      TextSpan(
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: AppTheme.textTertiary,
+              height: 1.4,
+            ),
+        children: [
+          const TextSpan(text: 'Al continuar, aceptas nuestros '),
+          TextSpan(
+            text: 'Términos y Condiciones',
+            style: linkStyle,
+            recognizer: TapGestureRecognizer()
+              ..onTap = widget.onTermsConditions,
+          ),
+          const TextSpan(text: ' y la '),
+          TextSpan(
+            text: 'Política de Privacidad',
+            style: linkStyle,
+            recognizer: TapGestureRecognizer()..onTap = widget.onPrivacyPolicy,
+          ),
+        ],
+      ),
+      textAlign: TextAlign.center,
     );
   }
 
