@@ -16,7 +16,11 @@ class PaywallScreen extends ConsumerStatefulWidget {
   /// Las aperturas contextuales (Ajustes, etc.) lo dejan en false y son cerrables.
   final bool gate;
 
-  const PaywallScreen({super.key, this.gate = false});
+  /// Origen desde el que se abrió el paywall (para analytics): onboarding,
+  /// settings, home, message_limit...
+  final String source;
+
+  const PaywallScreen({super.key, this.gate = false, this.source = 'onboarding'});
 
   @override
   ConsumerState<PaywallScreen> createState() => _PaywallScreenState();
@@ -31,7 +35,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   @override
   void initState() {
     super.initState();
-    AnalyticsService().logPaywallViewed(source: 'onboarding');
+    AnalyticsService().logPaywallViewed(source: widget.source);
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) setState(() => _canClose = true);
     });
@@ -311,6 +315,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     color: AppTheme.textTertiary.withOpacity(0.6),
                   ),
                   onPressed: () {
+                    AnalyticsService()
+                        .logPaywallDismissed(source: widget.source);
                     if (context.canPop()) {
                       context.pop();
                     } else {

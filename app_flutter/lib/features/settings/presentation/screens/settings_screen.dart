@@ -203,7 +203,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title: 'Pásate a Premium',
                     subtitle: 'Chat ilimitado y más',
                     isHighlighted: true,
-                    onTap: () => context.push(RouteConstants.paywall),
+                    onTap: () => context
+                        .push('${RouteConstants.paywall}?source=settings'),
                   ),
                 SettingsItem(
                   icon: Icons.person_outline,

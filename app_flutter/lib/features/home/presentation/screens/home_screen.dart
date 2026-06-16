@@ -528,7 +528,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (isPremium) {
       setState(() => _selectedDate = date);
     } else {
-      context.push(RouteConstants.paywall);
+      context.push('${RouteConstants.paywall}?source=home');
     }
   }
 

@@ -321,7 +321,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              context.push(RouteConstants.paywall);
+              context.push('${RouteConstants.paywall}?source=message_limit');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryColor,

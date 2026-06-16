@@ -88,6 +88,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'paywall',
         builder: (context, state) => PaywallScreen(
           gate: state.uri.queryParameters['gate'] == 'true',
+          source: state.uri.queryParameters['source'] ?? 'onboarding',
         ),
       ),
 

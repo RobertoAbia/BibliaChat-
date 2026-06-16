@@ -200,6 +200,17 @@ class AnalyticsService {
     );
   }
 
+  /// Usuario cierra el paywall sin comprar (solo paywalls cerrables, no el gate)
+  Future<void> logPaywallDismissed({required String source}) async {
+    if (kIsWeb) return;
+    await _analytics.logEvent(
+      name: 'paywall_dismissed',
+      parameters: {
+        'source': source,
+      },
+    );
+  }
+
   /// Usuario inicia suscripción
   Future<void> logSubscriptionStarted({required String planType}) async {
     if (kIsWeb) return;
