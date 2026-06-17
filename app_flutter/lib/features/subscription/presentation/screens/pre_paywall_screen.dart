@@ -197,20 +197,24 @@ class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
                         minimumSize: Size.zero,
                         padding: EdgeInsets.zero,
                       ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Empieza mis 3 días gratis',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                      child: const FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Empezar mis 3 días gratis',
+                              maxLines: 1,
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
-                          SizedBox(width: 8),
-                          Icon(Icons.chevron_right, size: 22, color: Colors.white),
-                        ],
+                            SizedBox(width: 8),
+                            Icon(Icons.chevron_right, size: 22, color: Colors.white),
+                          ],
+                        ),
                       ),
                     ),
                   ),
