@@ -69,7 +69,7 @@ class _OnboardingVersePageState extends State<OnboardingVersePage>
 
   @override
   Widget build(BuildContext context) {
-    final lead = _leadText(widget.motive, widget.name);
+    final lead = _leadText(widget.motive);
 
     return Column(
       children: [
@@ -197,7 +197,7 @@ class _OnboardingVersePageState extends State<OnboardingVersePage>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Continuar',
+                      'Ver mi plan',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
@@ -285,31 +285,19 @@ const List<_Verse> _defaultVerses = [
   _Verse('Salmos 23:1', 'El Señor es mi pastor; nada me falta.'),
 ];
 
-/// Lead conversacional que explica POR QUÉ le mostramos este versículo, según el
-/// motivo elegido. Si hay nombre, se antepone y se baja la inicial a minúscula.
-String _leadText(String? motive, String? name) {
-  String base;
+/// Lead conversacional: enlaza el motivo que indicó el usuario con la transición
+/// a su plan, justificando por qué le mostramos este versículo antes.
+String _leadText(String? motive) {
   switch (motive) {
     case 'difficult_moment':
-      base = 'Sé que ahora mismo no es fácil. Quiero dejarte estas palabras:';
-      break;
+      return 'Antes de mostrarte tu plan, y como nos has dicho que estás pasando por un momento difícil, queremos inspirarte con esta enseñanza de la Biblia.';
     case 'spiritual_growth':
-      base =
-          'Estás dando un paso para crecer en tu fe. Que te acompañe este versículo:';
-      break;
+      return 'Antes de mostrarte tu plan, y como nos has dicho que quieres crecer espiritualmente, queremos inspirarte con esta enseñanza de la Biblia.';
     case 'feeling_distant':
-      base =
-          'Aunque a veces lo sientas lejos, Dios está cerca de ti. Mira lo que te dice:';
-      break;
+      return 'Antes de mostrarte tu plan, y como nos has dicho que a veces te sientes lejos de Dios, queremos inspirarte con esta enseñanza de la Biblia.';
     case 'understand_bible':
-      base = 'Quieres conocer mejor su Palabra. Empecemos por aquí:';
-      break;
+      return 'Antes de mostrarte tu plan, y como nos has dicho que quieres entender mejor la Biblia, queremos inspirarte con esta enseñanza de la Biblia.';
     default:
-      base = 'He elegido este versículo pensando en ti:';
+      return 'Antes de mostrarte tu plan, queremos inspirarte con esta enseñanza de la Biblia.';
   }
-  if (name != null && name.trim().isNotEmpty) {
-    final lower = base[0].toLowerCase() + base.substring(1);
-    return '${name.trim()}, $lower';
-  }
-  return base;
 }

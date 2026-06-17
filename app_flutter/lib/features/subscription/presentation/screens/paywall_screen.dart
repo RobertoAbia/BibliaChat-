@@ -35,6 +35,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   @override
   void initState() {
     super.initState();
+    // Aplicar la elegibilidad cacheada (prewarm en pre-paywall) o sembrada
+    // (splash, cold start) DESDE EL PRIMER FRAME, sin esperar a que carguen los
+    // precios. Es lo que evita el parpadeo del toggle. Si no hay valor todavía,
+    // se mantiene optimista y se resuelve async cuando carguen los offerings.
+    final cachedEligible = RevenueCatService.instance.trialEligible;
+    if (cachedEligible != null) {
+      _isEligibleForTrial = cachedEligible;
+      _eligibilityChecked = true;
+    }
     AnalyticsService().logPaywallViewed(source: widget.source);
     Future.delayed(const Duration(seconds: 3), () {
       if (mounted) setState(() => _canClose = true);

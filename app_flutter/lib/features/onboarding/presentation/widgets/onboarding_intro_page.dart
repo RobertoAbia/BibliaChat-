@@ -143,17 +143,17 @@ class _OnboardingIntroPageState extends State<OnboardingIntroPage>
                               children: const [
                                 _PersonalizeRow(
                                   icon: Icons.church_rounded,
-                                  text: 'Tu tradición cristiana',
+                                  text: 'Tu forma de vivir la fe',
                                 ),
                                 SizedBox(height: 14),
                                 _PersonalizeRow(
                                   icon: Icons.favorite_rounded,
-                                  text: 'Lo que más te importa',
+                                  text: 'Lo que necesitas ahora mismo',
                                 ),
                                 SizedBox(height: 14),
                                 _PersonalizeRow(
-                                  icon: Icons.wb_sunny_rounded,
-                                  text: 'Tu momento del día',
+                                  icon: Icons.volunteer_activism,
+                                  text: 'Cómo quieres que te acompañemos',
                                 ),
                               ],
                             ),

@@ -56,6 +56,20 @@ class OnboardingPlanPreviewPage extends StatelessWidget {
 
                 const SizedBox(height: 20),
 
+                // Eyebrow
+                Text(
+                  'TU PLAN',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.5,
+                    color: AppTheme.primaryColor,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                const SizedBox(height: 8),
+
                 // Plan title
                 Text(
                   preview.title,

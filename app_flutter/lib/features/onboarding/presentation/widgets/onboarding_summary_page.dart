@@ -133,7 +133,7 @@ class OnboardingSummaryPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Continuar',
+                      'Ver mi plan',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
