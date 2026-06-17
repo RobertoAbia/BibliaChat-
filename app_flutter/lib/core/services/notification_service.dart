@@ -392,6 +392,18 @@ class NotificationService {
   /// Sin limpiar las notificaciones del centro, iOS puede mantener el badge.
   Future<void> clearBadge() async {
     try {
+      // En iOS, FlutterAppBadger ejecuta UNUserNotificationCenter
+      // .requestAuthorization([.badge]) la primera vez → dispararía el prompt
+      // nativo de notificaciones en el arranque (Welcome). Solo tocamos el badge
+      // si el permiso YA está concedido. En Android no pide permiso.
+      if (Platform.isIOS) {
+        final settings = await _messaging.getNotificationSettings();
+        final authorized =
+            settings.authorizationStatus == AuthorizationStatus.authorized ||
+                settings.authorizationStatus ==
+                    AuthorizationStatus.provisional;
+        if (!authorized) return;
+      }
       FlutterAppBadger.removeBadge();
     } catch (e) {
       debugPrint('Error clearing badge: $e');
