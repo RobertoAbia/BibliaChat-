@@ -69,8 +69,7 @@ class _OnboardingVersePageState extends State<OnboardingVersePage>
 
   @override
   Widget build(BuildContext context) {
-    final name = widget.name;
-    final why = _whyByMotive[widget.motive] ?? 'Elegido especialmente para ti.';
+    final lead = _leadText(widget.motive, widget.name);
 
     return Column(
       children: [
@@ -85,13 +84,13 @@ class _OnboardingVersePageState extends State<OnboardingVersePage>
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Header
+                    // Lead conversacional — el "porqué" de este versículo
                     Text(
-                      name != null
-                          ? '$name, este versículo es para ti'
-                          : 'Este versículo es para ti',
-                      style: Theme.of(context).textTheme.displayMedium?.copyWith(
+                      lead,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             color: AppTheme.textPrimary,
+                            fontWeight: FontWeight.w600,
+                            height: 1.35,
                           ),
                       textAlign: TextAlign.center,
                     ),
@@ -157,16 +156,6 @@ class _OnboardingVersePageState extends State<OnboardingVersePage>
                       ),
                     ),
 
-                    const SizedBox(height: 20),
-
-                    // Why this verse
-                    Text(
-                      why,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: AppTheme.textSecondary,
-                          ),
-                      textAlign: TextAlign.center,
-                    ),
                   ],
                 ),
               ),
@@ -296,9 +285,31 @@ const List<_Verse> _defaultVerses = [
   _Verse('Salmos 23:1', 'El Señor es mi pastor; nada me falta.'),
 ];
 
-const Map<String, String> _whyByMotive = {
-  'difficult_moment': 'Porque estás atravesando un momento difícil.',
-  'spiritual_growth': 'Porque quieres crecer en tu fe.',
-  'feeling_distant': 'Porque deseas reencontrarte con Dios.',
-  'understand_bible': 'Porque quieres conocer mejor su Palabra.',
-};
+/// Lead conversacional que explica POR QUÉ le mostramos este versículo, según el
+/// motivo elegido. Si hay nombre, se antepone y se baja la inicial a minúscula.
+String _leadText(String? motive, String? name) {
+  String base;
+  switch (motive) {
+    case 'difficult_moment':
+      base = 'Sé que ahora mismo no es fácil. Quiero dejarte estas palabras:';
+      break;
+    case 'spiritual_growth':
+      base =
+          'Estás dando un paso para crecer en tu fe. Que te acompañe este versículo:';
+      break;
+    case 'feeling_distant':
+      base =
+          'Aunque a veces lo sientas lejos, Dios está cerca de ti. Mira lo que te dice:';
+      break;
+    case 'understand_bible':
+      base = 'Quieres conocer mejor su Palabra. Empecemos por aquí:';
+      break;
+    default:
+      base = 'He elegido este versículo pensando en ti:';
+  }
+  if (name != null && name.trim().isNotEmpty) {
+    final lower = base[0].toLowerCase() + base.substring(1);
+    return '${name.trim()}, $lower';
+  }
+  return base;
+}

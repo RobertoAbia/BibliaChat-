@@ -62,14 +62,25 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final annualPrice = annualPackage?.storeProduct.priceString ?? '\$39.99';
     final isPurchasing = subscriptionState.isPurchasing;
 
-    // Comprobar elegibilidad de trial cuando el paquete mensual esté cargado.
+    // Resolver elegibilidad de trial cuando el paquete mensual esté cargado.
     if (monthlyPackage != null && !_eligibilityChecked) {
       _eligibilityChecked = true;
-      final productId = monthlyPackage.storeProduct.identifier;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _checkEligibility(productId);
-      });
+      final cached = RevenueCatService.instance.trialEligible;
+      if (cached != null) {
+        // Precargada (pre-paywall) o persistida (cold start) → se aplica en este
+        // mismo frame, sin parpadeo.
+        _isEligibleForTrial = cached;
+      } else {
+        // Desconocida (p.ej. abierto desde Ajustes/Home sin caché previa) →
+        // comprobación asíncrona, suavizada por el AnimatedSize del toggle.
+        final productId = monthlyPackage.storeProduct.identifier;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _checkEligibility(productId);
+        });
+      }
     }
+
+    final showTrialCopy = _isEligibleForTrial && _trialEnabled;
 
     return Scaffold(
       body: Container(
@@ -80,7 +91,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           bottom: false,
           child: Column(
             children: [
-              // Contenido scrollable
+              // Contenido scrollable: logo, título y features
               Expanded(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -123,177 +134,205 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                       const SizedBox(height: 12),
                       _buildFeatureItem('Reflexiones y devocionales diarios'),
 
-                      const SizedBox(height: 24),
-
-                      // Toggle trial — solo si el usuario es elegible para el trial
-                      if (_isEligibleForTrial) ...[
-                        _buildTrialToggle(),
-                        const SizedBox(height: 12),
-                      ],
-
-                      // Plan mensual (mock data si RevenueCat no carga)
-                      _buildMonthlyCard(monthlyPrice),
-
-                      const SizedBox(height: 10),
-
-                      // Plan anual
-                      _buildAnnualCard(annualPrice),
-
                       const SizedBox(height: 16),
-
-                      // Microcopy bajo los planes: con check cuando hay trial seleccionado
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          if (_isEligibleForTrial && _trialEnabled) ...[
-                            Icon(
-                              Icons.check_circle,
-                              size: 16,
-                              color: AppTheme.primaryColor,
-                            ),
-                            const SizedBox(width: 6),
-                          ],
-                          Flexible(
-                            child: Text(
-                              (_isEligibleForTrial && _trialEnabled)
-                                  ? 'Hoy no pagas nada. Cancela cuando quieras.'
-                                  : 'Cancela en cualquier momento, sin compromiso.',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.textSecondary,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 8),
                     ],
                   ),
                 ),
               ),
 
-              // Error
-              if (subscriptionState.error != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8, left: 24, right: 24),
-                  child: Text(
-                    subscriptionState.error!,
-                    style: const TextStyle(color: AppTheme.errorColor, fontSize: 13),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-
-              // CTA grande
+              // Bloque inferior fijo: planes + microcopy + CTA + footer
+              // (pegado al botón para evitar el hueco)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: isPurchasing
-                      ? const Center(
-                          child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : Container(
-                          decoration: BoxDecoration(
-                            gradient: AppTheme.goldGradient,
-                            borderRadius: BorderRadius.circular(14),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primaryColor.withOpacity(0.3),
-                                blurRadius: 12,
-                                spreadRadius: 0,
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton(
-                            onPressed: () => _handleCTA(monthlyPackage, annualPackage),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              elevation: 0,
-                              minimumSize: Size.zero,
-                              padding: EdgeInsets.zero,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Toggle trial — solo si es elegible. Colapso suave para que
+                    // no "parpadee" cuando RC confirma que no es elegible.
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 250),
+                      curve: Curves.easeOut,
+                      child: _isEligibleForTrial
+                          ? Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                Text(
-                                  (_isEligibleForTrial && _trialEnabled)
-                                      ? 'Pruebalo gratis'
-                                      : 'Suscribete',
-                                  style: const TextStyle(
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                const Icon(Icons.chevron_right, size: 22, color: Colors.white),
+                                _buildTrialToggle(),
+                                const SizedBox(height: 12),
                               ],
+                            )
+                          : const SizedBox(width: double.infinity),
+                    ),
+
+                    // Plan mensual (mock data si RevenueCat no carga)
+                    _buildMonthlyCard(monthlyPrice),
+
+                    const SizedBox(height: 10),
+
+                    // Plan anual
+                    _buildAnnualCard(annualPrice),
+
+                    const SizedBox(height: 14),
+
+                    // Microcopy JUSTO encima del botón
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (showTrialCopy) ...[
+                          Icon(
+                            Icons.check_circle,
+                            size: 16,
+                            color: AppTheme.primaryColor,
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        Flexible(
+                          child: Text(
+                            showTrialCopy
+                                ? 'Hoy no pagas nada. Cancela en cualquier momento.'
+                                : 'Cancela en cualquier momento, sin compromiso.',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: AppTheme.textSecondary,
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Error
+                    if (subscriptionState.error != null) ...[
+                      Text(
+                        subscriptionState.error!,
+                        style: const TextStyle(
+                          color: AppTheme.errorColor,
+                          fontSize: 13,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                    ],
+
+                    // CTA grande
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: isPurchasing
+                          ? const Center(
+                              child: SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              ),
+                            )
+                          : Container(
+                              decoration: BoxDecoration(
+                                gradient: AppTheme.goldGradient,
+                                borderRadius: BorderRadius.circular(14),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.primaryColor.withOpacity(0.3),
+                                    blurRadius: 12,
+                                    spreadRadius: 0,
+                                  ),
+                                ],
+                              ),
+                              child: ElevatedButton(
+                                onPressed: () =>
+                                    _handleCTA(monthlyPackage, annualPackage),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.transparent,
+                                  shadowColor: Colors.transparent,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  elevation: 0,
+                                  minimumSize: Size.zero,
+                                  padding: EdgeInsets.zero,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      showTrialCopy
+                                          ? 'Pruebalo gratis'
+                                          : 'Suscribete',
+                                      style: const TextStyle(
+                                        fontSize: 17,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Icon(Icons.chevron_right,
+                                        size: 22, color: Colors.white),
+                                  ],
+                                ),
+                              ),
+                            ),
+                    ),
+
+                    const SizedBox(height: 12),
+
+                    // Footer: Terminos · Privacidad · Restaurar
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const TermsConditionsScreen()),
+                          ),
+                          child: const Text(
+                            'Terminos y condiciones',
+                            style: TextStyle(
+                                fontSize: 11, color: AppTheme.textTertiary),
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            '·',
+                            style: TextStyle(
+                                fontSize: 11, color: AppTheme.textTertiary),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => const PrivacyPolicyScreen()),
+                          ),
+                          child: const Text(
+                            'Politica de privacidad',
+                            style: TextStyle(
+                                fontSize: 11, color: AppTheme.textTertiary),
+                          ),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 8),
+                          child: Text(
+                            '·',
+                            style: TextStyle(
+                                fontSize: 11, color: AppTheme.textTertiary),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => _handleRestore(),
+                          child: const Text(
+                            'Restaurar',
+                            style: TextStyle(
+                                fontSize: 11, color: AppTheme.textTertiary),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 12),
+                  ],
                 ),
               ),
-
-              const SizedBox(height: 12),
-
-              // Footer: Terminos · Privacidad · Restaurar
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const TermsConditionsScreen()),
-                    ),
-                    child: const Text(
-                      'Terminos y condiciones',
-                      style: TextStyle(fontSize: 11, color: AppTheme.textTertiary),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      '\u00b7',
-                      style: TextStyle(fontSize: 11, color: AppTheme.textTertiary),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
-                    ),
-                    child: const Text(
-                      'Politica de privacidad',
-                      style: TextStyle(fontSize: 11, color: AppTheme.textTertiary),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      '\u00b7',
-                      style: TextStyle(fontSize: 11, color: AppTheme.textTertiary),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => _handleRestore(),
-                    child: const Text(
-                      'Restaurar',
-                      style: TextStyle(fontSize: 11, color: AppTheme.textTertiary),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 12),
             ],
           ),
         ),

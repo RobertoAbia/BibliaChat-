@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class RevenueCatService {
   static const String _iosApiKey = 'appl_gZbgVJRKEBpZNBeYWpdisQiQjYw';
@@ -11,6 +12,11 @@ class RevenueCatService {
 
   static RevenueCatService? _instance;
   bool _isInitialized = false;
+
+  /// Elegibilidad de trial (null = desconocida). Se cachea en memoria y se
+  /// persiste en disco para tenerla disponible al instante en cold start.
+  bool? _trialEligible;
+  static const String _kTrialEligibleKey = 'trial_eligible';
 
   RevenueCatService._();
 
@@ -63,20 +69,42 @@ class RevenueCatService {
     }
   }
 
+  /// Valor cacheado de elegibilidad de trial (null si aún no se ha comprobado).
+  /// Permite que el paywall lo lea de forma síncrona en el primer frame.
+  bool? get trialEligible => _trialEligible;
+
+  /// Inyecta un valor persistido (desde SharedPreferences) si aún no se conoce
+  /// en esta sesión. Lo usa el splash para el paywall-puerta en cold start.
+  void seedTrialEligibility(bool? value) {
+    if (value != null) _trialEligible ??= value;
+  }
+
   /// Comprueba si el usuario es elegible para el trial del producto dado.
   /// Devuelve false si ya consumió el trial o si no se puede determinar, así
   /// nunca prometemos un trial que Apple va a denegar (cobraría de inmediato).
+  /// El resultado se cachea en memoria y se persiste para lecturas síncronas.
   Future<bool> isEligibleForTrial(String productId) async {
     if (!isAvailable) return false;
     try {
       final result =
           await Purchases.checkTrialOrIntroductoryPriceEligibility([productId]);
-      return result[productId]?.status ==
+      final eligible = result[productId]?.status ==
           IntroEligibilityStatus.introEligibilityStatusEligible;
+      _trialEligible = eligible;
+      _persistEligibility(eligible);
+      return eligible;
     } catch (e) {
       if (kDebugMode) debugPrint('RevenueCat: eligibility check failed - $e');
       return false;
     }
+  }
+
+  /// Persiste la elegibilidad en disco (fire-and-forget, no-crítico).
+  Future<void> _persistEligibility(bool value) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kTrialEligibleKey, value);
+    } catch (_) {}
   }
 
   Future<Offerings?> getOfferings() async {

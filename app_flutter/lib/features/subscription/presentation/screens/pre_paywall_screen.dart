@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_constants.dart';
+import '../../../../core/services/revenue_cat_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../providers/subscription_provider.dart';
@@ -25,6 +26,24 @@ class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
     // a cargar los offerings mientras el usuario lee esta pantalla. Así el paywall
     // aparece con los precios reales al instante, no con placeholders.
     ref.read(subscriptionProvider);
+    // Prewarm también la elegibilidad del trial para que el paywall sepa desde el
+    // primer frame si mostrar el toggle (evita el parpadeo del toggle).
+    _prewarmTrialEligibility();
+  }
+
+  /// Carga offerings y cachea la elegibilidad del trial del plan mensual, para
+  /// que el paywall la lea de forma síncrona y no parpadee. No-crítico.
+  Future<void> _prewarmTrialEligibility() async {
+    try {
+      final offerings = await RevenueCatService.instance.getOfferings();
+      final productId =
+          offerings?.current?.monthly?.storeProduct.identifier;
+      if (productId != null) {
+        await RevenueCatService.instance.isEligibleForTrial(productId);
+      }
+    } catch (_) {
+      // No-crítico: si falla, el paywall hace la comprobación asíncrona.
+    }
   }
 
   /// Objetivo legible según el motivo elegido en el onboarding.

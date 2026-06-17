@@ -1,14 +1,61 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/glass_container.dart';
 
-class OnboardingIntroPage extends StatelessWidget {
+class OnboardingIntroPage extends StatefulWidget {
   final VoidCallback onNext;
 
   const OnboardingIntroPage({
     super.key,
     required this.onNext,
   });
+
+  @override
+  State<OnboardingIntroPage> createState() => _OnboardingIntroPageState();
+}
+
+class _OnboardingIntroPageState extends State<OnboardingIntroPage>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _fade;
+  late final Animation<double> _scale;
+  late final Animation<Offset> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    );
+    _fade = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.0, 0.6, curve: Curves.easeOut),
+    );
+    _scale = Tween<double>(begin: 0.85, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.55, curve: Curves.easeOutBack),
+      ),
+    );
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.12),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.2, 0.9, curve: Curves.easeOutCubic),
+      ),
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,52 +66,105 @@ class OnboardingIntroPage extends StatelessWidget {
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 20),
+              child: FadeTransition(
+                opacity: _fade,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 20),
 
-                  // Icon
-                  Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryColor.withOpacity(0.15),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Center(
-                      child: Text(
-                        '✨',
-                        style: TextStyle(fontSize: 60),
+                    // Premium icon: gradient circle with glow
+                    ScaleTransition(
+                      scale: _scale,
+                      child: Container(
+                        width: 112,
+                        height: 112,
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.goldGradient,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryColor.withOpacity(0.4),
+                              blurRadius: 32,
+                              spreadRadius: 4,
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.auto_awesome_rounded,
+                          color: Colors.white,
+                          size: 52,
+                        ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(height: 32),
+                    const SizedBox(height: 32),
 
-                  // Title
-                  Text(
-                    'Vamos a personalizar\ntu experiencia',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                          color: AppTheme.textPrimary,
-                        ),
-                  ),
+                    SlideTransition(
+                      position: _slide,
+                      child: Column(
+                        children: [
+                          // Title
+                          Text(
+                            'Vamos a personalizar\ntu experiencia',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context)
+                                .textTheme
+                                .displayMedium
+                                ?.copyWith(
+                                  color: AppTheme.textPrimary,
+                                ),
+                          ),
 
-                  const SizedBox(height: 16),
+                          const SizedBox(height: 16),
 
-                  // Subtitle
-                  Text(
-                    'Te haremos unas preguntas rápidas para\nadaptar Biblia Chat a ti.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                          color: AppTheme.textSecondary,
-                          height: 1.5,
-                        ),
-                  ),
+                          // Subtitle
+                          Text(
+                            'Te haremos unas preguntas rápidas para\nadaptar Biblia Chat a ti.',
+                            textAlign: TextAlign.center,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyLarge
+                                ?.copyWith(
+                                  color: AppTheme.textSecondary,
+                                  height: 1.5,
+                                ),
+                          ),
 
-                  const SizedBox(height: 32),
-                ],
+                          const SizedBox(height: 28),
+
+                          // Glass card: qué vamos a personalizar
+                          GlassContainer.card(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 18,
+                            ),
+                            child: Column(
+                              children: const [
+                                _PersonalizeRow(
+                                  icon: Icons.church_rounded,
+                                  text: 'Tu tradición cristiana',
+                                ),
+                                SizedBox(height: 14),
+                                _PersonalizeRow(
+                                  icon: Icons.favorite_rounded,
+                                  text: 'Lo que más te importa',
+                                ),
+                                SizedBox(height: 14),
+                                _PersonalizeRow(
+                                  icon: Icons.wb_sunny_rounded,
+                                  text: 'Tu momento del día',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 32),
+                  ],
+                ),
               ),
             ),
           ),
@@ -89,7 +189,7 @@ class OnboardingIntroPage extends StatelessWidget {
                 ],
               ),
               child: ElevatedButton(
-                onPressed: onNext,
+                onPressed: widget.onNext,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.transparent,
                   shadowColor: Colors.transparent,
@@ -117,6 +217,43 @@ class OnboardingIntroPage extends StatelessWidget {
                 ),
               ),
             ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PersonalizeRow extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _PersonalizeRow({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.primaryColor.withOpacity(0.2),
+            ),
+          ),
+          child: Icon(icon, color: AppTheme.primaryColor, size: 20),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(
+            text,
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
           ),
         ),
       ],

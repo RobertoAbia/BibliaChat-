@@ -94,6 +94,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           if (!mounted) return;
           context.go(RouteConstants.home);
         } else {
+          // Sembrar la elegibilidad de trial persistida para que el paywall-puerta
+          // no parpadee en cold start (no pasa por pre-paywall).
+          RevenueCatService.instance
+              .seedTrialEligibility(prefs.getBool('trial_eligible'));
           context.go('${RouteConstants.paywall}?gate=true');
         }
         FlutterNativeSplash.remove();
