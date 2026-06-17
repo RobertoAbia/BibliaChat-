@@ -45,7 +45,10 @@ class NotificationService {
     if (_isInitialized && _currentUserId != userId) {
       _currentUserId = userId;
 
-      await _saveToken(userId);
+      // Solo donde es seguro sin disparar el prompt nativo (ver paso 3 abajo).
+      if (await _canSaveTokenWithoutPrompt()) {
+        await _saveToken(userId);
+      }
       return;
     }
 
@@ -58,14 +61,22 @@ class NotificationService {
     // 1. Configurar handler para mensajes en background
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // 2. SIEMPRE intentar guardar el token (en Android funciona sin permiso)
-    await _saveToken(userId);
-
-    // 3. Verificar si YA tiene permiso para configurar local notifications
+    // 2. Verificar estado de permiso (lectura, NO dispara el prompt nativo)
     final settings = await _messaging.getNotificationSettings();
     final alreadyAuthorized =
         settings.authorizationStatus == AuthorizationStatus.authorized ||
         settings.authorizationStatus == AuthorizationStatus.provisional;
+
+    // 3. Guardar token FCM solo donde es seguro:
+    //  - Android: funciona sin permiso, se guarda siempre.
+    //  - iOS: solo si el permiso YA está concedido. En iOS, intentar obtener el
+    //    token sin permiso DISPARA el prompt nativo en el arranque (Welcome),
+    //    que es justo lo que no queremos. El permiso se pide en el priming
+    //    (Home/post-pago) y tras concederlo requestPermissionIfNeeded() guarda
+    //    el token.
+    if (Platform.isAndroid || alreadyAuthorized) {
+      await _saveToken(userId);
+    }
 
     if (alreadyAuthorized) {
       await _setupLocalNotifications();
@@ -96,13 +107,25 @@ class NotificationService {
     _isInitialized = true;
     debugPrint('NotificationService initialized for user: $userId');
 
-    // Safety net: reintentar guardado de token después de 15s
-    // Para cuando APNs no estaba listo en los intentos iniciales
-    Future.delayed(const Duration(seconds: 15), () {
-      if (_currentUserId != null) {
-        _saveToken(_currentUserId!);
-      }
-    });
+    // Safety net: reintentar guardado de token después de 15s (APNs puede no
+    // estar listo en el primer intento). Solo donde es seguro sin prompt.
+    if (Platform.isAndroid || alreadyAuthorized) {
+      Future.delayed(const Duration(seconds: 15), () {
+        if (_currentUserId != null) {
+          _saveToken(_currentUserId!);
+        }
+      });
+    }
+  }
+
+  /// Android obtiene el token FCM sin permiso. En iOS, intentar obtenerlo sin
+  /// permiso concedido dispara el prompt nativo, así que solo es seguro guardar
+  /// el token "temprano" en Android o si iOS ya tiene el permiso.
+  Future<bool> _canSaveTokenWithoutPrompt() async {
+    if (Platform.isAndroid) return true;
+    final settings = await _messaging.getNotificationSettings();
+    return settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional;
   }
 
   /// Pide permiso de notificaciones si aún no lo tiene.
