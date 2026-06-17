@@ -1,7 +1,7 @@
 name: biblia_chat
 description: "App cristiana para hispanohablantes - Tu fe, tu idioma, tu cultura."
 publish_to: 'none'
-version: 1.1.0+42
+version: 1.1.0+43
 
 environment:
   sdk: ^3.5.4
@@ -75,7 +75,7 @@ dependencies:
   in_app_review: ^2.0.9
   back_button_interceptor: ^8.0.4
 
-  # Native Splash Screen (runtime API for preserve/remove)
+  # Native  Splash Screen (runtime API for preserve/remove)
   flutter_native_splash: ^2.4.0
   app_settings: ^7.0.0
 
