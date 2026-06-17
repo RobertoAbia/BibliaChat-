@@ -69,7 +69,13 @@ class _OnboardingVersePageState extends State<OnboardingVersePage>
 
   @override
   Widget build(BuildContext context) {
-    final lead = _leadText(widget.motive);
+    final name = widget.name?.trim();
+    final hasName = name != null && name.isNotEmpty;
+    final motivePhrase = _motivePhrase(widget.motive);
+    const blue = TextStyle(
+      color: AppTheme.primaryColor,
+      fontWeight: FontWeight.w700,
+    );
 
     return Column(
       children: [
@@ -84,9 +90,27 @@ class _OnboardingVersePageState extends State<OnboardingVersePage>
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Lead conversacional — el "porqué" de este versículo
-                    Text(
-                      lead,
+                    // Lead conversacional con el nombre y el motivo resaltados
+                    // en azul para que no quede plano.
+                    Text.rich(
+                      TextSpan(
+                        children: [
+                          if (hasName) ...[
+                            TextSpan(text: name, style: blue),
+                            const TextSpan(
+                                text: ', antes de mostrarte tu plan'),
+                          ] else
+                            const TextSpan(text: 'Antes de mostrarte tu plan'),
+                          if (motivePhrase != null) ...[
+                            const TextSpan(
+                                text: ', como nos has dicho que '),
+                            TextSpan(text: motivePhrase, style: blue),
+                          ],
+                          const TextSpan(
+                              text:
+                                  ', queremos inspirarte con esta enseñanza de la Biblia.'),
+                        ],
+                      ),
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                             color: AppTheme.textPrimary,
                             fontWeight: FontWeight.w600,
@@ -285,19 +309,19 @@ const List<_Verse> _defaultVerses = [
   _Verse('Salmos 23:1', 'El Señor es mi pastor; nada me falta.'),
 ];
 
-/// Lead conversacional: enlaza el motivo que indicó el usuario con la transición
-/// a su plan, justificando por qué le mostramos este versículo antes.
-String _leadText(String? motive) {
+/// Frase del motivo (lo que el usuario nos dijo) para resaltarla en azul dentro
+/// del lead. Devuelve null si no hay motivo → el lead omite esa parte.
+String? _motivePhrase(String? motive) {
   switch (motive) {
     case 'difficult_moment':
-      return 'Antes de mostrarte tu plan, y como nos has dicho que estás pasando por un momento difícil, queremos inspirarte con esta enseñanza de la Biblia.';
+      return 'estás pasando por un momento difícil';
     case 'spiritual_growth':
-      return 'Antes de mostrarte tu plan, y como nos has dicho que quieres crecer espiritualmente, queremos inspirarte con esta enseñanza de la Biblia.';
+      return 'quieres crecer espiritualmente';
     case 'feeling_distant':
-      return 'Antes de mostrarte tu plan, y como nos has dicho que a veces te sientes lejos de Dios, queremos inspirarte con esta enseñanza de la Biblia.';
+      return 'a veces te sientes lejos de Dios';
     case 'understand_bible':
-      return 'Antes de mostrarte tu plan, y como nos has dicho que quieres entender mejor la Biblia, queremos inspirarte con esta enseñanza de la Biblia.';
+      return 'quieres entender mejor la Biblia';
     default:
-      return 'Antes de mostrarte tu plan, queremos inspirarte con esta enseñanza de la Biblia.';
+      return null;
   }
 }

@@ -100,52 +100,74 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           bottom: false,
           child: Column(
             children: [
-              // Contenido scrollable: logo, título y features
+              // Contenido scrollable centrado verticalmente: logo, título y
+              // features (evita el hueco muerto entre features y planes).
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const SizedBox(height: 32),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: ConstrainedBox(
+                        constraints:
+                            BoxConstraints(minHeight: constraints.maxHeight),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 24),
 
-                      // Logo centrado
-                      Center(
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(16),
-                          child: Image.asset(
-                            'assets/images/splash_logo.png',
-                            width: 80,
-                            height: 80,
-                          ),
+                            // Logo centrado
+                            Center(
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(16),
+                                child: Image.asset(
+                                  'assets/images/splash_logo.png',
+                                  width: 80,
+                                  height: 80,
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 28),
+
+                            // Titulo grande
+                            const Text(
+                              'No pierdas ni un\nsolo momento de fe',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.textPrimary,
+                                height: 1.15,
+                              ),
+                            ),
+
+                            const SizedBox(height: 32),
+
+                            // Features enriquecidas
+                            _buildFeatureItem(
+                              Icons.chat_bubble_outline_rounded,
+                              'Chat ilimitado con IA',
+                              'Habla de tu fe siempre que lo necesites',
+                            ),
+                            const SizedBox(height: 18),
+                            _buildFeatureItem(
+                              Icons.menu_book_rounded,
+                              'Planes de estudio personalizados',
+                              'Crece a tu ritmo, paso a paso',
+                            ),
+                            const SizedBox(height: 18),
+                            _buildFeatureItem(
+                              Icons.wb_sunny_rounded,
+                              'Reflexiones y devocionales diarios',
+                              'Tu momento de paz cada mañana',
+                            ),
+
+                            const SizedBox(height: 24),
+                          ],
                         ),
                       ),
-
-                      const SizedBox(height: 28),
-
-                      // Titulo grande
-                      const Text(
-                        'No pierdas ni un\nsolo momento de fe',
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.textPrimary,
-                          height: 1.15,
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Features - lista vertical
-                      _buildFeatureItem('Chat ilimitado con IA'),
-                      const SizedBox(height: 12),
-                      _buildFeatureItem('Planes de estudio personalizados'),
-                      const SizedBox(height: 12),
-                      _buildFeatureItem('Reflexiones y devocionales diarios'),
-
-                      const SizedBox(height: 16),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
 
@@ -397,22 +419,40 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     );
   }
 
-  Widget _buildFeatureItem(String text) {
+  Widget _buildFeatureItem(IconData icon, String title, String subtitle) {
     return Row(
       children: [
-        Icon(
-          Icons.check_circle_outline,
-          size: 22,
-          color: AppTheme.primaryColor,
+        Container(
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(13),
+          ),
+          child: Icon(icon, color: AppTheme.primaryColor, size: 24),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 14),
         Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontSize: 15,
-              color: AppTheme.textPrimary,
-            ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppTheme.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppTheme.textSecondary,
+                ),
+              ),
+            ],
           ),
         ),
       ],

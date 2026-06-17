@@ -19,76 +19,56 @@ class OnboardingAnalyzingPage extends StatefulWidget {
 
 class _OnboardingAnalyzingPageState extends State<OnboardingAnalyzingPage>
     with TickerProviderStateMixin {
-  late AnimationController _progressController;
-  late AnimationController _pulseController;
-  late AnimationController _fadeController;
+  late final AnimationController _controller; // progreso 0→1
+  late final AnimationController _glowController; // glow pulsante
+  bool _completed = false;
   int _currentStep = 0;
 
-  final List<_AnalyzingStep> _steps = [
-    _AnalyzingStep(
-      icon: Icons.psychology_outlined,
-      label: 'Analizando tus respuestas',
-      duration: const Duration(milliseconds: 1500),
-    ),
-    _AnalyzingStep(
-      icon: Icons.auto_awesome_outlined,
-      label: 'Personalizando tu experiencia',
-      duration: const Duration(milliseconds: 1200),
-    ),
-    _AnalyzingStep(
-      icon: Icons.route_outlined,
-      label: 'Preparando tu viaje espiritual',
-      duration: const Duration(milliseconds: 1000),
-    ),
+  static const List<String> _labels = [
+    'Analizando tus respuestas',
+    'Personalizando tu experiencia',
+    'Preparando tu viaje espiritual',
   ];
+
+  // Umbrales de progreso para cambiar de etiqueta (duraciones 1500/1200/1000).
+  static const double _step0End = 0.405;
+  static const double _step1End = 0.73;
 
   @override
   void initState() {
     super.initState();
-    _progressController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _pulseController = AnimationController(
+    _glowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
-    _fadeController = AnimationController(
+
+    _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
-      value: 1.0,
-    );
-    _startAnimation();
+      duration: const Duration(milliseconds: 3700),
+    )..addListener(_onTick);
+
+    _controller.forward().whenComplete(() async {
+      await Future.delayed(const Duration(milliseconds: 450));
+      if (mounted && !_completed) {
+        _completed = true;
+        widget.onComplete();
+      }
+    });
+  }
+
+  void _onTick() {
+    final v = _controller.value;
+    final step = v < _step0End ? 0 : (v < _step1End ? 1 : 2);
+    if (step != _currentStep) {
+      setState(() => _currentStep = step);
+    }
   }
 
   @override
   void dispose() {
-    _progressController.dispose();
-    _pulseController.dispose();
-    _fadeController.dispose();
+    _controller.dispose();
+    _glowController.dispose();
     super.dispose();
-  }
-
-  Future<void> _startAnimation() async {
-    for (int i = 0; i < _steps.length; i++) {
-      if (!mounted) return;
-
-      // Fade in new step
-      _fadeController.forward(from: 0);
-
-      setState(() {
-        _currentStep = i;
-      });
-
-      _progressController.forward(from: 0);
-      await Future.delayed(_steps[i].duration);
-    }
-
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    if (mounted) {
-      widget.onComplete();
-    }
   }
 
   @override
@@ -98,48 +78,76 @@ class _OnboardingAnalyzingPageState extends State<OnboardingAnalyzingPage>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Pulsing logo with glow
-          AnimatedBuilder(
-            animation: _pulseController,
-            builder: (context, child) {
-              final scale = 1.0 + (_pulseController.value * 0.05);
-              final glowOpacity = 0.3 + (_pulseController.value * 0.2);
-              return Transform.scale(
-                scale: scale,
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primaryColor.withOpacity(glowOpacity),
-                        blurRadius: 30,
-                        spreadRadius: 5,
+          // Anillo de progreso con glow pulsante y % en el centro
+          SizedBox(
+            width: 200,
+            height: 200,
+            child: AnimatedBuilder(
+              animation: Listenable.merge([_controller, _glowController]),
+              builder: (context, _) {
+                final progress = _controller.value;
+                final glowOpacity = 0.22 + (_glowController.value * 0.22);
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Glow
+                    Container(
+                      width: 150,
+                      height: 150,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryColor.withOpacity(glowOpacity),
+                            blurRadius: 44,
+                            spreadRadius: 6,
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(24),
-                    child: Image.asset(
-                      'assets/images/splash_logo.png',
-                      width: 100,
-                      height: 100,
-                      fit: BoxFit.cover,
                     ),
-                  ),
+                    // Anillo
+                    SizedBox(
+                      width: 172,
+                      height: 172,
+                      child: CustomPaint(
+                        painter: _RingPainter(progress),
+                      ),
+                    ),
+                    // Porcentaje
+                    Text(
+                      '${(progress * 100).round()}%',
+                      style: const TextStyle(
+                        fontSize: 42,
+                        fontWeight: FontWeight.w700,
+                        color: AppTheme.textPrimary,
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+          ),
+
+          const SizedBox(height: 48),
+
+          // Línea de estado que cambia con fade + slide
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 350),
+            transitionBuilder: (child, animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.25),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
                 ),
               );
             },
-          ),
-
-          const SizedBox(height: 40),
-
-          // Animated current step label
-          FadeTransition(
-            opacity: _fadeController,
             child: Text(
-              _steps[_currentStep].label,
+              _labels[_currentStep],
+              key: ValueKey(_currentStep),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: AppTheme.textPrimary,
                     fontWeight: FontWeight.w600,
@@ -148,106 +156,78 @@ class _OnboardingAnalyzingPageState extends State<OnboardingAnalyzingPage>
             ),
           ),
 
-          const SizedBox(height: 40),
+          const SizedBox(height: 12),
 
-          // Step indicators with icons
-          ...List.generate(_steps.length, (index) {
-            final isActive = index == _currentStep;
-            final isCompleted = index < _currentStep;
+          Text(
+            'Esto solo tomará un momento',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
+            textAlign: TextAlign.center,
+          ),
 
-            return AnimatedBuilder(
-              animation: _progressController,
-              builder: (context, child) {
-                final progressValue = isActive ? _progressController.value : 0.0;
+          const SizedBox(height: 36),
 
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: Row(
-                    children: [
-                      // Step icon
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 300),
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: isCompleted
-                              ? AppTheme.successColor
-                              : isActive
-                                  ? AppTheme.primaryColor.withOpacity(0.15)
-                                  : AppTheme.surfaceLight.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          isCompleted ? Icons.check : _steps[index].icon,
-                          color: isCompleted
-                              ? Colors.white
-                              : isActive
-                                  ? AppTheme.primaryColor
-                                  : AppTheme.textTertiary,
-                          size: 18,
-                        ),
-                      ),
-                      const SizedBox(width: 14),
-                      // Label + progress bar
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _steps[index].label,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                    color: isActive || isCompleted
-                                        ? AppTheme.textPrimary
-                                        : AppTheme.textTertiary,
-                                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                                  ),
-                            ),
-                            const SizedBox(height: 6),
-                            Container(
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: AppTheme.surfaceLight,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                              child: FractionallySizedBox(
-                                alignment: Alignment.centerLeft,
-                                widthFactor: isCompleted ? 1.0 : progressValue,
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    gradient: isCompleted
-                                        ? null
-                                        : AppTheme.goldGradient,
-                                    color: isCompleted
-                                        ? AppTheme.successColor
-                                        : null,
-                                    borderRadius: BorderRadius.circular(2),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              },
-            );
-          }),
+          // Puntos de avance
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(_labels.length, (i) {
+              final active = i <= _currentStep;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: active ? 22 : 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  gradient: active ? AppTheme.goldGradient : null,
+                  color: active ? null : AppTheme.surfaceLight,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              );
+            }),
+          ),
         ],
       ),
     );
   }
 }
 
-class _AnalyzingStep {
-  final IconData icon;
-  final String label;
-  final Duration duration;
+/// Anillo de progreso con gradiente y extremos redondeados.
+class _RingPainter extends CustomPainter {
+  final double progress;
 
-  _AnalyzingStep({
-    required this.icon,
-    required this.label,
-    required this.duration,
-  });
+  _RingPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = size.center(Offset.zero);
+    final radius = (size.width / 2) - 6;
+    const stroke = 10.0;
+
+    final bgPaint = Paint()
+      ..color = AppTheme.surfaceLight
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+    canvas.drawCircle(center, radius, bgPaint);
+
+    if (progress <= 0) return;
+
+    final rect = Rect.fromCircle(center: center, radius: radius);
+    final fgPaint = Paint()
+      ..shader = const SweepGradient(
+        startAngle: -pi / 2,
+        endAngle: 3 * pi / 2,
+        colors: [AppTheme.primaryLight, AppTheme.primaryColor],
+      ).createShader(rect)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = stroke
+      ..strokeCap = StrokeCap.round;
+
+    canvas.drawArc(rect, -pi / 2, 2 * pi * progress, false, fgPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _RingPainter oldDelegate) =>
+      oldDelegate.progress != progress;
 }
