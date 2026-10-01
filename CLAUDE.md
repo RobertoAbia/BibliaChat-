@@ -2201,6 +2201,28 @@ supabase functions serve
 
 ## ⚠️ Mantenimiento Periódico
 
+### GitHub Actions — crons desactivados por inactividad (cada 60 días)
+**Último keepalive:** 6 de septiembre de 2026 (commit vacío `3c1ca4b` en `main`)
+**Próximo vencimiento:** principios de noviembre de 2026
+
+GitHub desactiva los workflows programados (`daily-gospel.yml` y `send-notifications.yml`) cuando pasan 60 días sin commits en `main`. Los commits en ramas feature NO cuentan. Síntoma: Home muestra "No hay contenido disponible", candados en toda la semana y no llegan notificaciones.
+
+```bash
+# Diagnóstico
+gh workflow list                                  # estado disabled_inactivity = apagado
+gh run list --workflow=daily-gospel.yml --limit 3
+
+# Reactivar (no requiere commit) y generar el evangelio de hoy
+gh workflow enable daily-gospel.yml
+gh workflow enable send-notifications.yml
+gh workflow run daily-gospel.yml
+
+# Reiniciar el contador de 60 días
+git checkout main && git commit --allow-empty -m "chore: keepalive workflows" && git push
+```
+
+Solución definitiva pendiente: mover el cron a `pg_cron` en Supabase.
+
 ### Calendario Litúrgico (ANUAL - Finales de cada año)
 **Última actualización:** Enero 2026 (datos de 2026 completos)
 **Próxima actualización:** Octubre/Noviembre 2026 (para cargar 2027)
