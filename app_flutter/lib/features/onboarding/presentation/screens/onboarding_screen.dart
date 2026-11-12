@@ -10,6 +10,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/services/analytics_service.dart';
 import '../../../../core/services/remote_config_service.dart';
+import '../../../../core/services/revenue_cat_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../../study/presentation/providers/study_provider.dart';
@@ -147,6 +148,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
         motive: state.motive,
         motiveDetail: state.motiveDetail,
       );
+      // Denominación como atributo de cliente en RevenueCat (cruce con pago)
+      unawaited(RevenueCatService.instance.setDenomination(state.denomination));
       // Invalidar el provider de perfil para que se recargue con los nuevos datos
       ref.invalidate(currentUserProfileProvider);
       // Auto-assign recommended plan based on motive+detail (fire-and-forget:
@@ -296,6 +299,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               currentName: state.name,
               onNameChanged: (name) => notifier.setName(name),
               onNext: state.name != null ? _nextPage : null,
+              // Opcional: saltar deja el nombre en null (perfil anónimo).
+              onSkip: () {
+                notifier.setName('');
+                _nextPage();
+              },
             );
           },
         );
@@ -322,6 +330,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               selectedKey: state.ageGroup,
               onSelect: (key) => notifier.setAgeGroup(key),
               onNext: state.ageGroup != null ? _nextPage : null,
+              onSkip: _nextPage, // Opcional: age_group queda null
             );
           },
         );

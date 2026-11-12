@@ -20,6 +20,13 @@ class RemoteConfigService {
   /// Vacío = no se oculta nada (default).
   static const String hiddenStepsKey = 'onboarding_hidden_steps';
 
+  /// Plan preseleccionado en el paywall: `annual`, `monthly` o `auto`
+  /// (auto = el plan con trial si el usuario es elegible, si no el anual).
+  static const String paywallDefaultPlanKey = 'paywall_default_plan';
+
+  /// Si true, la tarjeta del plan anual se muestra encima de la mensual.
+  static const String paywallAnnualFirstKey = 'paywall_annual_first';
+
   FirebaseRemoteConfig? _rc;
 
   /// Inicializa Remote Config. Aplica valores ya cacheados al instante
@@ -35,6 +42,8 @@ class RemoteConfigService {
       ));
       await rc.setDefaults(const {
         hiddenStepsKey: '',
+        paywallDefaultPlanKey: 'auto',
+        paywallAnnualFirstKey: true,
       });
       // Aplica los últimos valores fetchados (cacheados en disco) sin red.
       await rc.activate();
@@ -74,4 +83,14 @@ class RemoteConfigService {
         .where((s) => s.isNotEmpty)
         .toSet();
   }
+
+  /// `annual`, `monthly` o `auto`. Cualquier otro valor se trata como `auto`.
+  String get paywallDefaultPlan {
+    final raw =
+        (_rc?.getString(paywallDefaultPlanKey) ?? 'auto').trim().toLowerCase();
+    return (raw == 'annual' || raw == 'monthly') ? raw : 'auto';
+  }
+
+  /// Si el plan anual va encima del mensual en el paywall (default true).
+  bool get paywallAnnualFirst => _rc?.getBool(paywallAnnualFirstKey) ?? true;
 }

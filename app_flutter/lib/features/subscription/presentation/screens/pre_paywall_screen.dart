@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/services/revenue_cat_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../providers/subscription_provider.dart';
+import '../utils/paywall_pricing.dart';
 
 /// Pantalla "trial preview" antes del paywall: título personalizado
 /// (nombre + 3 días gratis + objetivo del onboarding) + timeline de 3 días +
@@ -31,34 +33,21 @@ class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
     _prewarmTrialEligibility();
   }
 
-  /// Carga offerings y cachea la elegibilidad del trial del plan mensual, para
+  /// Carga offerings y cachea la elegibilidad del trial (mensual y anual), para
   /// que el paywall la lea de forma síncrona y no parpadee. No-crítico.
   Future<void> _prewarmTrialEligibility() async {
     try {
       final offerings = await RevenueCatService.instance.getOfferings();
-      final productId =
-          offerings?.current?.monthly?.storeProduct.identifier;
-      if (productId != null) {
-        await RevenueCatService.instance.isEligibleForTrial(productId);
+      final current = offerings?.current;
+      final productIds = [current?.monthly, current?.annual]
+          .whereType<Package>()
+          .map((p) => p.storeProduct.identifier)
+          .toList();
+      if (productIds.isNotEmpty) {
+        await RevenueCatService.instance.isEligibleForTrial(productIds);
       }
     } catch (_) {
       // No-crítico: si falla, el paywall hace la comprobación asíncrona.
-    }
-  }
-
-  /// Objetivo legible según el motivo elegido en el onboarding.
-  String _objectivePhrase(String? motive) {
-    switch (motive) {
-      case 'difficult_moment':
-        return 'atravesar este momento difícil con fe';
-      case 'spiritual_growth':
-        return 'crecer en tu fe';
-      case 'feeling_distant':
-        return 'reconectar con Dios';
-      case 'understand_bible':
-        return 'entender mejor la Palabra';
-      default:
-        return 'fortalecer tu fe';
     }
   }
 
@@ -70,7 +59,7 @@ class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
   Widget build(BuildContext context) {
     final profile = ref.watch(currentUserProfileProvider).valueOrNull;
     final name = profile?.name;
-    final objective = _objectivePhrase(profile?.motive);
+    final objective = PaywallPricing.objectivePhrase(profile?.motive);
     final namePrefix = (name != null && name.trim().isNotEmpty)
         ? '${name.trim()}, aquí tienes '
         : 'Aquí tienes ';

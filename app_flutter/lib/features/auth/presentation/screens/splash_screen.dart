@@ -13,6 +13,7 @@ import '../../../../core/services/revenue_cat_service.dart';
 import '../../../../core/services/widget_service.dart';
 import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart';
 import '../../../home/presentation/providers/daily_progress_provider.dart';
+import '../../../profile/domain/entities/user_profile.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../../study/presentation/providers/study_provider.dart';
 
@@ -145,7 +146,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       });
     }
 
-    await Future.wait([
+    final results = await Future.wait([
       ref.read(currentUserProfileProvider.future).catchError((_) => null),
       ref.read(dailyGospelProvider.future).catchError((_) => null),
       ref.read(weekCompletionProvider.future).catchError((_) => <String>{}),
@@ -154,6 +155,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       const Duration(milliseconds: 1500),
       onTimeout: () => [null, null, <String>{}, null],
     );
+
+    // Sincroniza la denominación como atributo de cliente en RevenueCat
+    // (cubre usuarios existentes que hicieron el onboarding antes de esto).
+    final profile = results[0] as UserProfile?;
+    RevenueCatService.instance
+        .setDenomination(profile?.denomination?.dbValue)
+        .catchError((_) {});
   }
 
   @override

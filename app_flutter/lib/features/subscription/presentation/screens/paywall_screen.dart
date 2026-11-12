@@ -5,11 +5,14 @@ import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/services/analytics_service.dart';
+import '../../../../core/services/remote_config_service.dart';
 import '../../../../core/services/revenue_cat_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../legal/presentation/screens/privacy_policy_screen.dart';
 import '../../../legal/presentation/screens/terms_conditions_screen.dart';
+import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../providers/subscription_provider.dart';
+import '../utils/paywall_pricing.dart';
 
 class PaywallScreen extends ConsumerStatefulWidget {
   /// Si true, el paywall actúa de puerta (hard paywall): sin botón de cerrar.
@@ -26,8 +29,14 @@ class PaywallScreen extends ConsumerStatefulWidget {
   ConsumerState<PaywallScreen> createState() => _PaywallScreenState();
 }
 
+enum _Plan { annual, monthly }
+
 class _PaywallScreenState extends ConsumerState<PaywallScreen> {
-  bool _trialEnabled = true; // true = mensual con trial, false = anual
+  /// Cita de prueba social. Debe ser una reseña real de la App Store.
+  static const String _socialProofQuote = 'Me ayuda a orar cada día';
+
+  _Plan _selected = _Plan.annual;
+  bool _selectionInitialized = false;
   bool _canClose = false;
   bool _isEligibleForTrial = true; // optimista; se actualiza tras consultar RC
   bool _eligibilityChecked = false;
@@ -55,10 +64,45 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     }
   }
 
-  Future<void> _checkEligibility(String productId) async {
+  Future<void> _checkEligibility(List<String> productIds) async {
     final eligible =
-        await RevenueCatService.instance.isEligibleForTrial(productId);
-    if (mounted) setState(() => _isEligibleForTrial = eligible);
+        await RevenueCatService.instance.isEligibleForTrial(productIds);
+    if (!mounted) return;
+    setState(() {
+      _isEligibleForTrial = eligible;
+      // Sin trial, la mejor oferta es el anual (salvo que Remote Config fije
+      // un plan concreto).
+      if (!eligible && RemoteConfigService().paywallDefaultPlan == 'auto') {
+        _selected = _Plan.annual;
+      }
+    });
+  }
+
+  /// Selección inicial. Remote Config `paywall_default_plan` manda si vale
+  /// `annual` o `monthly`; en `auto`: el plan con trial si el usuario es
+  /// elegible (anual preferido), si no el anual.
+  void _initSelection(Package? monthly, Package? annual) {
+    if (_selectionInitialized || (monthly == null && annual == null)) return;
+    _selectionInitialized = true;
+    switch (RemoteConfigService().paywallDefaultPlan) {
+      case 'annual':
+        _selected = _Plan.annual;
+        return;
+      case 'monthly':
+        _selected = _Plan.monthly;
+        return;
+    }
+    if (_isEligibleForTrial) {
+      if (PaywallPricing.hasFreeTrial(annual)) {
+        _selected = _Plan.annual;
+        return;
+      }
+      if (PaywallPricing.hasFreeTrial(monthly)) {
+        _selected = _Plan.monthly;
+        return;
+      }
+    }
+    _selected = _Plan.annual;
   }
 
   @override
@@ -66,13 +110,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final subscriptionState = ref.watch(subscriptionProvider);
     final monthlyPackage = ref.watch(monthlyPackageProvider);
     final annualPackage = ref.watch(annualPackageProvider);
+    final profile = ref.watch(currentUserProfileProvider).valueOrNull;
 
     final monthlyPrice = monthlyPackage?.storeProduct.priceString ?? '\$14.99';
     final annualPrice = annualPackage?.storeProduct.priceString ?? '\$39.99';
     final isPurchasing = subscriptionState.isPurchasing;
 
-    // Resolver elegibilidad de trial cuando el paquete mensual esté cargado.
-    if (monthlyPackage != null && !_eligibilityChecked) {
+    // Resolver elegibilidad de trial cuando los paquetes estén cargados.
+    if ((monthlyPackage != null || annualPackage != null) &&
+        !_eligibilityChecked) {
       _eligibilityChecked = true;
       final cached = RevenueCatService.instance.trialEligible;
       if (cached != null) {
@@ -82,14 +128,40 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       } else {
         // Desconocida (p.ej. abierto desde Ajustes/Home sin caché previa) →
         // comprobación asíncrona, suavizada por el AnimatedSize del toggle.
-        final productId = monthlyPackage.storeProduct.identifier;
+        final ids = [monthlyPackage, annualPackage]
+            .whereType<Package>()
+            .map((p) => p.storeProduct.identifier)
+            .toList();
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _checkEligibility(productId);
+          _checkEligibility(ids);
         });
       }
     }
+    _initSelection(monthlyPackage, annualPackage);
 
-    final showTrialCopy = _isEligibleForTrial && _trialEnabled;
+    // Trial por plan (dato real del producto × elegibilidad del usuario).
+    final annualTrialDays = _isEligibleForTrial
+        ? PaywallPricing.freeTrialDays(annualPackage)
+        : null;
+    final monthlyTrialDays = _isEligibleForTrial
+        ? PaywallPricing.freeTrialDays(monthlyPackage)
+        : null;
+    final selectedTrialDays =
+        _selected == _Plan.annual ? annualTrialDays : monthlyTrialDays;
+    final selectedPrice =
+        _selected == _Plan.annual ? annualPrice : monthlyPrice;
+    final selectedPeriod = _selected == _Plan.annual ? 'año' : 'mes';
+    final showTrialCopy = selectedTrialDays != null;
+
+    // El toggle "probar gratis" solo tiene sentido si exactamente uno de los
+    // dos planes tiene trial.
+    final _Plan? trialPlan = (annualTrialDays != null) != (monthlyTrialDays != null)
+        ? (annualTrialDays != null ? _Plan.annual : _Plan.monthly)
+        : null;
+
+    final savingsPct =
+        PaywallPricing.annualSavingsPercent(monthlyPackage, annualPackage);
+    final monthlyEquivalent = PaywallPricing.monthlyEquivalent(annualPackage);
 
     return Scaffold(
       body: Container(
@@ -130,18 +202,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
                             const SizedBox(height: 28),
 
-                            // Titulo grande
-                            const Text(
-                              'No pierdas ni un\nsolo momento de fe',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.textPrimary,
-                                height: 1.15,
-                              ),
-                            ),
+                            // Título personalizado con nombre + motivo
+                            ..._buildTitle(profile?.name, profile?.motive),
 
-                            const SizedBox(height: 32),
+                            const SizedBox(height: 28),
 
                             // Features enriquecidas
                             _buildFeatureItem(
@@ -162,6 +226,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                               'Tu momento de paz cada mañana',
                             ),
 
+                            const SizedBox(height: 22),
+
+                            // Prueba social
+                            _buildSocialProof(),
+
                             const SizedBox(height: 24),
                           ],
                         ),
@@ -178,29 +247,50 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Toggle trial — solo si es elegible. Colapso suave para que
-                    // no "parpadee" cuando RC confirma que no es elegible.
+                    // Toggle trial — solo si hay un plan con trial. Colapso
+                    // suave para que no "parpadee" cuando RC confirma que no
+                    // es elegible.
                     AnimatedSize(
                       duration: const Duration(milliseconds: 250),
                       curve: Curves.easeOut,
-                      child: _isEligibleForTrial
+                      child: trialPlan != null
                           ? Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                _buildTrialToggle(),
+                                _buildTrialToggle(trialPlan),
                                 const SizedBox(height: 12),
                               ],
                             )
                           : const SizedBox(width: double.infinity),
                     ),
 
-                    // Plan mensual (mock data si RevenueCat no carga)
-                    _buildMonthlyCard(monthlyPrice),
-
-                    const SizedBox(height: 10),
-
-                    // Plan anual
-                    _buildAnnualCard(annualPrice),
+                    // Tarjetas de planes. Orden según Remote Config
+                    // `paywall_annual_first` (default: anual arriba).
+                    ..._orderCards(
+                      annualFirst: RemoteConfigService().paywallAnnualFirst,
+                      annual: _buildPlanCard(
+                        plan: _Plan.annual,
+                        title: annualTrialDays != null
+                            ? 'Prueba gratuita de $annualTrialDays días'
+                            : 'Acceso Anual',
+                        subtitle: annualTrialDays != null
+                            ? 'Después, $annualPrice al año. Sin cobros ahora'
+                            : monthlyEquivalent != null
+                                ? '$annualPrice al año, solo $monthlyEquivalent al mes'
+                                : '$annualPrice al año',
+                        badge:
+                            savingsPct != null ? 'AHORRA $savingsPct%' : null,
+                      ),
+                      monthly: _buildPlanCard(
+                        plan: _Plan.monthly,
+                        title: monthlyTrialDays != null
+                            ? 'Prueba gratuita de $monthlyTrialDays días'
+                            : 'Acceso Mensual',
+                        subtitle: monthlyTrialDays != null
+                            ? 'Después, $monthlyPrice al mes. Sin cobros ahora'
+                            : '$monthlyPrice al mes',
+                      ),
+                    ),
 
                     const SizedBox(height: 14),
 
@@ -209,7 +299,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (showTrialCopy) ...[
-                          Icon(
+                          const Icon(
                             Icons.check_circle,
                             size: 16,
                             color: AppTheme.primaryColor,
@@ -219,7 +309,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                         Flexible(
                           child: Text(
                             showTrialCopy
-                                ? 'Hoy no pagas nada. Cancela en cualquier momento.'
+                                ? 'Hoy no pagas nada. Después, $selectedPrice/$selectedPeriod. Cancela cuando quieras.'
                                 : 'Cancela en cualquier momento, sin compromiso.',
                             style: const TextStyle(
                               fontSize: 12,
@@ -271,8 +361,11 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                                 ],
                               ),
                               child: ElevatedButton(
-                                onPressed: () =>
-                                    _handleCTA(monthlyPackage, annualPackage),
+                                onPressed: () => _handleCTA(
+                                  monthlyPackage,
+                                  annualPackage,
+                                  isTrialStart: showTrialCopy,
+                                ),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.transparent,
                                   shadowColor: Colors.transparent,
@@ -288,8 +381,8 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                                   children: [
                                     Text(
                                       showTrialCopy
-                                          ? 'Pruebalo gratis'
-                                          : 'Suscribete',
+                                          ? 'Empezar $selectedTrialDays días gratis'
+                                          : 'Suscríbete',
                                       style: const TextStyle(
                                         fontSize: 17,
                                         fontWeight: FontWeight.w600,
@@ -307,7 +400,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
                     const SizedBox(height: 12),
 
-                    // Footer: Terminos · Privacidad · Restaurar
+                    // Footer: Términos · Privacidad · Restaurar
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -317,7 +410,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                                 builder: (_) => const TermsConditionsScreen()),
                           ),
                           child: const Text(
-                            'Terminos y condiciones',
+                            'Términos y condiciones',
                             style: TextStyle(
                                 fontSize: 11, color: AppTheme.textTertiary),
                           ),
@@ -336,7 +429,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                                 builder: (_) => const PrivacyPolicyScreen()),
                           ),
                           child: const Text(
-                            'Politica de privacidad',
+                            'Política de privacidad',
                             style: TextStyle(
                                 fontSize: 11, color: AppTheme.textTertiary),
                           ),
@@ -368,7 +461,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
           ),
         ),
       ),
-      // Boton X flotante — oculto en modo gate (hard paywall: no se puede cerrar)
+      // Botón X flotante — oculto en modo gate (hard paywall: no se puede cerrar)
       floatingActionButtonLocation: FloatingActionButtonLocation.miniStartTop,
       floatingActionButton: widget.gate
           ? null
@@ -419,6 +512,69 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     );
   }
 
+  /// Título personalizado: "{Nombre}, tu plan de fe está listo" + objetivo.
+  /// Si no hay nombre, cae en el título genérico.
+  List<Widget> _buildTitle(String? name, String? motive) {
+    const titleStyle = TextStyle(
+      fontSize: 28,
+      fontWeight: FontWeight.w700,
+      color: AppTheme.textPrimary,
+      height: 1.15,
+    );
+    final cleanName = name?.trim();
+    if (cleanName == null || cleanName.isEmpty) {
+      return const [
+        Text('No pierdas ni un\nsolo momento de fe', style: titleStyle),
+      ];
+    }
+    return [
+      Text('$cleanName, tu plan\nde fe está listo', style: titleStyle),
+      const SizedBox(height: 10),
+      Text(
+        'Todo lo que necesitas para ${PaywallPricing.objectivePhrase(motive)}.',
+        style: const TextStyle(
+          fontSize: 15,
+          color: AppTheme.textSecondary,
+          height: 1.3,
+        ),
+      ),
+    ];
+  }
+
+  List<Widget> _orderCards({
+    required bool annualFirst,
+    required Widget annual,
+    required Widget monthly,
+  }) {
+    final first = annualFirst ? annual : monthly;
+    final second = annualFirst ? monthly : annual;
+    return [first, const SizedBox(height: 10), second];
+  }
+
+  Widget _buildSocialProof() {
+    return Row(
+      children: [
+        ...List.generate(
+          5,
+          (_) => const Icon(Icons.star_rounded, size: 18, color: Color(0xFFF5B301)),
+        ),
+        const SizedBox(width: 8),
+        const Expanded(
+          child: Text(
+            '«$_socialProofQuote»',
+            style: TextStyle(
+              fontSize: 13,
+              fontStyle: FontStyle.italic,
+              color: AppTheme.textSecondary,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildFeatureItem(IconData icon, String title, String subtitle) {
     return Row(
       children: [
@@ -459,7 +615,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     );
   }
 
-  Widget _buildTrialToggle() {
+  /// Toggle "probar gratis": ON selecciona el plan con trial, OFF el otro.
+  Widget _buildTrialToggle(_Plan trialPlan) {
+    final trialOn = _selected == trialPlan;
+    final otherPlan = trialPlan == _Plan.annual ? _Plan.monthly : _Plan.annual;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
@@ -473,18 +632,20 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         children: [
           Expanded(
             child: Text(
-              'Quiero probar la aplicacion gratis',
+              'Quiero probar la aplicación gratis',
               style: TextStyle(
                 fontSize: 15,
-                color: _trialEnabled ? AppTheme.textPrimary : AppTheme.textSecondary,
+                color: trialOn ? AppTheme.textPrimary : AppTheme.textSecondary,
               ),
             ),
           ),
           Transform.scale(
             scale: 0.85,
             child: Switch(
-              value: _trialEnabled,
-              onChanged: (value) => setState(() => _trialEnabled = value),
+              value: trialOn,
+              onChanged: (value) => setState(
+                () => _selected = value ? trialPlan : otherPlan,
+              ),
               activeColor: Colors.white,
               activeTrackColor: AppTheme.primaryColor,
               inactiveThumbColor: Colors.white.withOpacity(0.7),
@@ -496,56 +657,16 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     );
   }
 
-  Widget _buildMonthlyCard(String price) {
-    final isSelected = _trialEnabled;
+  Widget _buildPlanCard({
+    required _Plan plan,
+    required String title,
+    required String subtitle,
+    String? badge,
+  }) {
+    final isSelected = _selected == plan;
 
     return GestureDetector(
-      onTap: () => setState(() => _trialEnabled = true),
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.all(isSelected ? 14.5 : 16),
-        decoration: BoxDecoration(
-          color: AppTheme.surfaceLight,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected
-                ? AppTheme.primaryColor.withOpacity(0.9)
-                : AppTheme.textPrimary.withOpacity(0.12),
-            width: isSelected ? 2.5 : 1,
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _isEligibleForTrial ? 'Prueba gratuita de 3 dias' : 'Acceso Mensual',
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              _isEligibleForTrial
-                  ? 'Despues, $price cada mes. Sin cobros ahora'
-                  : '$price cada mes',
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppTheme.textSecondary,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildAnnualCard(String price) {
-    final isSelected = !_trialEnabled;
-
-    return GestureDetector(
-      onTap: () => setState(() => _trialEnabled = false),
+      onTap: () => setState(() => _selected = plan),
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.all(isSelected ? 14.5 : 16),
@@ -565,9 +686,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Acceso Anualmente',
-                    style: TextStyle(
+                  Text(
+                    title,
+                    style: const TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
                       color: AppTheme.textPrimary,
@@ -575,7 +696,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'pagaras $price anualmente',
+                    subtitle,
                     style: const TextStyle(
                       fontSize: 14,
                       color: AppTheme.textSecondary,
@@ -584,59 +705,67 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 ],
               ),
             ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppTheme.errorColor,
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: const Text(
-                'AHORRA 78%',
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
+            if (badge != null) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.errorColor,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  badge,
+                  style: const TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-            ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  void _handleCTA(Package? monthlyPackage, Package? annualPackage) {
-    if (_trialEnabled && monthlyPackage != null) {
-      _handlePurchase(monthlyPackage);
-    } else if (!_trialEnabled && annualPackage != null) {
-      _handlePurchase(annualPackage);
+  void _handleCTA(
+    Package? monthlyPackage,
+    Package? annualPackage, {
+    required bool isTrialStart,
+  }) {
+    final package =
+        _selected == _Plan.annual ? annualPackage : monthlyPackage;
+    if (package != null) {
+      _handlePurchase(package, isTrialStart: isTrialStart);
+      return;
+    }
+    // RevenueCat no cargó productos
+    if (widget.gate) {
+      // Hard paywall: no dejar pasar. Reintentar cargar productos.
+      ref.read(subscriptionProvider.notifier).refresh();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cargando planes, inténtalo de nuevo en un momento'),
+          backgroundColor: Color(0xFF1A2740),
+        ),
+      );
+    } else if (context.canPop()) {
+      context.pop();
     } else {
-      // RevenueCat no cargó productos
-      if (widget.gate) {
-        // Hard paywall: no dejar pasar. Reintentar cargar productos.
-        ref.read(subscriptionProvider.notifier).refresh();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Cargando planes, inténtalo de nuevo en un momento'),
-            backgroundColor: Color(0xFF1A2740),
-          ),
-        );
-      } else if (context.canPop()) {
-        context.pop();
-      } else {
-        context.go(RouteConstants.home);
-      }
+      context.go(RouteConstants.home);
     }
   }
 
-  Future<void> _handlePurchase(Package package) async {
-    // ¿Esta compra inicia un trial real? Solo si el usuario es elegible y tiene
-    // el plan con trial (mensual) seleccionado. Se captura ANTES de comprar
-    // porque después de comprar la elegibilidad siempre da false.
-    final wasTrialStart = _isEligibleForTrial && _trialEnabled;
+  Future<void> _handlePurchase(Package package,
+      {required bool isTrialStart}) async {
+    // ¿Esta compra inicia un trial real? Solo si el usuario es elegible y el
+    // plan seleccionado tiene trial. Se captura ANTES de comprar porque después
+    // de comprar la elegibilidad siempre da false.
     final success = await ref.read(subscriptionProvider.notifier).purchasePackage(package);
     if (success && mounted) {
-      context.go('${RouteConstants.purchaseSuccess}?trial=$wasTrialStart');
+      context.go('${RouteConstants.purchaseSuccess}?trial=$isTrialStart');
     }
   }
 
