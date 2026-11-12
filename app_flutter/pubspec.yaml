@@ -84,6 +84,7 @@ dependencies:
 
   # Home/Lock Screen Widgets
   home_widget: ^0.7.0
+  facebook_app_events: ^0.32.0
 
 dev_dependencies:
   flutter_test:

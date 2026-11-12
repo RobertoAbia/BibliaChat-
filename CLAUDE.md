@@ -953,7 +953,7 @@ BibliaChat/
   - **Sección Privacidad eliminada:** No era necesaria para MVP (borrar cuenta ya existe)
   - **"Valorar la app":**
     - **Pre-publicación:** SnackBar "Disponible próximamente" (import `in_app_review` eliminado)
-    - **Post-publicación (TODO):** Restaurar `in_app_review` con dialog nativo + fallback a App Store (ID: `6740001949`)
+    - **Post-publicación (TODO):** Restaurar `in_app_review` con dialog nativo + fallback a App Store (ID: `6757599822`)
   - **"Compartir con un amigo":**
     - Usa `share_plus` para compartir nativo
     - **Pre-publicación:** Texto descriptivo sin links a stores

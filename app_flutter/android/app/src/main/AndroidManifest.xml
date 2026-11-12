@@ -6,6 +6,9 @@
     <!-- Push Notifications (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- Advertising ID (GAID) para atribución de Meta Ads (Android 13+) -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" />
+
     <application
         android:label="Biblia Chat"
         android:name="${applicationName}"
@@ -41,6 +44,13 @@
                     android:host="login-callback" />
             </intent-filter>
         </activity>
+        <!-- Meta (Facebook) SDK: atribución de campañas de Meta Ads -->
+        <meta-data
+            android:name="com.facebook.sdk.ApplicationId"
+            android:value="@string/facebook_app_id" />
+        <meta-data
+            android:name="com.facebook.sdk.ClientToken"
+            android:value="@string/facebook_client_token" />
         <!-- Firebase Cloud Messaging default notification icon and channel -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"

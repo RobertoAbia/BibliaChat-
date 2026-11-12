@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'meta_ads_service.dart';
+
 class RevenueCatService {
   static const String _iosApiKey = 'appl_gZbgVJRKEBpZNBeYWpdisQiQjYw';
   // TODO: Add Android API key when configured in RevenueCat
@@ -17,6 +19,10 @@ class RevenueCatService {
   /// persiste en disco para tenerla disponible al instante en cold start.
   bool? _trialEligible;
   static const String _kTrialEligibleKey = 'trial_eligible';
+
+  /// Atributos de cliente pendientes de enviar (si se fijan antes de que el
+  /// SDK termine de inicializarse, se envían al acabar `init`).
+  final Map<String, String> _pendingAttributes = {};
 
   RevenueCatService._();
 
@@ -53,6 +59,7 @@ class RevenueCatService {
       await Purchases.configure(configuration);
       _isInitialized = true;
       debugPrint('RevenueCat: Initialized successfully');
+      await _flushPendingAttributes();
 
       // Apple Search Ads: recolecta el token de AdServices y lo envía a Apple
       // vía RevenueCat (atribución de revenue por keyword/campaña).
@@ -64,8 +71,32 @@ class RevenueCatService {
       } catch (e) {
         if (kDebugMode) debugPrint('RevenueCat: AdServices token failed - $e');
       }
+
+      // Meta Ads: vincula fb_anonymous_id + identificadores de dispositivo
+      // con RevenueCat para que la integración CAPI atribuya trials/compras.
+      await MetaAdsService().syncWithRevenueCat();
     } catch (e) {
       debugPrint('RevenueCat: Init error - $e');
+    }
+  }
+
+  /// Envía la denominación como atributo de cliente a RevenueCat, para poder
+  /// cruzar denominación con ingresos en Charts/Customer Lists. Si el SDK aún
+  /// no está listo, se envía al terminar `init`.
+  Future<void> setDenomination(String? denomination) async {
+    if (denomination == null || denomination.isEmpty) return;
+    _pendingAttributes['denomination'] = denomination;
+    await _flushPendingAttributes();
+  }
+
+  Future<void> _flushPendingAttributes() async {
+    if (!isAvailable || _pendingAttributes.isEmpty) return;
+    final attrs = Map<String, String>.from(_pendingAttributes);
+    try {
+      await Purchases.setAttributes(attrs);
+      _pendingAttributes.clear();
+    } catch (e) {
+      if (kDebugMode) debugPrint('RevenueCat: setAttributes failed - $e');
     }
   }
 
@@ -79,23 +110,39 @@ class RevenueCatService {
     if (value != null) _trialEligible ??= value;
   }
 
-  /// Comprueba si el usuario es elegible para el trial del producto dado.
-  /// Devuelve false si ya consumió el trial o si no se puede determinar, así
-  /// nunca prometemos un trial que Apple va a denegar (cobraría de inmediato).
-  /// El resultado se cachea en memoria y se persiste para lecturas síncronas.
-  Future<bool> isEligibleForTrial(String productId) async {
-    if (!isAvailable) return false;
+  /// Comprueba si el usuario es elegible para el trial de alguno de los
+  /// productos dados (en Apple la elegibilidad es por grupo de suscripción,
+  /// así que un solo bool vale para todo el offering).
+  ///
+  /// - `eligible` en cualquiera → true (se persiste).
+  /// - `ineligible` en cualquiera → false (se persiste).
+  /// - Solo `unknown` / sin intro / error → no se persiste; devuelve el valor
+  ///   cacheado si existe y, si no, true. Ser optimista aquí es seguro: la
+  ///   hoja de pago de Apple siempre muestra las condiciones reales antes de
+  ///   confirmar, así que no se cobra nada que el usuario no haya visto.
+  Future<bool> isEligibleForTrial(List<String> productIds) async {
+    if (!isAvailable || productIds.isEmpty) return _trialEligible ?? true;
     try {
       final result =
-          await Purchases.checkTrialOrIntroductoryPriceEligibility([productId]);
-      final eligible = result[productId]?.status ==
-          IntroEligibilityStatus.introEligibilityStatusEligible;
-      _trialEligible = eligible;
-      _persistEligibility(eligible);
-      return eligible;
+          await Purchases.checkTrialOrIntroductoryPriceEligibility(productIds);
+      final statuses = productIds.map((id) => result[id]?.status).toList();
+      bool? eligible;
+      if (statuses
+          .contains(IntroEligibilityStatus.introEligibilityStatusEligible)) {
+        eligible = true;
+      } else if (statuses
+          .contains(IntroEligibilityStatus.introEligibilityStatusIneligible)) {
+        eligible = false;
+      }
+      if (eligible != null) {
+        _trialEligible = eligible;
+        _persistEligibility(eligible);
+        return eligible;
+      }
+      return _trialEligible ?? true;
     } catch (e) {
       if (kDebugMode) debugPrint('RevenueCat: eligibility check failed - $e');
-      return false;
+      return _trialEligible ?? true;
     }
   }
 

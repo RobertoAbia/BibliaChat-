@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="widget_description">Un versículo bíblico inspirador que cambia cada hora.</string>
+    <!-- Meta (Facebook) SDK -->
+    <string name="facebook_app_id">2138806133431538</string>
+    <string name="facebook_client_token">2fd1a4ee9ec052ae7e41bd892c8f11a1</string>
 </resources>

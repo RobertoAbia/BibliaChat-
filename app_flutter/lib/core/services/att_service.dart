@@ -2,6 +2,7 @@ import 'package:app_tracking_transparency/app_tracking_transparency.dart';
 import 'package:flutter/foundation.dart';
 
 import 'analytics_service.dart';
+import 'meta_ads_service.dart';
 
 /// Servicio para el permiso de App Tracking Transparency (ATT) de iOS.
 ///
@@ -27,6 +28,11 @@ class AttService {
       final status =
           await AppTrackingTransparency.requestTrackingAuthorization();
       await AnalyticsService().logAttPromptResult(status.name);
+
+      // Meta Ads: informa al SDK de Meta del resultado y re-recolecta
+      // identificadores en RevenueCat (captura el IDFA si fue autorizado).
+      await MetaAdsService()
+          .onAttResolved(granted: status == TrackingStatus.authorized);
     } catch (e) {
       if (kDebugMode) debugPrint('ATT request failed: $e');
     }
