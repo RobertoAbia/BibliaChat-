@@ -64,13 +64,16 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
       onboardingCompleted: true,
     );
 
-    // Timestamps de consentimiento GDPR: SOLO si el usuario pasó por la
-    // página de consentimiento y la aceptó. Con el paso oculto por Remote
-    // Config se estaban registrando consentimientos (Art. 9, datos
-    // religiosos) que el usuario nunca dio — justo el dato pensado para
-    // defender a la empresa en una reclamación.
+    // Timestamps de consentimiento GDPR:
+    // - consent_terms_at (términos + privacidad): siempre. Lo respalda el
+    //   texto de la Welcome ("Al continuar, aceptas nuestros Términos...")
+    //   que todo usuario ve al empezar el onboarding.
+    // - consent_data_at (Art. 9, datos religiosos): SOLO si la página de
+    //   consentimiento se mostró y se aceptó. El Art. 9 exige consentimiento
+    //   EXPLÍCITO (checkbox); con el paso oculto por Remote Config se estaba
+    //   registrando un consentimiento explícito que el usuario nunca dio.
+    updateData['consent_terms_at'] = DateTime.now().toUtc().toIso8601String();
     if (consentGiven) {
-      updateData['consent_terms_at'] = DateTime.now().toUtc().toIso8601String();
       updateData['consent_data_at'] = DateTime.now().toUtc().toIso8601String();
     }
 
