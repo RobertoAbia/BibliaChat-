@@ -171,14 +171,18 @@ function getLocalHour(timezone: string): number {
   }
 }
 
-function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0];
-}
-
-function getYesterdayDate(): string {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  return yesterday.toISOString().split('T')[0];
+// Fecha (YYYY-MM-DD) en la zona horaria del usuario, con offset de días.
+// daily_activity se escribe con la fecha LOCAL del dispositivo; calcular
+// "hoy"/"ayer" en UTC desfasaba un día a los usuarios de América (a las
+// 20:00 de Los Ángeles el "hoy" UTC ya es mañana) y se les avisaba de
+// perder rachas que habían completado.
+function getLocalDate(timezone: string, daysOffset = 0): string {
+  const d = new Date(Date.now() + daysOffset * 86400000);
+  try {
+    return d.toLocaleDateString('en-CA', { timeZone: timezone });
+  } catch {
+    return d.toISOString().split('T')[0];
+  }
 }
 
 async function getUserIdsWithToken(supabase: SupabaseClient): Promise<Set<string>> {
@@ -189,7 +193,6 @@ async function getUserIdsWithToken(supabase: SupabaseClient): Promise<Set<string
 async function getUsersWhoMissedStories(
   supabase: SupabaseClient, targetHour: number
 ): Promise<UserToNotify[]> {
-  const today = getTodayDate();
   const userIdsWithToken = await getUserIdsWithToken(supabase);
   if (userIdsWithToken.size === 0) return [];
 
@@ -197,17 +200,27 @@ async function getUsersWhoMissedStories(
     .from('user_profiles').select('user_id, timezone')
     .in('user_id', Array.from(userIdsWithToken));
 
-  const { data: completedToday } = await supabase
-    .from('daily_activity').select('user_id')
-    .eq('activity_date', today).eq('completed', true);
+  // Candidatos: usuarios en la hora local objetivo
+  const candidates = (profiles || []).filter(u =>
+    getLocalHour(u.timezone || 'America/New_York') === targetHour);
+  if (candidates.length === 0) return [];
 
-  const completedIds = new Set((completedToday || []).map(u => u.user_id));
+  // "Hoy" POR USUARIO en su zona horaria (coincide con la fecha local que
+  // escribe la app en daily_activity)
+  const todayByUser = new Map(candidates.map(u =>
+    [u.user_id, getLocalDate(u.timezone || 'America/New_York')]));
 
-  return (profiles || [])
-    .filter(u => {
-      const localHour = getLocalHour(u.timezone || 'America/New_York');
-      return localHour === targetHour && !completedIds.has(u.user_id);
-    })
+  const { data: completedRows } = await supabase
+    .from('daily_activity').select('user_id, activity_date')
+    .eq('completed', true)
+    .in('user_id', candidates.map(u => u.user_id))
+    .in('activity_date', [...new Set(todayByUser.values())]);
+
+  const completedKey = new Set(
+    (completedRows || []).map(r => `${r.user_id}:${r.activity_date}`));
+
+  return candidates
+    .filter(u => !completedKey.has(`${u.user_id}:${todayByUser.get(u.user_id)}`))
     .map(u => ({
       user_id: u.user_id,
       title: '🔥 Tu reflexión del día te espera',
@@ -281,35 +294,46 @@ async function getUsersWithAbandonedPlans(
 async function getUsersWhoLostStreak(
   supabase: SupabaseClient, targetHour: number
 ): Promise<UserToNotify[]> {
-  const yesterday = getYesterdayDate();
-  const twoDaysAgo = new Date();
-  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-  const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
   const userIdsWithToken = await getUserIdsWithToken(supabase);
   if (userIdsWithToken.size === 0) return [];
 
-  const { data: hadStreak } = await supabase
-    .from('daily_activity').select('user_id')
-    .eq('activity_date', twoDaysAgoStr).eq('completed', true);
-
-  const hadStreakWithToken = (hadStreak || []).filter(u => userIdsWithToken.has(u.user_id));
-  const hadStreakIds = hadStreakWithToken.map(u => u.user_id);
-  if (hadStreakIds.length === 0) return [];
-
-  const { data: completedYesterday } = await supabase
-    .from('daily_activity').select('user_id')
-    .eq('activity_date', yesterday).eq('completed', true)
-    .in('user_id', hadStreakIds);
-
-  const completedIds = new Set((completedYesterday || []).map(u => u.user_id));
-  const lostIds = hadStreakIds.filter(id => !completedIds.has(id));
-  if (lostIds.length === 0) return [];
-
   const { data: profiles } = await supabase
-    .from('user_profiles').select('user_id, timezone').in('user_id', lostIds);
+    .from('user_profiles').select('user_id, timezone')
+    .in('user_id', Array.from(userIdsWithToken));
 
-  return (profiles || [])
-    .filter(p => getLocalHour(p.timezone || 'America/New_York') === targetHour)
+  // Candidatos: usuarios en la hora local objetivo
+  const candidates = (profiles || []).filter(p =>
+    getLocalHour(p.timezone || 'America/New_York') === targetHour);
+  if (candidates.length === 0) return [];
+
+  // "Ayer" y "anteayer" POR USUARIO en su zona horaria
+  const datesByUser = new Map(candidates.map(p => {
+    const tz = p.timezone || 'America/New_York';
+    return [p.user_id, {
+      yesterday: getLocalDate(tz, -1),
+      twoDaysAgo: getLocalDate(tz, -2),
+    }];
+  }));
+
+  const allDates = [...new Set(
+    [...datesByUser.values()].flatMap(d => [d.yesterday, d.twoDaysAgo]))];
+
+  const { data: activityRows } = await supabase
+    .from('daily_activity').select('user_id, activity_date')
+    .eq('completed', true)
+    .in('user_id', candidates.map(c => c.user_id))
+    .in('activity_date', allDates);
+
+  const completedKey = new Set(
+    (activityRows || []).map(r => `${r.user_id}:${r.activity_date}`));
+
+  return candidates
+    .filter(p => {
+      const d = datesByUser.get(p.user_id)!;
+      // Racha perdida = completó anteayer pero NO ayer
+      return completedKey.has(`${p.user_id}:${d.twoDaysAgo}`) &&
+        !completedKey.has(`${p.user_id}:${d.yesterday}`);
+    })
     .map(p => ({
       user_id: p.user_id,
       title: '💪 Tu racha se rompió, ¡pero hoy puedes empezar de nuevo!',
@@ -328,13 +352,25 @@ serve(async (req) => {
   }
 
   try {
+    // --- Autorización ---
+    // Solo el backend (SERVICE_ROLE: el cron de GitHub Actions) puede
+    // disparar recordatorios masivos. Sin este check, cualquiera con el
+    // anon key del APK podía spamear pushes a toda la base de usuarios.
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
+    if (token !== supabaseServiceKey) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Forbidden' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     const { type } = await req.json() as { type: NotificationType };
     if (!type) throw new Error('Missing required field: type');
 
     console.log(`Processing notification type: ${type}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const firebaseJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
     if (!firebaseJson) throw new Error('FIREBASE_SERVICE_ACCOUNT not configured');
 

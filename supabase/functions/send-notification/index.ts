@@ -157,17 +157,41 @@ serve(async (req) => {
   }
 
   try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
     const { user_id, title, body, data = {} } = await req.json() as NotificationPayload;
 
     if (!user_id || !title || !body) {
       throw new Error('Missing required fields: user_id, title, body');
     }
 
+    // --- Autorización ---
+    // Solo el backend (SERVICE_ROLE: GitHub Actions / send-daily-reminders)
+    // puede notificar a cualquier usuario. Un JWT de usuario solo puede
+    // notificarse A SÍ MISMO (lo usa la app para la felicitación de la
+    // primera semana). Sin este check, cualquiera con el anon key del APK
+    // podía enviar pushes arbitrarios (phishing) a cualquier user_id.
+    const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
+    let authorized = token === supabaseServiceKey;
+    if (!authorized && token) {
+      const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
+      const authClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: `Bearer ${token}` } },
+      });
+      const { data: userData } = await authClient.auth.getUser();
+      authorized = !!userData?.user && userData.user.id === user_id;
+    }
+    if (!authorized) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Forbidden' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     console.log(`Sending notification to user ${user_id}: "${title}"`);
 
     // Obtener configuración
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const firebaseServiceAccountJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
 
     if (!firebaseServiceAccountJson) {

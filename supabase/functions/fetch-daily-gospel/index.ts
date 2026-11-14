@@ -407,6 +407,19 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
 
+    // --- Autorización ---
+    // Solo el cron/backend (SERVICE_ROLE). La app NO llama a esta función
+    // (lee daily_verses directamente); sin este check, cualquiera con el
+    // anon key del APK podía iterar fechas arbitrarias y disparar una
+    // llamada a OpenAI por cada una (coste + datos basura en producción).
+    const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
+    if (token !== supabaseServiceKey) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Forbidden" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (!openaiKey) {
       console.warn("OPENAI_API_KEY not configured - summaries will not be generated");
     }
@@ -432,14 +445,21 @@ serve(async (req) => {
     console.log(`Fetching gospel for date: ${dateStr}`);
 
     // Check if we already have this date
+    // El check de caché exige el contenido COMPLETO (texto en
+    // daily_verse_texts), no solo la fila de daily_verses: esa fila se
+    // inserta antes de obtener el texto y de llamar a OpenAI, así que un
+    // fallo a mitad dejaba el día medio hecho y el siguiente run respondía
+    // "Already cached" sin repararlo jamás (Home sin stories ese día).
     const { data: existing } = await supabase
-      .from("daily_verses")
+      .from("daily_verse_texts")
       .select("verse_date")
       .eq("verse_date", dateStr)
-      .single();
+      .eq("bible_version_code", "RVR1960")
+      .not("verse_text", "is", null)
+      .maybeSingle();
 
     if (existing) {
-      console.log(`Gospel for ${dateStr} already exists`);
+      console.log(`Gospel for ${dateStr} already exists (complete)`);
       return new Response(
         JSON.stringify({ success: true, message: "Already cached", date: dateStr }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
