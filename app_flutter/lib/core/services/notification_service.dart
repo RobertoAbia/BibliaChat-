@@ -310,10 +310,23 @@ class NotificationService {
     }
   }
 
-  /// Navega a la pantalla especificada
+  /// Navega a la pantalla especificada por el deep link de la notificación
   void _navigateToScreen(String screen) {
-    if (_router == null) return;
-    _router!.go('/home');
+    final router = _router;
+    if (router == null) return;
+    switch (screen) {
+      case 'study':
+        router.go('/study');
+        break;
+      case 'chat':
+        router.go('/chat');
+        break;
+      case 'stories':
+      default:
+        // Las Stories necesitan el gospel cargado (viaja como `extra` de la
+        // ruta): aterrizar en Home, donde la card del día las abre.
+        router.go('/home');
+    }
   }
 
   /// Programa una notificación local para recordar que el trial termina en 2 días.
@@ -408,10 +421,18 @@ class NotificationService {
     } catch (e) {
       debugPrint('Error clearing badge: $e');
     }
-    // Limpiar notificaciones entregadas del notification center
-    // (solo si local notifications ya fueron inicializadas)
+    // Limpiar SOLO las notificaciones ya mostradas del centro.
+    // NO usar cancelAll(): también cancela las PROGRAMADAS pendientes — el
+    // recordatorio de fin de trial (id 9999) se borraba en cada resume de la
+    // app y no llegaba nunca.
     try {
-      await _localNotifications.cancelAll();
+      final active = await _localNotifications.getActiveNotifications();
+      for (final notification in active) {
+        final id = notification.id;
+        if (id != null && id != _trialReminderId) {
+          await _localNotifications.cancel(id);
+        }
+      }
     } catch (_) {
       // Puede fallar si _localNotifications no fue inicializado (sin permiso)
     }

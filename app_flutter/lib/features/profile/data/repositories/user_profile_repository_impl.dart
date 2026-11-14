@@ -44,6 +44,7 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
     DateTime? reminderTime,
     bool? persistenceSelfReport,
     String? timezone,
+    bool consentGiven = false,
   }) async {
     final updateData = UserProfileModel.toUpdateJson(
       name: name,
@@ -63,9 +64,15 @@ class UserProfileRepositoryImpl implements UserProfileRepository {
       onboardingCompleted: true,
     );
 
-    // Record GDPR consent timestamps
-    updateData['consent_terms_at'] = DateTime.now().toUtc().toIso8601String();
-    updateData['consent_data_at'] = DateTime.now().toUtc().toIso8601String();
+    // Timestamps de consentimiento GDPR: SOLO si el usuario pasó por la
+    // página de consentimiento y la aceptó. Con el paso oculto por Remote
+    // Config se estaban registrando consentimientos (Art. 9, datos
+    // religiosos) que el usuario nunca dio — justo el dato pensado para
+    // defender a la empresa en una reclamación.
+    if (consentGiven) {
+      updateData['consent_terms_at'] = DateTime.now().toUtc().toIso8601String();
+      updateData['consent_data_at'] = DateTime.now().toUtc().toIso8601String();
+    }
 
     return await _remoteDatasource.updateProfile(userId, updateData);
   }

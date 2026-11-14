@@ -31,7 +31,8 @@ final dailyGospelProvider = FutureProvider<DailyGospel?>((ref) async {
 
   var gospel = await repository.getTodaysGospel(bibleVersion);
   if (gospel == null) {
-    final yesterday = DateTime.now().subtract(const Duration(days: 1));
+    final now = DateTime.now();
+    final yesterday = DateTime(now.year, now.month, now.day - 1);
     gospel = await repository.getGospelForDate(yesterday, bibleVersion);
   }
   return gospel;

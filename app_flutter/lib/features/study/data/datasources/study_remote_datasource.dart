@@ -154,7 +154,9 @@ class StudyRemoteDatasource {
           .update({
             'user_answer': userAnswer,
             'completed_via': 'answer',
-            'completed_at': DateTime.now().toIso8601String(),
+            // toUtc(): sin offset, Postgres interpreta el timestamp local
+            // como UTC y lo desplaza varias horas
+            'completed_at': DateTime.now().toUtc().toIso8601String(),
           })
           .eq('id', existing['id']);
     } else {
@@ -180,7 +182,11 @@ class StudyRemoteDatasource {
         .maybeSingle();
 
     if (response != null && response['completed_at'] != null) {
-      return DateTime.parse(response['completed_at'] as String);
+      // .toLocal(): timestamptz llega en UTC; el lock diario compara
+      // año/mes/día contra DateTime.now() LOCAL. Sin esto, un usuario de
+      // EE.UU. que complete por la tarde-noche queda bloqueado el día
+      // siguiente entero (y puede encadenar días la misma noche).
+      return DateTime.parse(response['completed_at'] as String).toLocal();
     }
     return null;
   }
@@ -193,7 +199,7 @@ class StudyRemoteDatasource {
           .from('user_plans')
           .update({
             'status': 'completed',
-            'completed_at': DateTime.now().toIso8601String(),
+            'completed_at': DateTime.now().toUtc().toIso8601String(),
           })
           .eq('id', userPlanId);
     } else {

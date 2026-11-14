@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
@@ -12,8 +14,26 @@ class RevenueCatService {
 
   static const String entitlementId = 'premium';
 
+  /// Clave de la caché de premium en SharedPreferences (la escribe
+  /// SubscriptionNotifier y la lee el splash para el hard paywall).
+  static const String premiumCacheKey = 'is_premium';
+
   static RevenueCatService? _instance;
   bool _isInitialized = false;
+
+  /// Usuario con el que está identificado el SDK (para re-identificar en
+  /// logout + nueva sesión sin reiniciar la app).
+  String? _currentUserId;
+
+  /// Future del init en vuelo, para que dos llamadas concurrentes (el splash
+  /// lo llama desde dos caminos) no hagan doble `Purchases.configure`.
+  Future<void>? _initFuture;
+
+  /// Cambios de CustomerInfo (renovaciones, cancelaciones, compras en otro
+  /// dispositivo). Respaldado por `Purchases.addCustomerInfoUpdateListener`;
+  /// los suscriptores pueden conectarse ANTES de que el SDK inicialice.
+  final StreamController<CustomerInfo> _customerInfoController =
+      StreamController<CustomerInfo>.broadcast();
 
   /// Elegibilidad de trial (null = desconocida). Se cachea en memoria y se
   /// persiste en disco para tenerla disponible al instante en cold start.
@@ -34,14 +54,36 @@ class RevenueCatService {
   bool get isAvailable => !kIsWeb && _isInitialized;
 
   Future<void> init(String supabaseUserId) async {
-    if (_isInitialized) return;
-
     // RevenueCat no funciona en web
     if (kIsWeb) {
       debugPrint('RevenueCat: Not available on web');
       return;
     }
 
+    // Si hay un init en vuelo, esperarlo en vez de configurar dos veces.
+    if (_initFuture != null) {
+      await _initFuture;
+    }
+
+    if (_isInitialized) {
+      // Ya configurado: si cambió el usuario (logout + nueva sesión en el
+      // mismo arranque), re-identificar para no atribuir compras al anterior.
+      if (_currentUserId != supabaseUserId) {
+        _currentUserId = supabaseUserId;
+        await logIn(supabaseUserId);
+      }
+      return;
+    }
+
+    _initFuture = _doInit(supabaseUserId);
+    try {
+      await _initFuture;
+    } finally {
+      _initFuture = null;
+    }
+  }
+
+  Future<void> _doInit(String supabaseUserId) async {
     // Determinar API key según plataforma
     final apiKey = defaultTargetPlatform == TargetPlatform.iOS
         ? _iosApiKey
@@ -58,6 +100,8 @@ class RevenueCatService {
 
       await Purchases.configure(configuration);
       _isInitialized = true;
+      _currentUserId = supabaseUserId;
+      Purchases.addCustomerInfoUpdateListener(_customerInfoController.add);
       debugPrint('RevenueCat: Initialized successfully');
       await _flushPendingAttributes();
 
@@ -169,6 +213,11 @@ class RevenueCatService {
     if (!isAvailable) return false;
     try {
       await Purchases.purchasePackage(package);
+      // Cualquier compra consume la elegibilidad de trial del grupo de
+      // suscripción: invalidar la caché para que el paywall no vuelva a
+      // prometer "3 días gratis" que Apple ya no concedería.
+      _trialEligible = false;
+      _persistEligibility(false);
       return true;
     } on PlatformException catch (e) {
       // User cancelled the purchase — not an error
@@ -197,14 +246,18 @@ class RevenueCatService {
     }
   }
 
-  Future<bool> checkPremiumStatus() async {
-    if (!isAvailable) return false;
+  /// true/false = estado confirmado por RevenueCat; null = NO se pudo saber
+  /// (SDK no disponible o error de red). El caller nunca debe tratar null
+  /// como "no premium": sobrescribir la caché con false expulsaría a un
+  /// suscriptor de pago en el hard paywall del splash.
+  Future<bool?> checkPremiumStatus() async {
+    if (!isAvailable) return null;
     try {
       final customerInfo = await Purchases.getCustomerInfo();
       return customerInfo.entitlements.active.containsKey(entitlementId);
     } catch (e) {
       debugPrint('RevenueCat: checkPremiumStatus error - $e');
-      return false;
+      return null;
     }
   }
 
@@ -229,13 +282,21 @@ class RevenueCatService {
     }
   }
 
-  Stream<CustomerInfo> get customerInfoStream {
-    // En web, el SDK no tiene customerInfoStream
-    if (kIsWeb || !_isInitialized) {
-      return const Stream.empty();
-    }
-    // Usar llamada dinámica para evitar error de compilación en web
-    // ignore: avoid_dynamic_calls
-    return (Purchases as dynamic).customerInfoStream as Stream<CustomerInfo>;
+  /// Cambios de CustomerInfo en tiempo real. Es seguro suscribirse antes de
+  /// `init()`: los eventos empiezan a llegar en cuanto el SDK se configura.
+  /// (purchases_flutter 8.x no tiene `customerInfoStream`; esto envuelve
+  /// `addCustomerInfoUpdateListener`.)
+  Stream<CustomerInfo> get customerInfoStream => _customerInfoController.stream;
+
+  /// Limpia el estado local ligado al usuario (llamar al cerrar sesión o
+  /// borrar cuenta) para que la siguiente cuenta en este dispositivo no
+  /// herede el premium ni la elegibilidad de trial del usuario anterior.
+  Future<void> clearCachedUserState() async {
+    _trialEligible = null;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_kTrialEligibleKey);
+      await prefs.remove(premiumCacheKey);
+    } catch (_) {}
   }
 }

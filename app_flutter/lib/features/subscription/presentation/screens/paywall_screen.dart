@@ -51,7 +51,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final cachedEligible = RevenueCatService.instance.trialEligible;
     if (cachedEligible != null) {
       _isEligibleForTrial = cachedEligible;
-      _eligibilityChecked = true;
+      // NO marcar _eligibilityChecked: la caché puede estar obsoleta (p.ej.
+      // trial consumido y expirado) — se re-verifica contra RC cuando carguen
+      // los paquetes, sin parpadeo porque se parte del valor cacheado.
     }
     AnalyticsService().logPaywallViewed(source: widget.source);
     Future.delayed(const Duration(seconds: 3), () {
@@ -125,17 +127,18 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         // Precargada (pre-paywall) o persistida (cold start) → se aplica en este
         // mismo frame, sin parpadeo.
         _isEligibleForTrial = cached;
-      } else {
-        // Desconocida (p.ej. abierto desde Ajustes/Home sin caché previa) →
-        // comprobación asíncrona, suavizada por el AnimatedSize del toggle.
-        final ids = [monthlyPackage, annualPackage]
-            .whereType<Package>()
-            .map((p) => p.storeProduct.identifier)
-            .toList();
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _checkEligibility(ids);
-        });
       }
+      // Verificar SIEMPRE contra RC aunque haya caché: un trial consumido en
+      // una suscripción ya expirada dejaría caché true y Apple cobraría al
+      // instante pese al copy "3 días gratis". Con caché, el cambio solo se
+      // pinta si el valor real difiere.
+      final ids = [monthlyPackage, annualPackage]
+          .whereType<Package>()
+          .map((p) => p.storeProduct.identifier)
+          .toList();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _checkEligibility(ids);
+      });
     }
     _initSelection(monthlyPackage, annualPackage);
 

@@ -73,12 +73,26 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       return;
     }
 
-    // 3. Verificar onboarding (única query de red, con timeout corto)
+    // 3. Verificar onboarding (query de red con timeout corto + caché local)
     try {
-      final repository = ref.read(userProfileRepositoryProvider);
-      final hasCompletedOnboarding = await repository
-          .hasCompletedOnboarding()
-          .timeout(const Duration(seconds: 3), onTimeout: () => false);
+      final prefs = await SharedPreferences.getInstance();
+      final onbCacheKey = 'onboarding_completed_${user.id}';
+      bool hasCompletedOnboarding;
+      if (prefs.getBool(onbCacheKey) == true) {
+        // Un onboarding completado no se des-completa: con la caché, un
+        // timeout o un fallo de red ya no manda a un usuario veterano al
+        // onboarding otra vez (donde re-completarlo sobrescribía su perfil,
+        // sus consentimientos y le auto-asignaba otro plan).
+        hasCompletedOnboarding = true;
+      } else {
+        final repository = ref.read(userProfileRepositoryProvider);
+        hasCompletedOnboarding = await repository
+            .hasCompletedOnboarding()
+            .timeout(const Duration(seconds: 3), onTimeout: () => false);
+        if (hasCompletedOnboarding) {
+          prefs.setBool(onbCacheKey, true);
+        }
+      }
 
       if (!mounted) return;
 
@@ -86,7 +100,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         // Hard paywall: solo los premium entran a la app; el resto va al
         // paywall-puerta. Leemos el premium cacheado en SharedPreferences
         // (instantáneo; RevenueCat lo refresca en background tras navegar).
-        final prefs = await SharedPreferences.getInstance();
         final isPremium = prefs.getBool('is_premium') ?? false;
         if (!mounted) return;
         if (isPremium) {

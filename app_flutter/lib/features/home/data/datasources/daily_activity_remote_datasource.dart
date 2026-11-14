@@ -72,21 +72,17 @@ class DailyActivityRemoteDatasource {
       final hasTodayCompleted = completedDates.contains(todayStr);
       debugPrint('getStreakDays: Today ($todayStr) completed = $hasTodayCompleted');
 
-      // Empezar a contar desde hoy si está completado, o desde ayer si no
-      DateTime checkDate;
-      int streak = 0;
-
-      if (hasTodayCompleted) {
-        streak = 1;
-        checkDate = now.subtract(const Duration(days: 1));
-      } else {
-        checkDate = now.subtract(const Duration(days: 1));
-      }
+      // Empezar a contar desde hoy si está completado, o desde ayer si no.
+      // Aritmética de CALENDARIO (day - 1), no subtract(Duration(days: 1)):
+      // 24h exactas se saltan/duplican un día al cruzar el cambio de hora
+      // (DST), rompiendo la racha para usuarios de EE.UU.
+      int streak = hasTodayCompleted ? 1 : 0;
+      DateTime checkDate = DateTime(now.year, now.month, now.day - 1);
 
       // Contar días consecutivos hacia atrás
       while (completedDates.contains(_dateToString(checkDate))) {
         streak++;
-        checkDate = checkDate.subtract(const Duration(days: 1));
+        checkDate = DateTime(checkDate.year, checkDate.month, checkDate.day - 1);
       }
 
       debugPrint('getStreakDays: Final streak = $streak');

@@ -190,9 +190,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     'spiritual_growth:bible_knowledge': 'b1000000-0000-0000-0000-000000000005',
     'spiritual_growth:daily_faith': 'b1000000-0000-0000-0000-000000000006',
     'feeling_distant:stopped_practicing': 'b1000000-0000-0000-0000-000000000007',
-    'feeling_distant:doubts': 'b1000000-0000-0000-0000-000000000008',
+    'feeling_distant:faith_doubts': 'b1000000-0000-0000-0000-000000000008',
     'feeling_distant:painful_experience': 'b1000000-0000-0000-0000-000000000009',
-    'understand_bible:apply_life': 'b1000000-0000-0000-0000-000000000010',
+    'understand_bible:apply_teachings': 'b1000000-0000-0000-0000-000000000010',
     'understand_bible:historical_context': 'b1000000-0000-0000-0000-000000000011',
     'understand_bible:denomination_differences': 'b1000000-0000-0000-0000-000000000012',
   };
@@ -280,7 +280,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
       case 'consent':
         return OnboardingConsentPage(
-          onNext: _nextPage,
+          onNext: () {
+            // Registrar el consentimiento REAL: los timestamps GDPR solo se
+            // escriben si el usuario pasó por esta página y la aceptó.
+            ref.read(onboardingProvider.notifier).setConsentGiven();
+            _nextPage();
+          },
           onPrivacyPolicy: () => context.push(RouteConstants.privacyPolicy),
           onTermsConditions: () => context.push(RouteConstants.termsConditions),
         );

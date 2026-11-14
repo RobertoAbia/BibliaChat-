@@ -45,7 +45,8 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
       await Supabase.instance.client.auth.refreshSession();
       final user = Supabase.instance.client.auth.currentUser;
       if (user?.emailConfirmedAt != null && mounted) {
-        context.go(RouteConstants.home);
+        // Vía Splash: centraliza onboarding check + hard paywall
+        context.go(RouteConstants.splash);
       }
     } catch (_) {
       // Silenciar errores — el usuario puede usar los botones manuales
@@ -62,7 +63,7 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
       if (event == AuthChangeEvent.userUpdated &&
           user?.emailConfirmedAt != null) {
         if (mounted) {
-          context.go(RouteConstants.home);
+          context.go(RouteConstants.splash);
         }
       }
     });
@@ -460,8 +461,8 @@ class _VerifyEmailScreenState extends ConsumerState<VerifyEmailScreen>
       final isVerified = ref.read(isEmailVerifiedProvider);
 
       if (isVerified) {
-        // Email verificado, ir a Home
-        context.go(RouteConstants.home);
+        // Email verificado → Splash decide (onboarding/paywall/home)
+        context.go(RouteConstants.splash);
       } else {
         // Aún no verificado
         ScaffoldMessenger.of(context).showSnackBar(

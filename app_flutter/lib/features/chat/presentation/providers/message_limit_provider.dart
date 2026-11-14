@@ -65,9 +65,9 @@ class MessageLimitNotifier extends StateNotifier<MessageLimitState> {
     );
   }
 
-  /// Incrementa el contador y actualiza el estado
-  Future<void> incrementAndRefresh() async {
-    await _service.incrementMessageCount();
+  /// Refresca el estado tras un envío EXITOSO. El incremento real lo hace el
+  /// servidor (chat-send-message) de forma atómica; aquí solo se relee.
+  Future<void> refreshAfterSend() async {
     await refresh();
 
     // Log analytics when user reaches the limit

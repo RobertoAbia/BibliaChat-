@@ -24,7 +24,8 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   /// Día seleccionado en el calendario (por defecto hoy).
   DateTime _selectedDate = DateTime.now();
 
@@ -34,6 +35,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Safety net: si los providers no resuelven rápido, mostrar UI igual
     Future.delayed(const Duration(milliseconds: 150), () {
       if (mounted && !_forceReady) {
@@ -46,6 +48,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) NotificationsPromptService.showIfNotShown(context);
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Al volver al primer plano, re-seleccionar HOY. Si pasó la medianoche
+    // con la app en background, _selectedDate quedaba en "ayer": las cards
+    // mostraban contenido viejo y un usuario free entraba por la rama de
+    // "día pasado" saltándose el paywall de recuperación.
+    if (state == AppLifecycleState.resumed && !_isViewingToday) {
+      setState(() => _selectedDate = DateTime.now());
+    }
   }
 
   /// Compara si el día seleccionado es hoy.
@@ -233,7 +252,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildWeekCalendar(BuildContext context) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final weekStart = today.subtract(Duration(days: now.weekday - 1));
+    // Aritmética de calendario (día - n), inmune al cambio de hora (DST):
+    // subtract(Duration) son horas exactas y desplaza un día esa semana
+    final weekStart =
+        DateTime(today.year, today.month, today.day - (now.weekday - 1));
 
     // Obtener días completados de la semana
     final weekCompletionAsync = ref.watch(weekCompletionProvider);
@@ -622,6 +644,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final service = ref.read(storyViewedServiceProvider);
 
     if (userId == null) return;
+
+    // Recuperar días pasados es función premium. El gate de _onLockedDayTapped
+    // no basta: se podía llegar aquí con un día pasado ya seleccionado
+    // (p.ej. _selectedDate rancio tras medianoche).
+    if (forDate != null && !ref.read(isPremiumProvider)) {
+      if (mounted) context.push('${RouteConstants.paywall}?source=home');
+      return;
+    }
 
     // Cargar gospel: hoy o fecha específica
     final gospel = forDate != null

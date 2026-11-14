@@ -28,20 +28,21 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     });
   }
 
+  // Referencia guardada: GoRouter.of(context) en dispose() lanza (ancestor
+  // lookup en widget desactivado), caía siempre en el catch y el listener
+  // quedaba colgado del delegate reteniendo este State.
+  GoRouterDelegate? _routerDelegate;
+
   void _setupRouteListener() {
-    final router = GoRouter.of(context);
-    router.routerDelegate.addListener(_onRouteChange);
+    if (!mounted) return;
+    _routerDelegate = GoRouter.of(context).routerDelegate;
+    _routerDelegate!.addListener(_onRouteChange);
   }
 
   @override
   void dispose() {
-    // Intentar remover el listener si el context sigue válido
-    try {
-      final router = GoRouter.of(context);
-      router.routerDelegate.removeListener(_onRouteChange);
-    } catch (_) {
-      // Context ya no es válido, ignorar
-    }
+    _routerDelegate?.removeListener(_onRouteChange);
+    _routerDelegate = null;
     super.dispose();
   }
 
