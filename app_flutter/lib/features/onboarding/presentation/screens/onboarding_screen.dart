@@ -364,8 +364,12 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       case 'country':
         return Builder(
           builder: (context) {
+            final state = ref.watch(onboardingProvider);
             final notifier = ref.read(onboardingProvider.notifier);
             return OnboardingCountryPage(
+              // Sin esto, al volver atrás desde Denominación el selector
+              // aparecía vacío aunque el país siguiera guardado en el estado
+              selectedCountryCode: state.countryCode,
               onSelect: (originGroup) => notifier.setOrigin(originGroup),
               onCountryCodeSelect: (code) => notifier.setCountryCode(code),
               onNext: _nextPage,
@@ -382,6 +386,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               verseReference: 'Efesios 4:5',
               title: 'Un solo Señor, una sola fe, un solo bautismo.',
               subtitle: '¿Cuál es tu tradición cristiana?',
+              subtitleHint:
+                  'Tu denominación es un dato religioso. Al seleccionarla, '
+                  'aceptas que la usemos solo para personalizar tu experiencia. '
+                  'Puedes cambiarla o borrar tu cuenta cuando quieras.',
               options: const [
                 SelectionOption(
                   key: 'catolica',
@@ -411,7 +419,15 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               ],
               selectedKey: state.denomination,
               onSelect: (key) => notifier.setDenomination(key),
-              onNext: state.denomination != null ? _nextPage : null,
+              onNext: state.denomination != null
+                  ? () {
+                      // Consentimiento Art. 9 EN CONTEXTO: aviso visible en
+                      // esta página + acto afirmativo de elegir la
+                      // denominación y continuar → consent_data_at
+                      notifier.setConsentGiven();
+                      _nextPage();
+                    }
+                  : null,
             );
           },
         );
