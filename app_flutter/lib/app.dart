@@ -70,11 +70,16 @@ class _BibliaChatAppState extends ConsumerState<BibliaChatApp>
   bool _handleBackButton(bool stopDefaultButtonEvent, RouteInfo info) {
     final dialogContext = ref.read(dialogContextProvider);
 
-    // Si hay un diálogo abierto, cerrarlo manualmente
+    // Si hay un diálogo abierto, cerrarlo manualmente. Guard de mounted:
+    // si el route del diálogo murió en el mismo frame (p.ej. un go() del
+    // auth listener) sin que el .then limpiara el provider, Navigator.of
+    // sobre un contexto desactivado lanzaría.
     if (dialogContext != null) {
-      Navigator.of(dialogContext).pop();
+      if (dialogContext.mounted) {
+        Navigator.of(dialogContext).pop();
+      }
       ref.read(dialogContextProvider.notifier).state = null;
-      return true;
+      if (dialogContext.mounted) return true;
     }
 
     final router = ref.read(appRouterProvider);

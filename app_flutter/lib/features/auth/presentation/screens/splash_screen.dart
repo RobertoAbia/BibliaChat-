@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../../core/constants/route_constants.dart';
@@ -12,6 +13,7 @@ import '../../../../core/services/revenue_cat_service.dart';
 import '../../../../core/services/widget_service.dart';
 import '../../../daily_gospel/presentation/providers/daily_gospel_provider.dart';
 import '../../../home/presentation/providers/daily_progress_provider.dart';
+import '../../../profile/domain/entities/user_profile.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
 import '../../../study/presentation/providers/study_provider.dart';
 
@@ -60,7 +62,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       return;
     }
 
-    // 2. Hay sesión — verificar email pendiente (check local, sin red)
+    // 2. Hay sesión — verificar email pendiente (check local, sin red).
+    // DELIBERADO: solo aplica a user.email (registro directo con email).
+    // Un anónimo que vinculó email tiene el pendiente en user.newEmail y NO
+    // se le redirige aquí: la vinculación es opcional y forzar la pantalla
+    // de verificación en cada arranque lo dejaría fuera de la app; Settings
+    // ya muestra el estado "Verificar tu email / Pendiente".
     final user = session.user;
     if (user.email != null &&
         user.email!.isNotEmpty &&
@@ -71,20 +78,49 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       return;
     }
 
-    // 3. Verificar onboarding (única query de red, con timeout corto)
+    // 3. Verificar onboarding (query de red con timeout corto + caché local)
     try {
-      final repository = ref.read(userProfileRepositoryProvider);
-      final hasCompletedOnboarding = await repository
-          .hasCompletedOnboarding()
-          .timeout(const Duration(seconds: 3), onTimeout: () => false);
+      final prefs = await SharedPreferences.getInstance();
+      final onbCacheKey = 'onboarding_completed_${user.id}';
+      bool hasCompletedOnboarding;
+      if (prefs.getBool(onbCacheKey) == true) {
+        // Un onboarding completado no se des-completa: con la caché, un
+        // timeout o un fallo de red ya no manda a un usuario veterano al
+        // onboarding otra vez (donde re-completarlo sobrescribía su perfil,
+        // sus consentimientos y le auto-asignaba otro plan).
+        hasCompletedOnboarding = true;
+      } else {
+        final repository = ref.read(userProfileRepositoryProvider);
+        hasCompletedOnboarding = await repository
+            .hasCompletedOnboarding()
+            .timeout(const Duration(seconds: 3), onTimeout: () => false);
+        if (hasCompletedOnboarding) {
+          prefs.setBool(onbCacheKey, true);
+        }
+      }
 
       if (!mounted) return;
 
       if (hasCompletedOnboarding) {
-        // Precargar datos de Home (con timeout, splash nativa cubre la espera)
-        await _preloadHomeData();
+        // Hard paywall: solo los premium entran a la app; el resto va al
+        // paywall-puerta. Leemos el premium cacheado en SharedPreferences
+        // (instantáneo; RevenueCat lo refresca en background tras navegar).
+        final isPremium =
+            prefs.getBool(RevenueCatService.premiumCacheKey) ?? false;
         if (!mounted) return;
-        context.go(RouteConstants.home);
+        if (isPremium) {
+          // Precargar datos de Home (con timeout, splash nativa cubre la espera)
+          await _preloadHomeData();
+          if (!mounted) return;
+          context.go(RouteConstants.home);
+        } else {
+          // Sembrar la elegibilidad de trial persistida para que el paywall-puerta
+          // no parpadee en cold start (no pasa por pre-paywall).
+          RevenueCatService.instance
+              .seedTrialEligibility(
+                  prefs.getBool(RevenueCatService.trialEligibleCacheKey));
+          context.go('${RouteConstants.paywall}?gate=true');
+        }
         FlutterNativeSplash.remove();
       } else {
         context.go(RouteConstants.onboarding);
@@ -130,7 +166,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       });
     }
 
-    await Future.wait([
+    final results = await Future.wait([
       ref.read(currentUserProfileProvider.future).catchError((_) => null),
       ref.read(dailyGospelProvider.future).catchError((_) => null),
       ref.read(weekCompletionProvider.future).catchError((_) => <String>{}),
@@ -139,6 +175,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       const Duration(milliseconds: 1500),
       onTimeout: () => [null, null, <String>{}, null],
     );
+
+    // Sincroniza la denominación como atributo de cliente en RevenueCat
+    // (cubre usuarios existentes que hicieron el onboarding antes de esto).
+    final profile = results[0] as UserProfile?;
+    RevenueCatService.instance
+        .setDenomination(profile?.denomination?.dbValue)
+        .catchError((_) {});
   }
 
   @override

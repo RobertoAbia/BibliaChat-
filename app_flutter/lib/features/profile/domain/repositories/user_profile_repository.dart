@@ -25,6 +25,7 @@ abstract class UserProfileRepository {
     DateTime? reminderTime,
     bool? persistenceSelfReport,
     String? timezone,
+    bool consentGiven = false,
   });
 
   /// Verifica si el usuario ha completado el onboarding

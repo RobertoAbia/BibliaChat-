@@ -445,6 +445,8 @@ interface ChatRequest {
   user_message: string;
   chat_id?: string;
   system_message?: string;  // Contenido de Story - se guarda como mensaje 'system' en BD
+  client_message_id?: string;  // UUID del cliente para reintentos idempotentes (migr. 00037)
+  local_date?: string;  // Fecha local del DISPOSITIVO (YYYY-MM-DD) para el contador diario
 }
 
 interface UserProfile {
@@ -453,6 +455,7 @@ interface UserProfile {
   origin: string | null;
   age_group: string | null;
   ai_memory: Record<string, unknown> | null;
+  timezone: string | null;
 }
 
 interface Chat {
@@ -482,7 +485,7 @@ async function getUserProfile(
 ): Promise<UserProfile> {
   const { data, error } = await supabase
     .from("user_profiles")
-    .select("user_id, denomination, origin, age_group, ai_memory")
+    .select("user_id, denomination, origin, age_group, ai_memory, timezone")
     .eq("user_id", userId)
     .single();
 
@@ -494,6 +497,7 @@ async function getUserProfile(
       origin: DEFAULTS.origin,
       age_group: DEFAULTS.age_group,
       ai_memory: DEFAULTS.ai_memory,
+      timezone: null,
     };
   }
 
@@ -610,19 +614,35 @@ async function saveMessage(
   supabase: SupabaseClient,
   chatId: string,
   role: "user" | "assistant",
-  content: string
+  content: string,
+  clientMessageId?: string
 ): Promise<string> {
+  const row: Record<string, unknown> = {
+    chat_id: chatId,
+    role: role,
+    content: content,
+  };
+  if (clientMessageId) row.client_message_id = clientMessageId;
+
   const { data, error } = await supabase
     .from("chat_messages")
-    .insert({
-      chat_id: chatId,
-      role: role,
-      content: content,
-    })
+    .insert(row)
     .select("id")
     .single();
 
   if (error) {
+    // Reintento idempotente: el mensaje ya se guardó en un intento anterior
+    // que falló más adelante (p.ej. OpenAI caído). El UNIQUE de la migración
+    // 00037 lo detecta — reutilizar el existente en vez de duplicarlo.
+    if (clientMessageId && error.code === "23505") {
+      const { data: existing } = await supabase
+        .from("chat_messages")
+        .select("id")
+        .eq("chat_id", chatId)
+        .eq("client_message_id", clientMessageId)
+        .single();
+      if (existing) return existing.id;
+    }
     throw new Error(`Failed to save message: ${error.message}`);
   }
 
@@ -655,8 +675,15 @@ async function generateAIResponse(
       role: m.role === "assistant" ? "assistant" : "user",
       content: m.content,
     })),
-    { role: "user", content: userMessage },
   ];
+
+  // Añadir el mensaje del usuario solo si NO viene ya como último del
+  // historial: el handler lo guarda en BD antes del fetch de mensajes, así
+  // que añadirlo siempre lo mandaba DUPLICADO a OpenAI en cada request.
+  const last = messages[messages.length - 1];
+  if (!last || last.role !== "user" || last.content !== userMessage) {
+    openaiMessages.push({ role: "user", content: userMessage });
+  }
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -670,11 +697,17 @@ async function generateAIResponse(
       max_completion_tokens: 400,
       temperature: 0.8,
     }),
+    // Sin timeout, una request colgada consume todo el wall-clock de la función
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (!response.ok) {
+    // Loguear el body completo solo en servidor; al cliente nunca (el catch
+    // del handler reenvía error.message y arrastraba la respuesta cruda de
+    // la API de OpenAI hasta la app)
     const errorBody = await response.text();
-    throw new Error(`OpenAI API error: ${response.status} - ${errorBody}`);
+    console.error(`OpenAI API error: ${response.status} - ${errorBody}`);
+    throw new Error(`OpenAI API error: ${response.status}`);
   }
 
   const data = await response.json();
@@ -704,6 +737,7 @@ async function generateContextSummary(
       max_completion_tokens: 200,
       temperature: 0.3,
     }),
+    signal: AbortSignal.timeout(20_000),
   });
 
   if (!response.ok) {
@@ -738,6 +772,7 @@ async function extractAiMemory(
       max_completion_tokens: 300,
       temperature: 0.2,
     }),
+    signal: AbortSignal.timeout(20_000),
   });
 
   if (!response.ok) {
@@ -777,6 +812,7 @@ async function generateChatTitle(
       max_completion_tokens: 60,
       temperature: 0.5,
     }),
+    signal: AbortSignal.timeout(15_000),
   });
 
   if (!response.ok) {
@@ -821,19 +857,37 @@ async function updateMemoriesIfNeeded(
   if (messagesSinceLastSummary >= 20) {
     console.log(`Updating memories for chat ${chat.id} (${messagesSinceLastSummary} messages since last update)`);
 
-    // Obtener todos los mensajes para generar el resumen
-    const { data: allMessages } = await supabase
+    // Ventana reciente (no la conversación entera: sin limit, PostgREST
+    // corta en 1000 filas — las MÁS VIEJAS por el order asc — y el coste de
+    // GPT-4o-mini crecía con cada regeneración). El resumen anterior se
+    // antepone para no perder el contexto acumulado.
+    const { data: recentRows } = await supabase
       .from("chat_messages")
       .select("id, chat_id, role, content, created_at")
       .eq("chat_id", chat.id)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false })
+      .limit(60);
+    const allMessages = ((recentRows || []) as ChatMessage[]).reverse();
 
     if (allMessages && allMessages.length > 0) {
+      const withPriorSummary = chat.context_summary
+        ? [
+            {
+              id: "",
+              chat_id: chat.id,
+              role: "assistant",
+              content: `(Resumen de la conversación anterior: ${chat.context_summary})`,
+              created_at: "",
+            } as ChatMessage,
+            ...allMessages,
+          ]
+        : allMessages;
+
       // Generar nuevo resumen de contexto
-      const newSummary = await generateContextSummary(openaiKey, allMessages as ChatMessage[]);
+      const newSummary = await generateContextSummary(openaiKey, withPriorSummary);
 
       // Extraer nuevos datos para ai_memory
-      const newAiMemory = await extractAiMemory(openaiKey, allMessages as ChatMessage[], existingAiMemory);
+      const newAiMemory = await extractAiMemory(openaiKey, allMessages, existingAiMemory);
 
       // Actualizar context_summary y last_summary_message_count en chats
       if (newSummary) {
@@ -870,6 +924,12 @@ serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
+
+  // Para incluirlo en la respuesta de ERROR: si esta request creó un chat
+  // nuevo y luego falló (p.ej. OpenAI), el cliente debe aprender el chat_id
+  // o su reintento crearía un SEGUNDO chat huérfano (el UNIQUE de
+  // client_message_id no deduplica entre chats distintos).
+  let chatIdForError: string | null = null;
 
   try {
     // Obtener variables de entorno
@@ -908,12 +968,21 @@ serve(async (req) => {
 
     // Parsear body del request
     const body: ChatRequest = await req.json();
-    const { topic_key, user_message, chat_id, system_message } = body;
+    const { topic_key, user_message, chat_id, system_message, client_message_id } = body;
 
     // Solo user_message es obligatorio (topic_key es opcional para chats libres)
     if (!user_message) {
       return new Response(
         JSON.stringify({ error: "Missing user_message" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Límite de tamaño: protege la BD y el coste de OpenAI ante payloads
+    // abusivos (el input del chat en la app nunca llega a estos tamaños)
+    if (user_message.length > 4000 || (system_message && system_message.length > 8000)) {
+      return new Response(
+        JSON.stringify({ error: "Message too long" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -925,15 +994,73 @@ serve(async (req) => {
     const userProfile = await getUserProfile(supabase, userId);
     console.log("Step 1: Done -", userProfile.denomination);
 
+    // 1b. Contador diario ATÓMICO + tope anti-abuso (server-side).
+    // El límite free de 5/día lo pinta la app leyendo esta misma fila; este
+    // tope evita que una llamada directa a la función (con cualquier JWT
+    // del proyecto) tenga GPT-4o ilimitado.
+    //
+    // Premium conocido por el SERVIDOR vía webhook RevenueCat →
+    // user_entitlements: sin tope. Sin fila o no-premium → tope alto (150),
+    // no el límite free de 5: el webhook no reenvía eventos pasados, así
+    // que los suscriptores anteriores a su activación no tienen fila aún y
+    // tratarlos como free los bloquearía. Cuando la tabla lleve poblada
+    // unos meses, se puede bajar el tope de no-premium hacia el límite real.
+    const tz = userProfile.timezone || "America/New_York";
+    let localDate: string;
+    try {
+      localDate = new Date().toLocaleDateString("en-CA", { timeZone: tz });
+    } catch {
+      localDate = new Date().toISOString().split("T")[0];
+    }
+    // La app envía la fecha local del DISPOSITIVO: es la misma con la que
+    // luego LEE el contador (badge de restantes y límite free). Si difiere
+    // del timezone del perfil (viaje, perfil desactualizado), contador y
+    // lectura usarían filas distintas. Clamp a ±1 día del cálculo del
+    // servidor: una llamada directa no puede rotar fechas para estrenar
+    // contador en cada request.
+    const clientDate = body.local_date;
+    if (typeof clientDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(clientDate)) {
+      const diffDays = Math.abs(
+        (Date.parse(clientDate) - Date.parse(localDate)) / 86400000);
+      if (diffDays <= 1) localDate = clientDate;
+    }
+    const { data: dailyCount, error: limitError } = await supabase.rpc(
+      "increment_daily_messages",
+      { p_activity_date: localDate },
+    );
+    if (limitError) {
+      // Fail-open con log: no romper el chat si la migración 00035 aún no
+      // está aplicada o el RPC falla puntualmente.
+      console.error("increment_daily_messages failed:", limitError.message);
+    } else if (typeof dailyCount === "number" && dailyCount > 150) {
+      // Margen de 48h sobre expires_at: las renovaciones llegan por webhook
+      // con algo de retraso y no queremos cortar a un premium real.
+      const { data: entitlement } = await supabase
+        .from("user_entitlements")
+        .select("is_premium, expires_at")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const isPremiumServer = !!entitlement?.is_premium &&
+        (!entitlement.expires_at ||
+          new Date(entitlement.expires_at).getTime() >
+            Date.now() - 48 * 3600 * 1000);
+      if (!isPremiumServer) {
+        return new Response(
+          JSON.stringify({ error: "daily_limit_reached", messages_sent_today: dailyCount }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
+
     // 2. Obtener o crear chat (topic_key puede ser null para chats libres)
     console.log("Step 2: Getting/creating chat...");
     const chat = await getOrCreateChat(supabase, userId, topic_key, chat_id);
+    chatIdForError = chat.id;
     console.log("Step 2: Done - chat_id:", chat.id);
 
-    // 3. Obtener últimos 10 mensajes (memoria de corto plazo)
-    console.log("Step 3: Getting recent messages...");
-    const recentMessages = await getRecentMessages(supabase, chat.id, 10);
-    console.log("Step 3: Done -", recentMessages.length, "messages");
+    // (Paso 3 eliminado: los mensajes recientes se obtienen en el paso 7,
+    // después de guardar el mensaje del usuario; esta query estaba duplicada
+    // y su resultado no se usaba.)
 
     // 4. Construir prompt del sistema (6 capas)
     console.log("Step 4: Building system prompt...");
@@ -948,16 +1075,31 @@ serve(async (req) => {
     );
     console.log("Step 4: Done - prompt length:", systemPrompt.length);
 
+    // ¿Reintento? Si el mensaje del usuario ya quedó guardado con este
+    // client_message_id en un intento anterior, NO re-guardar el
+    // system_message (contenido de Story/plan): se duplicaría en el
+    // historial y en el prompt.
+    let isRetry = false;
+    if (client_message_id && system_message) {
+      const { data: existingMsg } = await supabase
+        .from("chat_messages")
+        .select("id")
+        .eq("chat_id", chat.id)
+        .eq("client_message_id", client_message_id)
+        .maybeSingle();
+      isRetry = !!existingMsg;
+    }
+
     // 5. Si hay system_message (contenido de Story), guardarlo primero como mensaje 'assistant'
-    if (system_message) {
+    if (system_message && !isRetry) {
       console.log("Step 5a: Saving system_message (Story content) as assistant...");
       await saveMessage(supabase, chat.id, "assistant", system_message);
       console.log("Step 5a: Done - story content saved as assistant message");
     }
 
-    // 6. Guardar mensaje del usuario
+    // 6. Guardar mensaje del usuario (idempotente si llega client_message_id)
     console.log("Step 6: Saving user message...");
-    await saveMessage(supabase, chat.id, "user", user_message);
+    await saveMessage(supabase, chat.id, "user", user_message, client_message_id);
     console.log("Step 6: Done");
 
     // 7. Obtener mensajes actualizados (incluyendo el system_message recién guardado)
@@ -1004,8 +1146,11 @@ serve(async (req) => {
       console.log("Step 12: Skipped - chat already has title or not first message");
     }
 
-    // Ejecutar actualización de memorias en background (no bloquea la respuesta)
-    updateMemoriesIfNeeded(
+    // Ejecutar actualización de memorias en background (no bloquea la
+    // respuesta). waitUntil registra la tarea en el runtime: sin él, el
+    // isolate puede matarse al devolver la Response y las memorias dejaban
+    // de regenerarse de forma intermitente y silenciosa.
+    const memoriesPromise = updateMemoriesIfNeeded(
       supabase,
       openaiKey,
       chat,
@@ -1013,6 +1158,13 @@ serve(async (req) => {
       currentMessageCount,
       userProfile.ai_memory || {}
     ).catch((err) => console.error("Error updating memories:", err));
+    // deno-lint-ignore no-explicit-any
+    const edgeRuntime = (globalThis as any).EdgeRuntime;
+    if (edgeRuntime?.waitUntil) {
+      edgeRuntime.waitUntil(memoriesPromise);
+    } else {
+      await memoriesPromise;
+    }
 
     // 10. Retornar respuesta (incluye título si se generó)
     return new Response(
@@ -1032,7 +1184,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
+        // El cliente lo adopta para que el reintento reuse el chat creado
+        chat_id: chatIdForError,
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

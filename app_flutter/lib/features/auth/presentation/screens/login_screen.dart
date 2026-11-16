@@ -35,10 +35,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authNotifierProvider);
 
-    // Escuchar éxito para navegar
+    // Escuchar éxito para navegar. Siempre vía Splash: es quien centraliza
+    // el check de onboarding y el hard paywall (ir directo a Home permitiría
+    // a una suscripción caducada entrar hasta el siguiente cold start).
     ref.listen<AuthNotifierState>(authNotifierProvider, (previous, next) {
       if (next.success) {
-        context.go(RouteConstants.home);
+        context.go(RouteConstants.splash);
       }
     });
 

@@ -19,6 +19,7 @@ abstract class ChatRepository {
     required String userMessage,
     String? chatId,
     String? systemMessage,
+    String? clientMessageId,
   });
 
   /// Obtiene el historial de mensajes de un chat

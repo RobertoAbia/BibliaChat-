@@ -162,6 +162,9 @@ class AuthNotifier extends StateNotifier<AuthNotifierState> {
     final result = await _repository.signOut();
 
     if (result.success) {
+      // Evitar que la siguiente cuenta en este dispositivo herede el premium
+      // o la elegibilidad de trial del usuario saliente.
+      await RevenueCatService.instance.clearCachedUserState();
       state = AuthNotifierState.success();
       return true;
     } else {
@@ -267,12 +270,13 @@ class AuthNotifier extends StateNotifier<AuthNotifierState> {
   Future<bool> deleteAccount() async {
     state = AuthNotifierState.loading();
 
-    // Log analytics event BEFORE deleting (after delete, user won't exist)
-    AnalyticsService().logAccountDeleted();
-
     final result = await _repository.deleteAccount();
 
     if (result.success) {
+      // Firebase buferiza localmente: el evento llega aunque el usuario ya
+      // no exista. Loguearlo antes contaba borrados que luego fallaban.
+      AnalyticsService().logAccountDeleted();
+      await RevenueCatService.instance.clearCachedUserState();
       // El listener de auth detectará que el usuario ya no existe
       // y redirigirá automáticamente a Splash
       state = AuthNotifierState.success();

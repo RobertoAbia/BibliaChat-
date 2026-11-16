@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/services/revenue_cat_service.dart';
 import '../../domain/entities/user_profile.dart';
 import '../../domain/repositories/user_profile_repository.dart';
 import 'user_profile_provider.dart';
@@ -185,6 +188,8 @@ class ProfileEditNotifier extends StateNotifier<ProfileEditState> {
 
       await _repository.updateProfile(updated);
       _originalProfile = updated;
+      unawaited(RevenueCatService.instance
+          .setDenomination(updated.denomination?.dbValue));
       state = state.copyWith(isLoading: false, isSaved: true);
       return true;
     } catch (e) {

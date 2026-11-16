@@ -3,8 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
-
 import '../../../../app.dart' show dialogContextProvider;
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/constants/route_constants.dart';
@@ -203,7 +201,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     title: 'Pásate a Premium',
                     subtitle: 'Chat ilimitado y más',
                     isHighlighted: true,
-                    onTap: () => context.push(RouteConstants.paywall),
+                    onTap: () => context
+                        .push('${RouteConstants.paywall}?source=settings'),
                   ),
                 SettingsItem(
                   icon: Icons.person_outline,
@@ -507,13 +506,24 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             ),
           TextButton(
             onPressed: () async {
-              await Supabase.instance.client.auth.signOut();
+              // Vía notifier: maneja errores, limpia la sesión local aunque
+              // no haya red, y borra la caché premium del usuario saliente.
+              final success =
+                  await ref.read(authNotifierProvider.notifier).signOut();
               if (dialogContext.mounted) {
                 Navigator.pop(dialogContext);
               }
-              if (context.mounted) {
+              if (!context.mounted) return;
+              if (success) {
                 // Navegar a Splash para reiniciar el flujo de auth
                 context.go(RouteConstants.splash);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content:
+                        Text('No se pudo cerrar sesión. Inténtalo de nuevo.'),
+                  ),
+                );
               }
             },
             style: TextButton.styleFrom(

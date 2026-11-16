@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_constants.dart';
+import '../../../../core/services/notification_service.dart';
+import '../../../../core/services/notifications_prompt_service.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class PurchaseSuccessScreen extends StatefulWidget {
-  const PurchaseSuccessScreen({super.key});
+  /// True si esta compra inició realmente un trial (usuario elegible + plan
+  /// con trial). Solo entonces se programa el recordatorio de fin de prueba.
+  final bool isTrialStart;
+
+  const PurchaseSuccessScreen({super.key, this.isTrialStart = false});
 
   @override
   State<PurchaseSuccessScreen> createState() => _PurchaseSuccessScreenState();
@@ -33,12 +39,34 @@ class _PurchaseSuccessScreenState extends State<PurchaseSuccessScreen>
       curve: Curves.easeOut,
     );
     _controller.forward();
+
+    // Programar el recordatorio de fin de trial YA (best-effort): si el
+    // usuario abandona esta pantalla sin pulsar "Continuar" (background,
+    // kill), el aviso prometido antes del cobro se perdía para siempre.
+    // scheduleTrialReminder es no-op sin permiso de notificaciones; el
+    // reintento de _continue (tras el priming de permiso) cubre ese caso.
+    if (widget.isTrialStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        NotificationService().scheduleTrialReminder();
+      });
+    }
   }
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  Future<void> _continue() async {
+    // Priming de notificaciones tras pagar (solo se muestra una vez).
+    await NotificationsPromptService.showIfNotShown(context);
+    // Recordatorio de fin de trial: solo si esta compra inició un trial real.
+    // Se programa DESPUÉS del priming, cuando ya se ha concedido el permiso.
+    if (widget.isTrialStart) {
+      await NotificationService().scheduleTrialReminder();
+    }
+    if (mounted) context.go(RouteConstants.home);
   }
 
   @override
@@ -198,7 +226,7 @@ class _PurchaseSuccessScreenState extends State<PurchaseSuccessScreen>
                         ],
                       ),
                       child: ElevatedButton(
-                        onPressed: () => context.go(RouteConstants.home),
+                        onPressed: _continue,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           shadowColor: Colors.transparent,

@@ -308,7 +308,11 @@ Tu voz es la de un amigo de fe: cálida, cercana, sincera. Hablas de tú. No pre
 
 Escribes en español latinoamericano neutro: natural para alguien de México, Colombia, Argentina o España por igual. Evitas regionalismos marcados de cualquier país.
 
-Hueles a verdad, no a eslogan. Prefieres una frase sencilla y honda a una frase ingeniosa y vacía.`;
+Hueles a verdad, no a eslogan. Prefieres una frase sencilla y honda a una frase ingeniosa y vacía.
+
+Cada día suenas fresco y distinto. NO repites siempre las mismas estructuras de frase ni los mismos arranques: huye de fórmulas como "X no...; sino...", "Donde tú ves..., Dios ve...", "No se trata de..., se trata de...". Si notas que una frase sigue una plantilla, reescríbela con otra forma.
+
+Escribes como habla la gente: frases claras, palabras de todos los días, nada rebuscado ni solemne de más. La prueba: si un amigo no diría esa frase en voz alta en una conversación real, la reescribes hasta que suene a persona.`;
 
   const userPrompt = `Reflexiona sobre este pasaje del Evangelio para acompañar a la persona que lo lee hoy.
 
@@ -322,7 +326,7 @@ Explica con sencillez y calidez qué ocurre en este pasaje y qué nos dice a qui
 
 2. "keyConcept" (máximo 60 caracteres):
 Una frase breve que recoja el corazón espiritual del pasaje. No un eslogan motivacional, sino una verdad de fe dicha con belleza y sencillez. Debe poder rezarse o guardarse en el corazón, no compartirse en una story.
-Ejemplos del nivel y tono buscado:
+Ejemplos del nivel y tono buscado (marcan el NIVEL, no la plantilla — NO copies su estructura sintáctica; encuentra una forma propia y natural para el pasaje de hoy):
 - "Dios te busca incluso cuando tú te escondes"
 - "La fe no quita la tormenta; te sostiene dentro de ella"
 - "Donde tú ves un final, Dios prepara un comienzo"
@@ -407,6 +411,29 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
 
+    // --- Autorización ---
+    // Solo el cron/backend (service_role). La app NO llama a esta función
+    // (lee daily_verses directamente); sin este check, cualquiera con el
+    // anon key del APK podía iterar fechas arbitrarias y disparar una
+    // llamada a OpenAI por cada una (coste + datos basura en producción).
+    // Se acepta: igualdad con el env, JWT con role=service_role (la firma
+    // ya la verificó el gateway) o secret key nueva (sb_secret_...).
+    const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
+    let isService = token === supabaseServiceKey || token.startsWith("sb_secret_");
+    if (!isService && token) {
+      try {
+        const payload = JSON.parse(
+          atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+        isService = payload?.role === "service_role";
+      } catch { /* token no-JWT → no es service */ }
+    }
+    if (!isService) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Forbidden" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     if (!openaiKey) {
       console.warn("OPENAI_API_KEY not configured - summaries will not be generated");
     }
@@ -432,14 +459,21 @@ serve(async (req) => {
     console.log(`Fetching gospel for date: ${dateStr}`);
 
     // Check if we already have this date
+    // El check de caché exige el contenido COMPLETO (texto en
+    // daily_verse_texts), no solo la fila de daily_verses: esa fila se
+    // inserta antes de obtener el texto y de llamar a OpenAI, así que un
+    // fallo a mitad dejaba el día medio hecho y el siguiente run respondía
+    // "Already cached" sin repararlo jamás (Home sin stories ese día).
     const { data: existing } = await supabase
-      .from("daily_verses")
+      .from("daily_verse_texts")
       .select("verse_date")
       .eq("verse_date", dateStr)
-      .single();
+      .eq("bible_version_code", "RVR1960")
+      .not("verse_text", "is", null)
+      .maybeSingle();
 
     if (existing) {
-      console.log(`Gospel for ${dateStr} already exists`);
+      console.log(`Gospel for ${dateStr} already exists (complete)`);
       return new Response(
         JSON.stringify({ success: true, message: "Already cached", date: dateStr }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }

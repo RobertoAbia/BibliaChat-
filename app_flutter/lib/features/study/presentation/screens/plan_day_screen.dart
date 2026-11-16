@@ -261,6 +261,10 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
     int totalDays, {
     bool readOnly = false,
   }) async {
+    // Guard de doble tap: dos completeDay concurrentes chocan con el
+    // UNIQUE(user_plan_id, day_number) y dejan el notifier en error
+    if (!readOnly && ref.read(studyActionsProvider).isLoading) return;
+
     try {
       final studyDatasource = ref.read(studyDatasourceProvider);
       final chatDatasource = ref.read(chatRemoteDatasourceProvider);
@@ -279,11 +283,25 @@ class _PlanDayScreenState extends ConsumerState<PlanDayScreen> {
 
       // Only mark day as complete if NOT in readOnly mode
       if (!readOnly) {
-        await ref.read(studyActionsProvider.notifier).completeDay(
-          userPlanId,
-          currentDay,
-          totalDays,
-        );
+        final completed =
+            await ref.read(studyActionsProvider.notifier).completeDay(
+                  userPlanId,
+                  currentDay,
+                  totalDays,
+                );
+        if (!completed) {
+          // Si falla (p.ej. sin red) NO seguir al chat: el usuario creería
+          // haber completado el día pero current_day no habría avanzado
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                    'No se pudo completar el día. Revisa tu conexión e inténtalo de nuevo.'),
+              ),
+            );
+          }
+          return;
+        }
       }
 
       if (!context.mounted) return;

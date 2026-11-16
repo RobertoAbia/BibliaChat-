@@ -15,6 +15,24 @@ async function sha256(input: string): Promise<string> {
   return encodeHex(new Uint8Array(hashBuffer));
 }
 
+// Trae TODAS las filas paginando: PostgREST corta en 1000 filas por request,
+// y un archivo GDPR truncado en silencio antes de un borrado irreversible es
+// exactamente lo que no podemos permitirnos.
+async function fetchAllRows<T>(
+  buildQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+  pageSize = 1000,
+): Promise<T[]> {
+  const all: T[] = [];
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await buildQuery(from, from + pageSize - 1);
+    if (error) throw new Error(`Pagination failed: ${error.message}`);
+    const rows = data || [];
+    all.push(...rows);
+    if (rows.length < pageSize) break;
+  }
+  return all;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -65,12 +83,14 @@ serve(async (req) => {
     let allMessages: { role: string; content: string; created_at: string }[] = [];
     if (chats && chats.length > 0) {
       const chatIds = chats.map(c => c.id);
-      const { data: messages } = await adminClient
-        .from('chat_messages')
-        .select('role, content, created_at')
-        .in('chat_id', chatIds)
-        .order('created_at', { ascending: true });
-      allMessages = messages || [];
+      allMessages = await fetchAllRows((from, to) =>
+        adminClient
+          .from('chat_messages')
+          .select('role, content, created_at')
+          .in('chat_id', chatIds)
+          .order('created_at', { ascending: true })
+          .range(from, to)
+      );
     }
 
     // Obtener progreso de planes
@@ -89,19 +109,45 @@ serve(async (req) => {
       days_completed: up.current_day - 1
     }));
 
-    // Obtener métricas agregadas
-    const { data: activity } = await adminClient
-      .from('daily_activity')
-      .select('completed, messages_sent')
-      .eq('user_id', userId);
+    // Obtener métricas agregadas (paginado y ordenado por fecha)
+    const activity = await fetchAllRows<{ completed: boolean; messages_sent: number | null; activity_date: string }>(
+      (from, to) =>
+        adminClient
+          .from('daily_activity')
+          .select('completed, messages_sent, activity_date')
+          .eq('user_id', userId)
+          .order('activity_date', { ascending: true })
+          .range(from, to)
+    );
 
-    const totalMessages = (activity || []).reduce((sum, a) => sum + (a.messages_sent || 0), 0);
-    const streakMax = (activity || []).filter(a => a.completed).length;
+    const totalMessages = activity.reduce((sum, a) => sum + (a.messages_sent || 0), 0);
 
-    // Insertar archivo pseudonimizado
+    // Racha máxima REAL: días consecutivos completados (antes se archivaba
+    // el TOTAL de días completados bajo el nombre streak_max)
+    let streakMax = 0;
+    let run = 0;
+    let prevDate: string | null = null;
+    for (const a of activity) {
+      if (!a.completed) continue;
+      if (prevDate !== null) {
+        const diffDays = Math.round(
+          (Date.parse(`${a.activity_date}T00:00:00Z`) - Date.parse(`${prevDate}T00:00:00Z`)) / 86400000
+        );
+        run = diffDays === 1 ? run + 1 : 1;
+      } else {
+        run = 1;
+      }
+      if (run > streakMax) streakMax = run;
+      prevDate = a.activity_date;
+    }
+
+    // Insertar archivo pseudonimizado. Upsert por user_id_hash: si un
+    // intento anterior archivó pero falló el deleteUser, el reintento
+    // actualiza el archivo en vez de duplicarlo (requiere el UNIQUE de la
+    // migración 00036).
     const { error: archiveError } = await adminClient
       .from('deleted_user_archives')
-      .insert({
+      .upsert({
         user_id_hash: userIdHash,
         email_hash: emailHash,
         original_user_created_at: profile?.created_at,
@@ -121,7 +167,7 @@ serve(async (req) => {
         total_plans_started: plansData.length,
         total_plans_completed: plansData.filter(p => p.status === 'completed').length,
         streak_max: streakMax
-      });
+      }, { onConflict: 'user_id_hash' });
 
     if (archiveError) {
       console.error('Archive failed:', archiveError);

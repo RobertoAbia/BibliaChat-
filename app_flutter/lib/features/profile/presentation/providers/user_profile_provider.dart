@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../auth/presentation/providers/auth_provider.dart';
@@ -70,6 +71,11 @@ class OnboardingState {
   final String? commitmentLevel; // high, medium, low
   final bool reminderEnabled;
   final TimeOfDay reminderTime;
+
+  /// true solo si el usuario pasó por la página de consentimiento y la
+  /// aceptó. Si el paso está oculto por Remote Config, queda false y NO se
+  /// escriben timestamps de consentimiento GDPR (serían fabricados).
+  final bool consentGiven;
   final bool isLoading;
   final String? error;
 
@@ -87,12 +93,14 @@ class OnboardingState {
     this.commitmentLevel,
     this.reminderEnabled = false,
     this.reminderTime = const TimeOfDay(hour: 8, minute: 0),
+    this.consentGiven = false,
     this.isLoading = false,
     this.error,
   });
 
   OnboardingState copyWith({
     String? name,
+    bool clearName = false,
     String? ageGroup,
     String? gender,
     String? origin,
@@ -106,11 +114,12 @@ class OnboardingState {
     String? commitmentLevel,
     bool? reminderEnabled,
     TimeOfDay? reminderTime,
+    bool? consentGiven,
     bool? isLoading,
     String? error,
   }) {
     return OnboardingState(
-      name: name ?? this.name,
+      name: clearName ? null : (name ?? this.name),
       ageGroup: ageGroup ?? this.ageGroup,
       gender: gender ?? this.gender,
       origin: origin ?? this.origin,
@@ -123,6 +132,7 @@ class OnboardingState {
       commitmentLevel: commitmentLevel ?? this.commitmentLevel,
       reminderEnabled: reminderEnabled ?? this.reminderEnabled,
       reminderTime: reminderTime ?? this.reminderTime,
+      consentGiven: consentGiven ?? this.consentGiven,
       isLoading: isLoading ?? this.isLoading,
       error: error,
     );
@@ -152,7 +162,12 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   OnboardingNotifier(this._repository) : super(const OnboardingState());
 
   void setName(String value) {
-    state = state.copyWith(name: value.trim().isEmpty ? null : value.trim());
+    // clearName: con `name: null`, copyWith conservaría el valor anterior y
+    // ni "Saltar" ni borrar el TextField podrían limpiar un nombre ya escrito
+    final trimmed = value.trim();
+    state = trimmed.isEmpty
+        ? state.copyWith(clearName: true)
+        : state.copyWith(name: trimmed);
   }
 
   void setAgeGroup(String value) {
@@ -209,6 +224,11 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
     state = state.copyWith(reminderTime: value);
   }
 
+  /// Registra que el usuario aceptó la página de consentimiento (GDPR).
+  void setConsentGiven() {
+    state = state.copyWith(consentGiven: true);
+  }
+
   /// Convierte TimeOfDay a DateTime para guardar en BD
   DateTime? _timeOfDayToDateTime(TimeOfDay time) {
     final now = DateTime.now();
@@ -258,7 +278,15 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
             ? _timeOfDayToDateTime(state.reminderTime)
             : null,
         timezone: timezone,
+        consentGiven: state.consentGiven,
       );
+
+      // Cachear localmente: el splash lo usa para no re-mandar al onboarding
+      // a usuarios existentes cuando la red falla o va lenta
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('onboarding_completed_$userId', true);
+      } catch (_) {}
 
       state = state.copyWith(isLoading: false);
       return true;

@@ -51,44 +51,11 @@ class MessageLimitService {
     return remaining > 0;
   }
 
-  /// Incrementa el contador de mensajes enviados hoy.
-  /// Usa upsert para crear el registro si no existe.
-  Future<void> incrementMessageCount() async {
-    final userId = _client.auth.currentUser?.id;
-    if (userId == null) {
-      debugPrint('MessageLimitService: No user logged in');
-      return;
-    }
-
-    final todayStr = _getTodayString();
-
-    try {
-      // Obtener registro actual (si existe) para preservar el valor de completed
-      final response = await _client
-          .from('daily_activity')
-          .select('messages_sent, completed')
-          .eq('user_id', userId)
-          .eq('activity_date', todayStr)
-          .maybeSingle();
-
-      final currentCount = response?['messages_sent'] as int? ?? 0;
-      final currentCompleted = response?['completed'] as bool? ?? false;
-      final newCount = currentCount + 1;
-
-      // Upsert preservando el valor de completed
-      await _client.from('daily_activity').upsert({
-        'user_id': userId,
-        'activity_date': todayStr,
-        'messages_sent': newCount,
-        'completed': currentCompleted, // Preserva el valor existente
-      });
-
-      debugPrint('MessageLimitService: Incremented to $newCount messages (completed=$currentCompleted)');
-    } catch (e) {
-      debugPrint('MessageLimitService: Error incrementing - $e');
-      rethrow;
-    }
-  }
+  // NOTA: el contador lo incrementa el SERVIDOR (Edge Function
+  // chat-send-message vía RPC atómica increment_daily_messages). El antiguo
+  // incremento cliente hacía un read-modify-write de `completed` con una
+  // carrera que podía revertir días de racha (ver migración 00026/00035).
+  // Este servicio ahora es solo de lectura.
 
   String _getTodayString() {
     final now = DateTime.now();

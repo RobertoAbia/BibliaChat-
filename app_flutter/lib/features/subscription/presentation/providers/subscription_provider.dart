@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/services/analytics_service.dart';
-import '../../../../core/services/notification_service.dart';
 import '../../../../core/services/revenue_cat_service.dart';
 
 // Estado de la suscripción
@@ -60,7 +59,8 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
     // Leer valor cacheado de SharedPreferences (instantáneo, sin red)
     // isLoading: false inmediatamente — Settings muestra opción sin esperar a RevenueCat
     final prefs = await SharedPreferences.getInstance();
-    final cachedPremium = prefs.getBool('is_premium') ?? false;
+    final cachedPremium =
+        prefs.getBool(RevenueCatService.premiumCacheKey) ?? false;
     state = state.copyWith(isPremium: cachedPremium, isLoading: false);
 
     _customerInfoSubscription = _revenueCatService.customerInfoStream.listen(
@@ -89,6 +89,13 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       await Future.delayed(const Duration(milliseconds: 500));
     }
     final isPremium = await _revenueCatService.checkPremiumStatus();
+    if (isPremium == null) {
+      // Estado desconocido (sin red / SDK no disponible): conservar el valor
+      // cacheado. Persistir false aquí expulsaría a un suscriptor de pago en
+      // el hard paywall del splash en el siguiente arranque.
+      state = state.copyWith(isLoading: false);
+      return;
+    }
     state = state.copyWith(isPremium: isPremium, isLoading: false);
     // Guardar en cache para siguiente apertura
     _savePremiumCache(isPremium);
@@ -96,7 +103,7 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
 
   Future<void> _savePremiumCache(bool isPremium) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('is_premium', isPremium);
+    await prefs.setBool(RevenueCatService.premiumCacheKey, isPremium);
   }
 
   Future<void> _loadOfferings() async {
@@ -122,16 +129,13 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
       state = state.copyWith(isPremium: true, isPurchasing: false);
       _savePremiumCache(true);
 
-      // Solo loguear y notificar si es una compra nueva (no ya suscrito)
+      // Solo loguear si es una compra nueva (no ya suscrito).
+      // El recordatorio de trial se programa en PurchaseSuccessScreen (tras el
+      // priming y solo si la compra inició un trial real), no aquí.
       if (!wasPremium) {
         final planType = package.packageType == PackageType.annual ? 'annual' : 'monthly';
         AnalyticsService().logSubscriptionStarted(planType: planType);
         AnalyticsService().setUserProperties(isPremium: true);
-
-        // Programar recordatorio solo si el producto tiene trial (plan mensual)
-        if (package.storeProduct.introductoryPrice != null) {
-          NotificationService().scheduleTrialReminder();
-        }
       }
 
       return !wasPremium; // false si ya era premium (no navegar a success)
@@ -155,9 +159,9 @@ class SubscriptionNotifier extends StateNotifier<SubscriptionState> {
 
     if (success) {
       await _checkPremiumStatus();
-      // Log analytics event
-      AnalyticsService().logPurchaseRestored();
+      // Solo contar como restauración si realmente recuperó el entitlement
       if (state.isPremium) {
+        AnalyticsService().logPurchaseRestored();
         AnalyticsService().setUserProperties(isPremium: true);
       }
     } else {

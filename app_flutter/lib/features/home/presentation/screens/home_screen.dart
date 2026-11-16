@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/providers/story_viewed_provider.dart';
+import '../../../../core/services/notifications_prompt_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../providers/daily_progress_provider.dart';
 import '../../../../core/widgets/glass_container.dart';
@@ -23,9 +24,15 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   /// Día seleccionado en el calendario (por defecto hoy).
   DateTime _selectedDate = DateTime.now();
+
+  /// true solo si el usuario tocó un día del calendario explícitamente.
+  /// Permite distinguir una selección real de un _selectedDate rancio
+  /// (p.ej. pasó la medianoche) y re-anclar a hoy en ese caso.
+  bool _dateSelectedByUser = false;
 
   /// Guard: esperar a que los providers tengan datos antes de renderizar.
   /// _forceReady es safety net: si algo falla, mostramos la UI igual tras 150ms.
@@ -33,12 +40,39 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Safety net: si los providers no resuelven rápido, mostrar UI igual
     Future.delayed(const Duration(milliseconds: 150), () {
       if (mounted && !_forceReady) {
         setState(() => _forceReady = true);
       }
     });
+
+    // Priming de notificaciones para usuarios free (que no pasaron por compra).
+    // Si ya se mostró (p.ej. tras pagar), es no-op gracias al flag.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) NotificationsPromptService.showIfNotShown(context);
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Al volver al primer plano, re-seleccionar HOY. Si pasó la medianoche
+    // con la app en background, _selectedDate quedaba en "ayer": las cards
+    // mostraban contenido viejo y un usuario free entraba por la rama de
+    // "día pasado" saltándose el paywall de recuperación.
+    if (state == AppLifecycleState.resumed && !_isViewingToday) {
+      setState(() {
+        _selectedDate = DateTime.now();
+        _dateSelectedByUser = false;
+      });
+    }
   }
 
   /// Compara si el día seleccionado es hoy.
@@ -51,6 +85,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Medianoche con la app en PRIMER PLANO (no hay evento resumed): si
+    // nadie seleccionó un día explícitamente y _selectedDate quedó en
+    // "ayer", re-anclar a hoy — si no, las cards muestran contenido viejo y
+    // un free entraría a la rama de día pasado sin paywall.
+    if (!_dateSelectedByUser && !_isViewingToday) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_dateSelectedByUser && !_isViewingToday) {
+          setState(() => _selectedDate = DateTime.now());
+        }
+      });
+    }
+
     // Guard: no renderizar hasta que los providers críticos tengan datos.
     // _forceReady (150ms) es safety net para que la UI nunca se quede bloqueada.
     if (!_forceReady) {
@@ -226,7 +272,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget _buildWeekCalendar(BuildContext context) {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final weekStart = today.subtract(Duration(days: now.weekday - 1));
+    // Aritmética de calendario (día - n), inmune al cambio de hora (DST):
+    // subtract(Duration) son horas exactas y desplaza un día esa semana
+    final weekStart =
+        DateTime(today.year, today.month, today.day - (now.weekday - 1));
 
     // Obtener días completados de la semana
     final weekCompletionAsync = ref.watch(weekCompletionProvider);
@@ -272,9 +321,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             final VoidCallback? onTap;
             switch (dayState) {
               case _DayState.today:
-                onTap = () => setState(() => _selectedDate = today);
+                onTap = () => setState(() {
+                      _selectedDate = today;
+                      _dateSelectedByUser = true;
+                    });
               case _DayState.pastCompleted:
-                onTap = () => setState(() => _selectedDate = dayOnly);
+                onTap = () => setState(() {
+                      _selectedDate = dayOnly;
+                      _dateSelectedByUser = true;
+                    });
               case _DayState.pastLocked:
                 onTap = () => _onLockedDayTapped(dayOnly);
               case _DayState.future:
@@ -519,9 +574,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _onLockedDayTapped(DateTime date) {
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) {
-      setState(() => _selectedDate = date);
+      setState(() {
+        _selectedDate = date;
+        _dateSelectedByUser = true;
+      });
     } else {
-      context.push(RouteConstants.paywall);
+      context.push('${RouteConstants.paywall}?source=home');
     }
   }
 
@@ -616,6 +674,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     if (userId == null) return;
 
+    // Recuperar días pasados es función premium. El gate de _onLockedDayTapped
+    // no basta: se podía llegar aquí con un día pasado ya seleccionado
+    // (p.ej. _selectedDate rancio tras medianoche).
+    if (forDate != null && !ref.read(isPremiumProvider)) {
+      if (mounted) context.push('${RouteConstants.paywall}?source=home');
+      return;
+    }
+
     // Cargar gospel: hoy o fecha específica
     final gospel = forDate != null
         ? await ref.read(gospelForDateProvider(forDate).future)
@@ -643,6 +709,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final isCatholic = profileAsync.valueOrNull?.denomination == Denomination.catolica;
     final topicKey = isCatholic ? 'evangelio_del_dia' : 'lectura_del_dia';
 
+    // Clave del PROGRESO: la fecha del flujo, no la del contenido. En el
+    // flujo "hoy", gospel.date puede ser AYER (fallback cuando el cron
+    // falla): usar gospel.date mezclaba el progreso de ayer con el de hoy
+    // (100% instantáneo, completación de hoy con un solo slide).
+    final progressDate = forDate ?? DateTime.now();
+
     // Open Stories at the specified slide using GoRouter
     await context.push(
       '/home/stories',
@@ -653,7 +725,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         'singleSlideIndex': slideIndex,
         'onSlideViewed': (int index) async {
           // Mark slide as viewed (with user ID)
-          await service.markSlideAsViewed(userId, gospel.date, index);
+          await service.markSlideAsViewed(userId, progressDate, index);
         },
       },
     );
@@ -665,7 +737,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     // Read directly from SharedPreferences to check completion
-    final viewedSlides = await service.getViewedSlides(userId, gospel.date);
+    final viewedSlides = await service.getViewedSlides(userId, progressDate);
     debugPrint('After Stories: viewedSlides = $viewedSlides (length=${viewedSlides.length})');
 
     if (viewedSlides.length >= 3) {

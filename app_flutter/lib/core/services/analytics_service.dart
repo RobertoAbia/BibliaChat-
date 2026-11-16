@@ -48,6 +48,15 @@ class AnalyticsService {
     );
   }
 
+  /// Resultado del prompt de ATT (App Tracking Transparency) en iOS
+  Future<void> logAttPromptResult(String status) async {
+    if (kIsWeb) return;
+    await _analytics.logEvent(
+      name: 'att_prompt_result',
+      parameters: {'status': status},
+    );
+  }
+
   // ============ CHAT ============
 
   /// Usuario envía un mensaje en el chat
@@ -191,6 +200,17 @@ class AnalyticsService {
     );
   }
 
+  /// Usuario cierra el paywall sin comprar (solo paywalls cerrables, no el gate)
+  Future<void> logPaywallDismissed({required String source}) async {
+    if (kIsWeb) return;
+    await _analytics.logEvent(
+      name: 'paywall_dismissed',
+      parameters: {
+        'source': source,
+      },
+    );
+  }
+
   /// Usuario inicia suscripción
   Future<void> logSubscriptionStarted({required String planType}) async {
     if (kIsWeb) return;
@@ -258,6 +278,17 @@ class AnalyticsService {
       parameters: {
         'screen': screen,
       },
+    );
+  }
+
+  // ============ REVIEW ============
+
+  /// Se solicita la review nativa al usuario (pico emocional del onboarding)
+  Future<void> logReviewPromptShown({required String source}) async {
+    if (kIsWeb) return;
+    await _analytics.logEvent(
+      name: 'review_prompt_shown',
+      parameters: {'source': source},
     );
   }
 

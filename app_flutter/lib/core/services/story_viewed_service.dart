@@ -14,6 +14,20 @@ class StoryViewedService {
   Future<Set<int>> getViewedSlides(String? userId, DateTime gospelDate) async {
     if (userId == null) return <int>{};
 
+    // Esperar a escrituras en curso: la comprobación de completación tras
+    // cerrar Stories podía leer el set sin el tercer slide (fire-and-forget)
+    // y no marcar el día pese a haberlo visto todo.
+    while (_lock != null) {
+      await _lock!.future;
+    }
+
+    return _readSlides(userId, gospelDate);
+  }
+
+  /// Lectura interna SIN esperar el lock. Es la que usan los métodos de
+  /// escritura dentro de su sección crítica (si llamaran a getViewedSlides,
+  /// esperarían su propio lock → deadlock).
+  Future<Set<int>> _readSlides(String userId, DateTime gospelDate) async {
     final prefs = await SharedPreferences.getInstance();
     final key = _buildKey(userId, gospelDate);
     final stored = prefs.getString(key);
@@ -46,7 +60,7 @@ class StoryViewedService {
       final prefs = await SharedPreferences.getInstance();
       final key = _buildKey(userId, gospelDate);
 
-      final viewedSlides = await getViewedSlides(userId, gospelDate);
+      final viewedSlides = await _readSlides(userId, gospelDate);
       viewedSlides.add(slideIndex);
 
       await prefs.setString(key, viewedSlides.join(','));
@@ -73,7 +87,7 @@ class StoryViewedService {
       final prefs = await SharedPreferences.getInstance();
       final key = _buildKey(userId, gospelDate);
 
-      final viewedSlides = await getViewedSlides(userId, gospelDate);
+      final viewedSlides = await _readSlides(userId, gospelDate);
       viewedSlides.addAll(slideIndices);
 
       await prefs.setString(key, viewedSlides.join(','));

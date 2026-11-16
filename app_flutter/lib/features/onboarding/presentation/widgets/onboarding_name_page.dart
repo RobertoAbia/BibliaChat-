@@ -3,16 +3,21 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import 'onboarding_selection_page.dart' show OnboardingSkipButton;
 
 class OnboardingNamePage extends StatefulWidget {
   final ValueChanged<String> onNameChanged;
   final VoidCallback? onNext;
+
+  /// Si se pasa, muestra un enlace "Saltar" bajo el botón (paso opcional).
+  final VoidCallback? onSkip;
   final String? currentName;
 
   const OnboardingNamePage({
     super.key,
     required this.onNameChanged,
     required this.onNext,
+    this.onSkip,
     this.currentName,
   });
 
@@ -134,58 +139,66 @@ class _OnboardingNamePageState extends State<OnboardingNamePage> {
             ),
           ),
 
-          // Fixed bottom button
+          // Fixed bottom button (+ "Saltar" si el paso es opcional)
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
             child: SafeArea(
               top: false,
-              child: Opacity(
-                opacity: widget.onNext != null ? 1.0 : 0.4,
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 56,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      gradient: AppTheme.goldGradient,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppTheme.primaryColor.withOpacity(0.3),
-                          blurRadius: 12,
-                          spreadRadius: 0,
-                        ),
-                      ],
-                    ),
-                    child: ElevatedButton(
-                      onPressed: widget.onNext,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.transparent,
-                        shadowColor: Colors.transparent,
-                        shape: RoundedRectangleBorder(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Opacity(
+                    opacity: widget.onNext != null ? 1.0 : 0.4,
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: AppTheme.goldGradient,
                           borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 0,
-                        minimumSize: Size.zero,
-                        padding: EdgeInsets.zero,
-                      ),
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Continuar',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primaryColor.withOpacity(0.3),
+                              blurRadius: 12,
+                              spreadRadius: 0,
                             ),
+                          ],
+                        ),
+                        child: ElevatedButton(
+                          onPressed: widget.onNext,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            elevation: 0,
+                            minimumSize: Size.zero,
+                            padding: EdgeInsets.zero,
                           ),
-                          SizedBox(width: 8),
-                          Icon(Icons.chevron_right, size: 22, color: Colors.white),
-                        ],
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Continuar',
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Icon(Icons.chevron_right,
+                                  size: 22, color: Colors.white),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
+                  if (widget.onSkip != null)
+                    OnboardingSkipButton(onPressed: widget.onSkip!),
+                ],
               ),
             ),
           ),

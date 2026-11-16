@@ -94,9 +94,21 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
     final notifier = ref.read(chatNotifierProvider(_chatIdentifier).notifier);
 
-    // Para chats nuevos, resetear el estado primero (evita reutilizar chat viejo cacheado)
-    if (_chatIdentifier.isNewChat && widget.initialGospelText == null) {
+    // Para chats nuevos, resetear el estado primero (evita reutilizar chat
+    // viejo cacheado). Incluye el flujo desde Stories: el notifier de
+    // (null,null) puede conservar el chatId de una "Nueva conversación"
+    // anterior y el mensaje de la Story acabaría en ese chat.
+    if (_chatIdentifier.isNewChat) {
       notifier.resetForNewChat();
+    }
+
+    // Leer y limpiar el contenido del plan ANTES de inicializar: si
+    // initialize() falla y retornamos, el contenido quedaría en el provider
+    // global y se inyectaría en el siguiente chat que se abriese (incluso
+    // una "Nueva conversación" sin relación con el plan).
+    final pendingPlanContent = ref.read(pendingPlanContentProvider);
+    if (pendingPlanContent != null) {
+      ref.read(pendingPlanContentProvider.notifier).state = null;
     }
 
     // Inicializar el chat (cargar historial)
@@ -109,18 +121,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
     if (!mounted) return;
 
-    // Obtener contenido del plan desde provider (alternativa a widget.initialGospelText)
-    final pendingPlanContent = ref.read(pendingPlanContentProvider);
     final initialContent = widget.initialGospelText ?? pendingPlanContent;
 
     debugPrint('🔍 ChatScreen _initializeChat:');
     debugPrint('   pendingPlanContent: ${pendingPlanContent != null ? "${pendingPlanContent.length} chars" : "null"}');
     debugPrint('   initialContent: ${initialContent != null ? "${initialContent.length} chars" : "null"}');
-
-    // Limpiar el provider después de leerlo
-    if (pendingPlanContent != null) {
-      ref.read(pendingPlanContentProvider.notifier).state = null;
-    }
 
     // Si hay contenido inicial (Stories o Plan del día), prepararlo para enviar
     if (initialContent != null) {
@@ -128,7 +133,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       final state = ref.read(chatNotifierProvider(_chatIdentifier));
       debugPrint('   messages count: ${state.messages.length}');
       final contentAlreadyExists = state.messages.any(
-        (m) => m.role == 'assistant' && m.content == initialContent,
+        (m) => m.role == MessageRole.assistant && m.content == initialContent,
       );
       debugPrint('   contentAlreadyExists: $contentAlreadyExists');
 
@@ -144,12 +149,33 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
       // Si hay mensaje del usuario (solo desde Stories con mensaje predefinido), enviarlo
       if (widget.initialUserMessage != null &&
           widget.initialUserMessage!.isNotEmpty) {
-        notifier.sendMessage(
-          widget.initialUserMessage!,
-          topicKey: widget.topicKey,
-          systemMessage: initialContent,
-        );
-        _pendingSystemMessage = null; // Ya se envió
+        // Mismo guard de límite que _sendMessage: antes, este camino
+        // permitía enviar ilimitado a usuarios free sin cuota.
+        final canSend = ref.read(canSendMessageProvider);
+        if (!canSend) {
+          _messageController.text = widget.initialUserMessage!;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _showMessageLimitDialog();
+          });
+        } else {
+          final sendFuture = notifier.sendMessage(
+            widget.initialUserMessage!,
+            topicKey: widget.topicKey,
+            systemMessage: initialContent,
+          );
+          _pendingSystemMessage = null; // Viaja con este envío
+          sendFuture.then((success) {
+            if (!mounted) return;
+            if (success) {
+              if (!ref.read(isPremiumProvider)) {
+                ref.read(messageLimitProvider.notifier).refreshAfterSend();
+              }
+            } else {
+              // Falló: restaurar el contexto para que viaje con el reintento
+              setState(() => _pendingSystemMessage = initialContent);
+            }
+          });
+        }
       }
 
       _scrollToBottom();
@@ -236,22 +262,36 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
 
     // Enviar mensaje usando el provider
     // Si hay contenido pendiente (del día del plan), incluirlo como systemMessage
-    ref.read(chatNotifierProvider(_chatIdentifier).notifier).sendMessage(
-      text,
-      systemMessage: _pendingSystemMessage,
-    );
+    final pendingSystem = _pendingSystemMessage;
+    final sendFuture =
+        ref.read(chatNotifierProvider(_chatIdentifier).notifier).sendMessage(
+              text,
+              systemMessage: pendingSystem,
+            );
 
-    // Limpiar el contenido pendiente (ya se envió)
-    if (_pendingSystemMessage != null) {
-      setState(() {
-        _pendingSystemMessage = null;
-      });
-    }
+    // El mensaje optimista ya está pintado: scroll inmediato, sin esperar a la IA
+    _scrollToBottom();
 
-    // Incrementar contador de mensajes (solo si no es premium)
-    final isPremium = ref.read(isPremiumProvider);
-    if (!isPremium) {
-      await ref.read(messageLimitProvider.notifier).incrementAndRefresh();
+    final success = await sendFuture;
+    if (!mounted) return;
+
+    if (success) {
+      // El contexto del plan/Story quedó persistido con este envío
+      if (pendingSystem != null) {
+        setState(() {
+          _pendingSystemMessage = null;
+        });
+      }
+      // El contador lo incrementa el SERVIDOR; aquí solo se relee
+      final isPremium = ref.read(isPremiumProvider);
+      if (!isPremium) {
+        await ref.read(messageLimitProvider.notifier).refreshAfterSend();
+      }
+    } else {
+      // Falló: restaurar el texto para reintentar sin reescribirlo
+      if (suggestionText == null && _messageController.text.trim().isEmpty) {
+        _messageController.text = text;
+      }
     }
 
     _scrollToBottom();
@@ -321,7 +361,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              context.push(RouteConstants.paywall);
+              context.push('${RouteConstants.paywall}?source=message_limit');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryColor,
@@ -735,7 +775,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           ),
         ],
       ),
-    );
+    ).then((_) {
+      // Tras el pop, el TextField sigue montado durante la animación de
+      // salida (~150ms): disponer el controller en caliente lanza
+      // "used after being disposed"
+      Future.delayed(const Duration(milliseconds: 400), controller.dispose);
+    });
   }
 
   void _showDeleteDialog(ChatState chatState) {
@@ -1220,8 +1265,10 @@ class _MessageBubble extends ConsumerWidget {
                 ),
               ),
 
-              // Actions for AI messages
-              if (!message.isUser) ...[
+              // Actions for AI messages. Los mensajes temporales (saludo,
+              // contenido de Story aún no persistido) tienen id "temp_..."
+              // que no es un UUID: guardarlos fallaría en silencio por FK.
+              if (!message.isUser && !message.id.startsWith('temp_')) ...[
                 const SizedBox(height: 8),
                 _SaveButton(
                   messageId: message.id,

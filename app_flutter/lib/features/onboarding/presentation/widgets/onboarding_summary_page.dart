@@ -133,7 +133,7 @@ class OnboardingSummaryPage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Continuar',
+                      'Ver mi plan',
                       style: TextStyle(
                         fontSize: 17,
                         fontWeight: FontWeight.w600,
@@ -411,12 +411,12 @@ class OnboardingSummaryPage extends StatelessWidget {
       // feeling_distant details
       case 'stopped_practicing':
         return 'Dejaste de practicar tu fe';
-      case 'doubts':
+      case 'faith_doubts':
         return 'Tienes dudas sobre tu fe';
       case 'painful_experience':
         return 'Una experiencia dolorosa te alejó';
       // understand_bible details
-      case 'apply_life':
+      case 'apply_teachings':
         return 'Quieres aplicar la Biblia a tu vida';
       case 'historical_context':
         return 'Quieres entender el contexto histórico';
@@ -477,9 +477,9 @@ class OnboardingSummaryPage extends StatelessWidget {
       'spiritual_growth:bible_knowledge': 'Conociendo la Palabra de Dios',
       'spiritual_growth:daily_faith': 'Fe en lo cotidiano',
       'feeling_distant:stopped_practicing': 'Retomando tu camino de fe',
-      'feeling_distant:doubts': 'Respondiendo tus dudas de fe',
+      'feeling_distant:faith_doubts': 'Respondiendo tus dudas de fe',
       'feeling_distant:painful_experience': 'Sanando heridas del alma',
-      'understand_bible:apply_life': 'La Biblia en tu vida diaria',
+      'understand_bible:apply_teachings': 'La Biblia en tu vida diaria',
       'understand_bible:historical_context': 'Viajando por la historia bíblica',
       'understand_bible:denomination_differences': 'Entendiendo las tradiciones',
     };

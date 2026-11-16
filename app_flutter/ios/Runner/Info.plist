@@ -48,6 +48,32 @@
 		<!-- Photo Library Access for sharing images -->
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>Necesitamos acceso a tu galería para usar una foto como fondo de tu reflexión</string>
+		<!-- App Tracking Transparency (atribución de campañas) -->
+		<key>NSUserTrackingUsageDescription</key>
+		<string>Usamos esto para mostrarte contenido y ofertas más relevantes y para medir nuestras campañas. No vendemos tus datos.</string>
+		<!-- Meta (Facebook) SDK: atribución de campañas de Meta Ads -->
+		<key>FacebookAppID</key>
+		<string>2138806133431538</string>
+		<key>FacebookClientToken</key>
+		<string>2fd1a4ee9ec052ae7e41bd892c8f11a1</string>
+		<key>FacebookDisplayName</key>
+		<string>Biblia Chat</string>
+		<key>FacebookAutoLogAppEventsEnabled</key>
+		<true/>
+		<key>FacebookAdvertiserIDCollectionEnabled</key>
+		<true/>
+		<!-- SKAdNetwork: atribución de instalaciones de Meta Ads sin IDFA -->
+		<key>SKAdNetworkItems</key>
+		<array>
+			<dict>
+				<key>SKAdNetworkIdentifier</key>
+				<string>v9wttpbfk9.skadnetwork</string>
+			</dict>
+			<dict>
+				<key>SKAdNetworkIdentifier</key>
+				<string>n38lu8286q.skadnetwork</string>
+			</dict>
+		</array>
 		<!-- Background Modes for Push Notifications -->
 		<key>UIBackgroundModes</key>
 		<array>

@@ -171,43 +171,105 @@ function getLocalHour(timezone: string): number {
   }
 }
 
-function getTodayDate(): string {
-  return new Date().toISOString().split('T')[0];
+// Fecha (YYYY-MM-DD) en la zona horaria del usuario, con offset de días.
+// daily_activity se escribe con la fecha LOCAL del dispositivo; calcular
+// "hoy"/"ayer" en UTC desfasaba un día a los usuarios de América (a las
+// 20:00 de Los Ángeles el "hoy" UTC ya es mañana) y se les avisaba de
+// perder rachas que habían completado.
+function getLocalDate(timezone: string, daysOffset = 0): string {
+  const d = new Date(Date.now() + daysOffset * 86400000);
+  try {
+    return d.toLocaleDateString('en-CA', { timeZone: timezone });
+  } catch {
+    return d.toISOString().split('T')[0];
+  }
 }
 
-function getYesterdayDate(): string {
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  return yesterday.toISOString().split('T')[0];
-}
-
+// Pagina user_devices: PostgREST corta en 1000 filas por request — a partir
+// de ~1000 dispositivos, los usuarios siguientes dejaban de recibir pushes
+// en silencio, sin ningún error.
 async function getUserIdsWithToken(supabase: SupabaseClient): Promise<Set<string>> {
-  const { data } = await supabase.from('user_devices').select('user_id');
-  return new Set((data || []).map(d => d.user_id));
+  const ids = new Set<string>();
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from('user_devices')
+      .select('user_id')
+      .range(from, from + pageSize - 1);
+    if (error) {
+      console.error('getUserIdsWithToken:', error.message);
+      break;
+    }
+    const rows = data || [];
+    for (const d of rows) ids.add(d.user_id);
+    if (rows.length < pageSize) break;
+  }
+  return ids;
+}
+
+// .in() con miles de ids genera URLs gigantes que PostgREST rechaza:
+// trocear la lista y concatenar resultados.
+async function selectInChunks<T>(
+  buildQuery: (chunk: string[]) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+  ids: string[],
+  chunkSize = 200,
+): Promise<T[]> {
+  const all: T[] = [];
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const { data, error } = await buildQuery(ids.slice(i, i + chunkSize));
+    if (error) {
+      console.error('selectInChunks:', error.message);
+      continue;
+    }
+    all.push(...(data || []));
+  }
+  return all;
+}
+
+// Perfiles (user_id + timezone) de todos los usuarios con token FCM
+async function getProfilesWithToken(
+  supabase: SupabaseClient,
+): Promise<{ user_id: string; timezone: string | null }[]> {
+  const userIdsWithToken = await getUserIdsWithToken(supabase);
+  if (userIdsWithToken.size === 0) return [];
+  return selectInChunks(
+    (chunk) =>
+      supabase.from('user_profiles').select('user_id, timezone').in('user_id', chunk),
+    Array.from(userIdsWithToken),
+  );
 }
 
 async function getUsersWhoMissedStories(
   supabase: SupabaseClient, targetHour: number
 ): Promise<UserToNotify[]> {
-  const today = getTodayDate();
-  const userIdsWithToken = await getUserIdsWithToken(supabase);
-  if (userIdsWithToken.size === 0) return [];
+  const profiles = await getProfilesWithToken(supabase);
 
-  const { data: profiles } = await supabase
-    .from('user_profiles').select('user_id, timezone')
-    .in('user_id', Array.from(userIdsWithToken));
+  // Candidatos: usuarios en la hora local objetivo
+  const candidates = profiles.filter(u =>
+    getLocalHour(u.timezone || 'America/New_York') === targetHour);
+  if (candidates.length === 0) return [];
 
-  const { data: completedToday } = await supabase
-    .from('daily_activity').select('user_id')
-    .eq('activity_date', today).eq('completed', true);
+  // "Hoy" POR USUARIO en su zona horaria (coincide con la fecha local que
+  // escribe la app en daily_activity)
+  const todayByUser = new Map(candidates.map(u =>
+    [u.user_id, getLocalDate(u.timezone || 'America/New_York')]));
+  const todayDates = [...new Set(todayByUser.values())];
 
-  const completedIds = new Set((completedToday || []).map(u => u.user_id));
+  const completedRows = await selectInChunks<{ user_id: string; activity_date: string }>(
+    (chunk) =>
+      supabase
+        .from('daily_activity').select('user_id, activity_date')
+        .eq('completed', true)
+        .in('user_id', chunk)
+        .in('activity_date', todayDates),
+    candidates.map(u => u.user_id),
+  );
 
-  return (profiles || [])
-    .filter(u => {
-      const localHour = getLocalHour(u.timezone || 'America/New_York');
-      return localHour === targetHour && !completedIds.has(u.user_id);
-    })
+  const completedKey = new Set(
+    completedRows.map(r => `${r.user_id}:${r.activity_date}`));
+
+  return candidates
+    .filter(u => !completedKey.has(`${u.user_id}:${todayByUser.get(u.user_id)}`))
     .map(u => ({
       user_id: u.user_id,
       title: '🔥 Tu reflexión del día te espera',
@@ -220,15 +282,14 @@ async function getUsersForDailyReminder(supabase: SupabaseClient): Promise<UserT
   const userIdsWithToken = await getUserIdsWithToken(supabase);
   if (userIdsWithToken.size === 0) return [];
 
-  const { data: users, error } = await supabase
-    .from('user_profiles').select('user_id, timezone, reminder_time')
-    .eq('reminder_enabled', true).not('reminder_time', 'is', null)
-    .in('user_id', Array.from(userIdsWithToken));
-
-  if (error || !users) {
-    console.error('Error getting users for daily reminder:', error);
-    return [];
-  }
+  const users = await selectInChunks<{ user_id: string; timezone: string | null; reminder_time: string | null }>(
+    (chunk) =>
+      supabase
+        .from('user_profiles').select('user_id, timezone, reminder_time')
+        .eq('reminder_enabled', true).not('reminder_time', 'is', null)
+        .in('user_id', chunk),
+    Array.from(userIdsWithToken),
+  );
 
   return users
     .filter(u => {
@@ -253,20 +314,27 @@ async function getUsersWithAbandonedPlans(
   const userIdsWithToken = await getUserIdsWithToken(supabase);
   if (userIdsWithToken.size === 0) return [];
 
-  const { data: plans, error } = await supabase
-    .from('user_plans').select('user_id, updated_at, plan_id')
-    .eq('status', 'in_progress').lt('updated_at', threeDaysAgo.toISOString())
-    .in('user_id', Array.from(userIdsWithToken));
-
-  if (error || !plans || plans.length === 0) return [];
+  const plans = await selectInChunks<{ user_id: string; updated_at: string; plan_id: string }>(
+    (chunk) =>
+      supabase
+        .from('user_plans').select('user_id, updated_at, plan_id')
+        .eq('status', 'in_progress').lt('updated_at', threeDaysAgo.toISOString())
+        .in('user_id', chunk),
+    Array.from(userIdsWithToken),
+  );
+  if (plans.length === 0) return [];
 
   const planIds = [...new Set(plans.map(p => p.plan_id))];
   const { data: planData } = await supabase.from('plans').select('id, name').in('id', planIds);
   const planNames = new Map((planData || []).map(p => [p.id, p.name]));
 
   const userIds = [...new Set(plans.map(p => p.user_id))];
-  const { data: profiles } = await supabase.from('user_profiles').select('user_id, timezone').in('user_id', userIds);
-  const tzMap = new Map((profiles || []).map(p => [p.user_id, p.timezone || 'America/New_York']));
+  const profiles = await selectInChunks<{ user_id: string; timezone: string | null }>(
+    (chunk) =>
+      supabase.from('user_profiles').select('user_id, timezone').in('user_id', chunk),
+    userIds,
+  );
+  const tzMap = new Map(profiles.map(p => [p.user_id, p.timezone || 'America/New_York']));
 
   return plans
     .filter(p => getLocalHour(tzMap.get(p.user_id) || 'America/New_York') === targetHour)
@@ -281,35 +349,45 @@ async function getUsersWithAbandonedPlans(
 async function getUsersWhoLostStreak(
   supabase: SupabaseClient, targetHour: number
 ): Promise<UserToNotify[]> {
-  const yesterday = getYesterdayDate();
-  const twoDaysAgo = new Date();
-  twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
-  const twoDaysAgoStr = twoDaysAgo.toISOString().split('T')[0];
-  const userIdsWithToken = await getUserIdsWithToken(supabase);
-  if (userIdsWithToken.size === 0) return [];
+  const profiles = await getProfilesWithToken(supabase);
 
-  const { data: hadStreak } = await supabase
-    .from('daily_activity').select('user_id')
-    .eq('activity_date', twoDaysAgoStr).eq('completed', true);
+  // Candidatos: usuarios en la hora local objetivo
+  const candidates = profiles.filter(p =>
+    getLocalHour(p.timezone || 'America/New_York') === targetHour);
+  if (candidates.length === 0) return [];
 
-  const hadStreakWithToken = (hadStreak || []).filter(u => userIdsWithToken.has(u.user_id));
-  const hadStreakIds = hadStreakWithToken.map(u => u.user_id);
-  if (hadStreakIds.length === 0) return [];
+  // "Ayer" y "anteayer" POR USUARIO en su zona horaria
+  const datesByUser = new Map(candidates.map(p => {
+    const tz = p.timezone || 'America/New_York';
+    return [p.user_id, {
+      yesterday: getLocalDate(tz, -1),
+      twoDaysAgo: getLocalDate(tz, -2),
+    }];
+  }));
 
-  const { data: completedYesterday } = await supabase
-    .from('daily_activity').select('user_id')
-    .eq('activity_date', yesterday).eq('completed', true)
-    .in('user_id', hadStreakIds);
+  const allDates = [...new Set(
+    [...datesByUser.values()].flatMap(d => [d.yesterday, d.twoDaysAgo]))];
 
-  const completedIds = new Set((completedYesterday || []).map(u => u.user_id));
-  const lostIds = hadStreakIds.filter(id => !completedIds.has(id));
-  if (lostIds.length === 0) return [];
+  const activityRows = await selectInChunks<{ user_id: string; activity_date: string }>(
+    (chunk) =>
+      supabase
+        .from('daily_activity').select('user_id, activity_date')
+        .eq('completed', true)
+        .in('user_id', chunk)
+        .in('activity_date', allDates),
+    candidates.map(c => c.user_id),
+  );
 
-  const { data: profiles } = await supabase
-    .from('user_profiles').select('user_id, timezone').in('user_id', lostIds);
+  const completedKey = new Set(
+    activityRows.map(r => `${r.user_id}:${r.activity_date}`));
 
-  return (profiles || [])
-    .filter(p => getLocalHour(p.timezone || 'America/New_York') === targetHour)
+  return candidates
+    .filter(p => {
+      const d = datesByUser.get(p.user_id)!;
+      // Racha perdida = completó anteayer pero NO ayer
+      return completedKey.has(`${p.user_id}:${d.twoDaysAgo}`) &&
+        !completedKey.has(`${p.user_id}:${d.yesterday}`);
+    })
     .map(p => ({
       user_id: p.user_id,
       title: '💪 Tu racha se rompió, ¡pero hoy puedes empezar de nuevo!',
@@ -322,19 +400,49 @@ async function getUsersWhoLostStreak(
 // Main Handler
 // ============================================================
 
+// ¿Llamada del backend? Acepta la service_role key (igualdad con el env),
+// cualquier JWT cuyo payload tenga role=service_role (la FIRMA ya la
+// verificó el gateway de Supabase antes de invocar la función, así que el
+// payload es de fiar), o una secret key del formato nuevo (sb_secret_...).
+// Un JWT anon o de usuario tiene role 'anon'/'authenticated' y NO pasa.
+function isServiceRequest(token: string, serviceKey: string | undefined): boolean {
+  if (!token) return false;
+  if (serviceKey && token === serviceKey) return true;
+  if (token.startsWith('sb_secret_')) return true;
+  try {
+    const payload = JSON.parse(
+      atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload?.role === 'service_role';
+  } catch {
+    return false;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
+    // --- Autorización ---
+    // Solo el backend (service_role: el cron de GitHub Actions) puede
+    // disparar recordatorios masivos. Sin este check, cualquiera con el
+    // anon key del APK podía spamear pushes a toda la base de usuarios.
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
+    if (!isServiceRequest(token, supabaseServiceKey)) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Forbidden' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     const { type } = await req.json() as { type: NotificationType };
     if (!type) throw new Error('Missing required field: type');
 
     console.log(`Processing notification type: ${type}`);
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const firebaseJson = Deno.env.get('FIREBASE_SERVICE_ACCOUNT');
     if (!firebaseJson) throw new Error('FIREBASE_SERVICE_ACCOUNT not configured');
 

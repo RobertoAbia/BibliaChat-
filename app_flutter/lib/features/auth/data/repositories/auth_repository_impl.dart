@@ -145,9 +145,15 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await _supabase.auth.signOut();
       return AuthResult.success();
-    } on AuthException catch (e) {
-      return _handleAuthException(e);
     } catch (e) {
+      // El signOut remoto puede fallar (sin red, token caducado). La sesión
+      // LOCAL debe limpiarse igualmente, o el usuario queda atrapado sin
+      // poder cerrar sesión offline.
+      try {
+        await _supabase.auth.signOut(scope: SignOutScope.local);
+        return AuthResult.success();
+      } catch (_) {}
+      if (e is AuthException) return _handleAuthException(e);
       if (_isNetworkError(e)) {
         return AuthResult.error('No tienes conexión a internet', 'network_error');
       }
@@ -245,8 +251,17 @@ class AuthRepositoryImpl implements AuthRepository {
 
       final data = response.data as Map<String, dynamic>?;
       if (data?['success'] == true) {
-        // Limpiar sesión local después de borrar cuenta en servidor
-        await _supabase.auth.signOut();
+        // Limpiar sesión local después de borrar cuenta en servidor.
+        // Si el signOut falla, el borrado YA ocurrió: no reportarlo como
+        // error dejaría una sesión zombi apuntando a un usuario inexistente
+        // y la UI diría "Error al borrar" siendo falso.
+        try {
+          await _supabase.auth.signOut();
+        } catch (_) {
+          try {
+            await _supabase.auth.signOut(scope: SignOutScope.local);
+          } catch (_) {}
+        }
         return AuthResult.success();
       } else {
         return AuthResult.error(

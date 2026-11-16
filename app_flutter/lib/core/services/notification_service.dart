@@ -45,7 +45,10 @@ class NotificationService {
     if (_isInitialized && _currentUserId != userId) {
       _currentUserId = userId;
 
-      await _saveToken(userId);
+      // Solo donde es seguro sin disparar el prompt nativo (ver paso 3 abajo).
+      if (await _canSaveTokenWithoutPrompt()) {
+        await _saveToken(userId);
+      }
       return;
     }
 
@@ -58,14 +61,22 @@ class NotificationService {
     // 1. Configurar handler para mensajes en background
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // 2. SIEMPRE intentar guardar el token (en Android funciona sin permiso)
-    await _saveToken(userId);
-
-    // 3. Verificar si YA tiene permiso para configurar local notifications
+    // 2. Verificar estado de permiso (lectura, NO dispara el prompt nativo)
     final settings = await _messaging.getNotificationSettings();
     final alreadyAuthorized =
         settings.authorizationStatus == AuthorizationStatus.authorized ||
         settings.authorizationStatus == AuthorizationStatus.provisional;
+
+    // 3. Guardar token FCM solo donde es seguro:
+    //  - Android: funciona sin permiso, se guarda siempre.
+    //  - iOS: solo si el permiso YA está concedido. En iOS, intentar obtener el
+    //    token sin permiso DISPARA el prompt nativo en el arranque (Welcome),
+    //    que es justo lo que no queremos. El permiso se pide en el priming
+    //    (Home/post-pago) y tras concederlo requestPermissionIfNeeded() guarda
+    //    el token.
+    if (Platform.isAndroid || alreadyAuthorized) {
+      await _saveToken(userId);
+    }
 
     if (alreadyAuthorized) {
       await _setupLocalNotifications();
@@ -96,13 +107,25 @@ class NotificationService {
     _isInitialized = true;
     debugPrint('NotificationService initialized for user: $userId');
 
-    // Safety net: reintentar guardado de token después de 15s
-    // Para cuando APNs no estaba listo en los intentos iniciales
-    Future.delayed(const Duration(seconds: 15), () {
-      if (_currentUserId != null) {
-        _saveToken(_currentUserId!);
-      }
-    });
+    // Safety net: reintentar guardado de token después de 15s (APNs puede no
+    // estar listo en el primer intento). Solo donde es seguro sin prompt.
+    if (Platform.isAndroid || alreadyAuthorized) {
+      Future.delayed(const Duration(seconds: 15), () {
+        if (_currentUserId != null) {
+          _saveToken(_currentUserId!);
+        }
+      });
+    }
+  }
+
+  /// Android obtiene el token FCM sin permiso. En iOS, intentar obtenerlo sin
+  /// permiso concedido dispara el prompt nativo, así que solo es seguro guardar
+  /// el token "temprano" en Android o si iOS ya tiene el permiso.
+  Future<bool> _canSaveTokenWithoutPrompt() async {
+    if (Platform.isAndroid) return true;
+    final settings = await _messaging.getNotificationSettings();
+    return settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional;
   }
 
   /// Pide permiso de notificaciones si aún no lo tiene.
@@ -287,10 +310,23 @@ class NotificationService {
     }
   }
 
-  /// Navega a la pantalla especificada
+  /// Navega a la pantalla especificada por el deep link de la notificación
   void _navigateToScreen(String screen) {
-    if (_router == null) return;
-    _router!.go('/home');
+    final router = _router;
+    if (router == null) return;
+    switch (screen) {
+      case 'study':
+        router.go('/study');
+        break;
+      case 'chat':
+        router.go('/chat');
+        break;
+      case 'stories':
+      default:
+        // Las Stories necesitan el gospel cargado (viaja como `extra` de la
+        // ruta): aterrizar en Home, donde la card del día las abre.
+        router.go('/home');
+    }
   }
 
   /// Programa una notificación local para recordar que el trial termina en 2 días.
@@ -308,13 +344,12 @@ class NotificationService {
           settings.authorizationStatus == AuthorizationStatus.provisional;
 
       if (!hasPermission) {
-        final granted = await requestPermission();
-        if (!granted) {
-          debugPrint('Trial reminder: notification permission denied');
-          return;
-        }
-        await _setupLocalNotifications();
+        // El permiso se pide en el priming (NotificationsPromptService), no aquí.
+        // Sin permiso, no programamos (y NO disparamos el prompt nativo).
+        debugPrint('Trial reminder: sin permiso de notificaciones, no se programa');
+        return;
       }
+      await _setupLocalNotifications();
 
       // Inicializar timezone si no se ha hecho
       if (!_timezoneInitialized) {
@@ -370,14 +405,34 @@ class NotificationService {
   /// Sin limpiar las notificaciones del centro, iOS puede mantener el badge.
   Future<void> clearBadge() async {
     try {
+      // En iOS, FlutterAppBadger ejecuta UNUserNotificationCenter
+      // .requestAuthorization([.badge]) la primera vez → dispararía el prompt
+      // nativo de notificaciones en el arranque (Welcome). Solo tocamos el badge
+      // si el permiso YA está concedido. En Android no pide permiso.
+      if (Platform.isIOS) {
+        final settings = await _messaging.getNotificationSettings();
+        final authorized =
+            settings.authorizationStatus == AuthorizationStatus.authorized ||
+                settings.authorizationStatus ==
+                    AuthorizationStatus.provisional;
+        if (!authorized) return;
+      }
       FlutterAppBadger.removeBadge();
     } catch (e) {
       debugPrint('Error clearing badge: $e');
     }
-    // Limpiar notificaciones entregadas del notification center
-    // (solo si local notifications ya fueron inicializadas)
+    // Limpiar SOLO las notificaciones ya mostradas del centro.
+    // NO usar cancelAll(): también cancela las PROGRAMADAS pendientes — el
+    // recordatorio de fin de trial (id 9999) se borraba en cada resume de la
+    // app y no llegaba nunca.
     try {
-      await _localNotifications.cancelAll();
+      final active = await _localNotifications.getActiveNotifications();
+      for (final notification in active) {
+        final id = notification.id;
+        if (id != null && id != _trialReminderId) {
+          await _localNotifications.cancel(id);
+        }
+      }
     } catch (_) {
       // Puede fallar si _localNotifications no fue inicializado (sin permiso)
     }

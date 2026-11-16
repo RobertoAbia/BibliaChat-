@@ -58,9 +58,11 @@ final weekCompletionProvider = FutureProvider<Set<String>>((ref) async {
   final datasource = ref.watch(dailyActivityDatasourceProvider);
 
   final now = DateTime.now();
-  final weekStart = DateTime(now.year, now.month, now.day)
-      .subtract(Duration(days: now.weekday - 1)); // Lunes
-  final weekEnd = weekStart.add(const Duration(days: 6)); // Domingo
+  // Aritmética de calendario, inmune al cambio de hora (DST)
+  final weekStart =
+      DateTime(now.year, now.month, now.day - (now.weekday - 1)); // Lunes
+  final weekEnd =
+      DateTime(weekStart.year, weekStart.month, weekStart.day + 6); // Domingo
 
   return await datasource.getCompletedDatesInRange(weekStart, weekEnd);
 });
@@ -79,7 +81,14 @@ Future<bool> markDayAsCompleted(WidgetRef ref) async {
 
   // Marcar como completado en Supabase (en background)
   final datasource = ref.read(dailyActivityDatasourceProvider);
-  await datasource.markDayCompleted('stories');
+  try {
+    await datasource.markDayCompleted('stories');
+  } catch (_) {
+    // Revertir el optimista: el día NO quedó marcado (sin red, etc.).
+    // Sin esto la racha mostraba +1 fantasma hasta reiniciar la app.
+    ref.read(streakDaysStateProvider.notifier).state = null;
+    return false;
+  }
 
   // Refrescar desde Supabase
   ref.invalidate(streakDaysProvider);
@@ -88,12 +97,15 @@ Future<bool> markDayAsCompleted(WidgetRef ref) async {
 
   // Esperar a que streakDaysProvider termine de cargar antes de limpiar estado optimista
   // Esto evita la race condition donde el timeout fijo de 500ms no era suficiente
-  final newStreak = await ref.read(streakDaysProvider.future);
-  ref.read(streakDaysStateProvider.notifier).state = null;
-
-  // Enviar notificación especial al completar primera semana
-  if (newStreak == 7) {
-    _sendWeekCompletedNotification();
+  try {
+    final newStreak = await ref.read(streakDaysProvider.future);
+    // Enviar notificación especial al completar primera semana
+    if (newStreak == 7) {
+      _sendWeekCompletedNotification();
+    }
+  } finally {
+    // Limpiar SIEMPRE el estado optimista, también si la recarga falla
+    ref.read(streakDaysStateProvider.notifier).state = null;
   }
 
   return true;

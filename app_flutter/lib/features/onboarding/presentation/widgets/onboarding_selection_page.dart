@@ -30,6 +30,9 @@ class OnboardingSelectionPage extends StatelessWidget {
   final ValueChanged<String> onSelect;
   final VoidCallback? onNext;
 
+  /// Si se pasa, muestra un enlace "Saltar" bajo el botón (paso opcional).
+  final VoidCallback? onSkip;
+
   const OnboardingSelectionPage({
     super.key,
     this.verseReference,
@@ -42,6 +45,7 @@ class OnboardingSelectionPage extends StatelessWidget {
     this.selectedKeys,
     required this.onSelect,
     required this.onNext,
+    this.onSkip,
   });
 
   @override
@@ -164,62 +168,94 @@ class OnboardingSelectionPage extends StatelessWidget {
           ),
         ),
 
-        // Fixed bottom button
+        // Fixed bottom button (+ "Saltar" si el paso es opcional)
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
           child: SafeArea(
             top: false,
-            child: Opacity(
-              opacity: onNext != null ? 1.0 : 0.4,
-              child: SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.goldGradient,
-                    borderRadius: BorderRadius.circular(14),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primaryColor.withOpacity(0.3),
-                        blurRadius: 12,
-                        spreadRadius: 0,
-                      ),
-                    ],
-                  ),
-                  child: ElevatedButton(
-                    onPressed: onNext,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      shadowColor: Colors.transparent,
-                      shape: RoundedRectangleBorder(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Opacity(
+                  opacity: onNext != null ? 1.0 : 0.4,
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: AppTheme.goldGradient,
                         borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 0,
-                      minimumSize: Size.zero,
-                      padding: EdgeInsets.zero,
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Continuar',
-                          style: TextStyle(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryColor.withOpacity(0.3),
+                            blurRadius: 12,
+                            spreadRadius: 0,
                           ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        onPressed: onNext,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 0,
+                          minimumSize: Size.zero,
+                          padding: EdgeInsets.zero,
                         ),
-                        SizedBox(width: 8),
-                        Icon(Icons.chevron_right, size: 22, color: Colors.white),
-                      ],
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Continuar',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Icon(Icons.chevron_right,
+                                size: 22, color: Colors.white),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+                if (onSkip != null) OnboardingSkipButton(onPressed: onSkip!),
+              ],
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Enlace discreto "Saltar" para pasos opcionales del onboarding.
+class OnboardingSkipButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const OnboardingSkipButton({super.key, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: TextButton(
+        onPressed: onPressed,
+        style: TextButton.styleFrom(
+          foregroundColor: AppTheme.textSecondary,
+          minimumSize: const Size(double.infinity, 40),
+        ),
+        child: const Text(
+          'Saltar',
+          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+        ),
+      ),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/services/analytics_service.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
@@ -142,6 +143,12 @@ class ChatNotifier extends StateNotifier<ChatState> {
   final ChatIdentifier _identifier;
   final Ref _ref;
 
+  /// Id idempotente del último envío FALLIDO: si el usuario reintenta el
+  /// mismo contenido, se reutiliza para que el servidor no duplique el
+  /// mensaje (quedó guardado si el fallo fue después de persistirlo).
+  String? _failedClientMessageId;
+  String? _failedContent;
+
   ChatNotifier(this._repository, this._identifier, this._ref)
       : super(ChatState(
           topicKey: _identifier.topicKey,
@@ -206,9 +213,17 @@ class ChatNotifier extends StateNotifier<ChatState> {
           showStarterSuggestions: false,
         );
       } else {
-        // No hay chat existente para este topic, empezar vacío
-        state = state.copyWith(
+        // No hay chat para este topic/id: RESET completo del estado. Un
+        // copyWith conservaría mensajes/chatId/título de una sesión o un
+        // usuario anterior (el notifier .family queda cacheado): el nuevo
+        // usuario vería la conversación del anterior y escribiría en su chat.
+        state = ChatState(
+          topicKey: _identifier.topicKey,
+          chatId: null,
+          title: null,
+          messages: const [],
           isLoading: false,
+          isSending: false,
           showStarterSuggestions: false,
         );
       }
@@ -223,8 +238,9 @@ class ChatNotifier extends StateNotifier<ChatState> {
   // Envía un mensaje y recibe la respuesta de la IA
   // Si topicKey se proporciona, se usa en lugar de state.topicKey (útil para crear chats nuevos con topic)
   // Si systemMessage se proporciona (contenido de Story), se guarda como mensaje 'system' en BD
-  Future<void> sendMessage(String content, {String? topicKey, String? systemMessage}) async {
-    if (content.trim().isEmpty) return;
+  // Devuelve true si el mensaje llegó al servidor y hubo respuesta.
+  Future<bool> sendMessage(String content, {String? topicKey, String? systemMessage}) async {
+    if (content.trim().isEmpty) return false;
 
     // Ocultar sugerencias al enviar primer mensaje
     if (state.showStarterSuggestions) {
@@ -245,6 +261,13 @@ class ChatNotifier extends StateNotifier<ChatState> {
       error: null,
     );
 
+    // Reutilizar el id del intento fallido si es el mismo contenido
+    // (idempotencia server-side, migración 00037)
+    final clientMessageId =
+        (_failedContent == content && _failedClientMessageId != null)
+            ? _failedClientMessageId!
+            : const Uuid().v4();
+
     try {
       // Enviar mensaje a la Edge Function y obtener respuesta + título
       // El systemMessage (contenido de Story) se guarda como mensaje 'system' en BD
@@ -254,7 +277,10 @@ class ChatNotifier extends StateNotifier<ChatState> {
         userMessage: content,
         chatId: state.chatId,
         systemMessage: systemMessage,
+        clientMessageId: clientMessageId,
       );
+      _failedClientMessageId = null;
+      _failedContent = null;
 
       final assistantMessage = result.message;
       final generatedTitle = result.title;
@@ -306,11 +332,26 @@ class ChatNotifier extends StateNotifier<ChatState> {
         topicKey: topicKey ?? state.topicKey,
         isPremium: isPremium,
       );
+      return true;
     } catch (e) {
+      // Guardar el id para que el reintento del mismo texto sea idempotente
+      _failedClientMessageId = clientMessageId;
+      _failedContent = content;
+      // Si el servidor creó el chat antes de fallar, adoptar su id: el
+      // reintento debe reutilizar ESE chat (donde ya puede estar guardado
+      // el mensaje) en vez de crear uno duplicado
+      if (e is ChatSendException && e.chatId != null && state.chatId == null) {
+        state = state.copyWith(chatId: e.chatId);
+      }
+      // Retirar el mensaje optimista: dejarlo pintado haría creer al usuario
+      // que se envió, cuando no está en BD y desaparecería al recargar.
       state = state.copyWith(
+        messages:
+            state.messages.where((m) => m.id != tempUserMessage.id).toList(),
         isSending: false,
         error: 'Error al enviar mensaje: $e',
       );
+      return false;
     }
   }
 
@@ -410,6 +451,10 @@ class ChatNotifier extends StateNotifier<ChatState> {
 // Provider family usando ChatIdentifier como key
 final chatNotifierProvider = StateNotifierProvider.family<ChatNotifier, ChatState, ChatIdentifier>(
   (ref, identifier) {
+    // Recrear el notifier al cambiar de usuario: los .family quedan
+    // cacheados por identifier y el siguiente usuario del dispositivo
+    // heredaría mensajes/chatId del anterior.
+    ref.watch(currentUserIdProvider);
     final repository = ref.watch(chatRepositoryProvider);
     return ChatNotifier(repository, identifier, ref);
   },
