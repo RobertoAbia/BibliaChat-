@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -41,6 +43,145 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   bool _isEligibleForTrial = true; // optimista; se actualiza tras consultar RC
   bool _eligibilityChecked = false;
 
+  /// Los planes no han cargado tras el timeout (sin red, RevenueCat caído o
+  /// plataforma sin API key). Muestra error + reintento en vez de precios
+  /// inventados, y abre la válvula de escape del gate.
+  bool _plansTimedOut = false;
+  Timer? _plansTimer;
+
+  void _startPlansTimer() {
+    _plansTimer?.cancel();
+    _plansTimer = Timer(const Duration(seconds: 12), () {
+      if (mounted) setState(() => _plansTimedOut = true);
+    });
+  }
+
+  void _retryLoadPlans() {
+    setState(() => _plansTimedOut = false);
+    _startPlansTimer();
+    ref.read(subscriptionProvider.notifier).refresh();
+  }
+
+  void _closePaywall() {
+    AnalyticsService().logPaywallDismissed(source: widget.source);
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(RouteConstants.home);
+    }
+  }
+
+  /// Pantalla mientras cargan los planes (o si no cargan). Nunca precios mock.
+  Widget _buildPlansLoadingScaffold(BuildContext context) {
+    final showEscape = (!widget.gate || _plansTimedOut) && _canClose;
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(gradient: AppTheme.backgroundGradient),
+        child: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 36),
+              child: _plansTimedOut
+                  ? Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.wifi_off_rounded,
+                            size: 44, color: AppTheme.textTertiary),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No se pudieron cargar los planes',
+                          textAlign: TextAlign.center,
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    color: AppTheme.textPrimary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Comprueba tu conexión e inténtalo de nuevo.',
+                          textAlign: TextAlign.center,
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                  ),
+                        ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          height: 48,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: AppTheme.goldGradient,
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: ElevatedButton(
+                              onPressed: _retryLoadPlans,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                shadowColor: Colors.transparent,
+                                minimumSize: Size.zero,
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 28),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(24),
+                                ),
+                              ),
+                              child: const Text(
+                                'Reintentar',
+                                style: TextStyle(
+                                  color: Color(0xFF1A1A2E),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Cargando planes…',
+                          style:
+                              Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                    color: AppTheme.textSecondary,
+                                  ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.miniStartTop,
+      // Válvula de escape: cerrable siempre fuera del gate; en el gate, solo
+      // cuando los planes no cargan (mejor dejar pasar que bloquear la app)
+      floatingActionButton: showEscape
+          ? Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: IconButton(
+                icon: Icon(
+                  Icons.close,
+                  size: 22,
+                  color: AppTheme.textTertiary.withOpacity(0.6),
+                ),
+                onPressed: _closePaywall,
+              ),
+            )
+          : null,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -64,6 +205,13 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     if (offerings == null) {
       ref.read(subscriptionProvider.notifier).refresh();
     }
+    _startPlansTimer();
+  }
+
+  @override
+  void dispose() {
+    _plansTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _checkEligibility(List<String> productIds) async {
@@ -114,8 +262,17 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     final annualPackage = ref.watch(annualPackageProvider);
     final profile = ref.watch(currentUserProfileProvider).valueOrNull;
 
-    final monthlyPrice = monthlyPackage?.storeProduct.priceString ?? '\$14.99';
-    final annualPrice = annualPackage?.storeProduct.priceString ?? '\$39.99';
+    // Sin paquetes cargados NO se pintan precios inventados (los mocks
+    // $14.99/$39.99 en USD podían no corresponder al storefront real):
+    // pantalla de carga, y tras el timeout error + reintento con válvula de
+    // escape incluso en modo gate (si no, con RevenueCat caído o sin API key
+    // —Android hoy— la app quedaba bloqueada para siempre).
+    if (monthlyPackage == null && annualPackage == null) {
+      return _buildPlansLoadingScaffold(context);
+    }
+
+    final monthlyPrice = monthlyPackage?.storeProduct.priceString ?? '—';
+    final annualPrice = annualPackage?.storeProduct.priceString ?? '—';
     final isPurchasing = subscriptionState.isPurchasing;
 
     // Resolver elegibilidad de trial cuando los paquetes estén cargados.
@@ -480,15 +637,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                     size: 22,
                     color: AppTheme.textTertiary.withOpacity(0.6),
                   ),
-                  onPressed: () {
-                    AnalyticsService()
-                        .logPaywallDismissed(source: widget.source);
-                    if (context.canPop()) {
-                      context.pop();
-                    } else {
-                      context.go(RouteConstants.home);
-                    }
-                  },
+                  onPressed: _closePaywall,
                 )
               : SizedBox(
                   key: const ValueKey('loading'),
@@ -744,21 +893,16 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       _handlePurchase(package, isTrialStart: isTrialStart);
       return;
     }
-    // RevenueCat no cargó productos
-    if (widget.gate) {
-      // Hard paywall: no dejar pasar. Reintentar cargar productos.
-      ref.read(subscriptionProvider.notifier).refresh();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cargando planes, inténtalo de nuevo en un momento'),
-          backgroundColor: Color(0xFF1A2740),
-        ),
-      );
-    } else if (context.canPop()) {
-      context.pop();
-    } else {
-      context.go(RouteConstants.home);
-    }
+    // El paquete del plan seleccionado no cargó (caso raro: offerings a
+    // medias). Reintentar e informar — NUNCA cerrar en silencio: el usuario
+    // acaba de pulsar "Suscríbete" con máxima intención de compra.
+    ref.read(subscriptionProvider.notifier).refresh();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Cargando planes, inténtalo de nuevo en un momento'),
+        backgroundColor: Color(0xFF1A2740),
+      ),
+    );
   }
 
   Future<void> _handlePurchase(Package package,

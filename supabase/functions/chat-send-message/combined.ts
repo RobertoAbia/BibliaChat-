@@ -972,10 +972,15 @@ serve(async (req) => {
 
     // 1b. Contador diario ATÓMICO + tope anti-abuso (server-side).
     // El límite free de 5/día lo pinta la app leyendo esta misma fila; este
-    // tope alto evita que una llamada directa a la función (con cualquier
-    // JWT del proyecto) tenga GPT-4o ilimitado, sin bloquear a premium
-    // legítimos (el servidor aún no conoce el entitlement — pendiente
-    // webhook RevenueCat → user_entitlements).
+    // tope evita que una llamada directa a la función (con cualquier JWT
+    // del proyecto) tenga GPT-4o ilimitado.
+    //
+    // Premium conocido por el SERVIDOR vía webhook RevenueCat →
+    // user_entitlements: sin tope. Sin fila o no-premium → tope alto (150),
+    // no el límite free de 5: el webhook no reenvía eventos pasados, así
+    // que los suscriptores anteriores a su activación no tienen fila aún y
+    // tratarlos como free los bloquearía. Cuando la tabla lleve poblada
+    // unos meses, se puede bajar el tope de no-premium hacia el límite real.
     const tz = userProfile.timezone || "America/New_York";
     let localDate: string;
     try {
@@ -983,7 +988,6 @@ serve(async (req) => {
     } catch {
       localDate = new Date().toISOString().split("T")[0];
     }
-    const HARD_DAILY_LIMIT = 150;
     const { data: dailyCount, error: limitError } = await supabase.rpc(
       "increment_daily_messages",
       { p_activity_date: localDate },
@@ -992,11 +996,24 @@ serve(async (req) => {
       // Fail-open con log: no romper el chat si la migración 00035 aún no
       // está aplicada o el RPC falla puntualmente.
       console.error("increment_daily_messages failed:", limitError.message);
-    } else if (typeof dailyCount === "number" && dailyCount > HARD_DAILY_LIMIT) {
-      return new Response(
-        JSON.stringify({ error: "daily_limit_reached", messages_sent_today: dailyCount }),
-        { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    } else if (typeof dailyCount === "number" && dailyCount > 150) {
+      // Margen de 48h sobre expires_at: las renovaciones llegan por webhook
+      // con algo de retraso y no queremos cortar a un premium real.
+      const { data: entitlement } = await supabase
+        .from("user_entitlements")
+        .select("is_premium, expires_at")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const isPremiumServer = !!entitlement?.is_premium &&
+        (!entitlement.expires_at ||
+          new Date(entitlement.expires_at).getTime() >
+            Date.now() - 48 * 3600 * 1000);
+      if (!isPremiumServer) {
+        return new Response(
+          JSON.stringify({ error: "daily_limit_reached", messages_sent_today: dailyCount }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     // 2. Obtener o crear chat (topic_key puede ser null para chats libres)
