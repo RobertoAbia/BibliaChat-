@@ -412,12 +412,22 @@ serve(async (req) => {
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
 
     // --- Autorización ---
-    // Solo el cron/backend (SERVICE_ROLE). La app NO llama a esta función
+    // Solo el cron/backend (service_role). La app NO llama a esta función
     // (lee daily_verses directamente); sin este check, cualquiera con el
     // anon key del APK podía iterar fechas arbitrarias y disparar una
     // llamada a OpenAI por cada una (coste + datos basura en producción).
+    // Se acepta: igualdad con el env, JWT con role=service_role (la firma
+    // ya la verificó el gateway) o secret key nueva (sb_secret_...).
     const token = (req.headers.get("Authorization") ?? "").replace("Bearer ", "");
-    if (token !== supabaseServiceKey) {
+    let isService = token === supabaseServiceKey || token.startsWith("sb_secret_");
+    if (!isService && token) {
+      try {
+        const payload = JSON.parse(
+          atob(token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+        isService = payload?.role === "service_role";
+      } catch { /* token no-JWT → no es service */ }
+    }
+    if (!isService) {
       return new Response(
         JSON.stringify({ success: false, error: "Forbidden" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }

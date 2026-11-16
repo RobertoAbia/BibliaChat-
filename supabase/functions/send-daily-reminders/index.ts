@@ -346,6 +346,24 @@ async function getUsersWhoLostStreak(
 // Main Handler
 // ============================================================
 
+// ¿Llamada del backend? Acepta la service_role key (igualdad con el env),
+// cualquier JWT cuyo payload tenga role=service_role (la FIRMA ya la
+// verificó el gateway de Supabase antes de invocar la función, así que el
+// payload es de fiar), o una secret key del formato nuevo (sb_secret_...).
+// Un JWT anon o de usuario tiene role 'anon'/'authenticated' y NO pasa.
+function isServiceRequest(token: string, serviceKey: string | undefined): boolean {
+  if (!token) return false;
+  if (serviceKey && token === serviceKey) return true;
+  if (token.startsWith('sb_secret_')) return true;
+  try {
+    const payload = JSON.parse(
+      atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+    return payload?.role === 'service_role';
+  } catch {
+    return false;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -353,12 +371,12 @@ serve(async (req) => {
 
   try {
     // --- Autorización ---
-    // Solo el backend (SERVICE_ROLE: el cron de GitHub Actions) puede
+    // Solo el backend (service_role: el cron de GitHub Actions) puede
     // disparar recordatorios masivos. Sin este check, cualquiera con el
     // anon key del APK podía spamear pushes a toda la base de usuarios.
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
-    if (token !== supabaseServiceKey) {
+    if (!isServiceRequest(token, supabaseServiceKey)) {
       return new Response(
         JSON.stringify({ success: false, error: 'Forbidden' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

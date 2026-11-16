@@ -173,7 +173,16 @@ serve(async (req) => {
     // primera semana). Sin este check, cualquiera con el anon key del APK
     // podía enviar pushes arbitrarios (phishing) a cualquier user_id.
     const token = (req.headers.get('Authorization') ?? '').replace('Bearer ', '');
-    let authorized = token === supabaseServiceKey;
+    // Backend: igualdad con el env, JWT con role=service_role (firma ya
+    // verificada por el gateway) o secret key nueva (sb_secret_...)
+    let authorized = token === supabaseServiceKey || token.startsWith('sb_secret_');
+    if (!authorized && token) {
+      try {
+        const payload = JSON.parse(
+          atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));
+        authorized = payload?.role === 'service_role';
+      } catch { /* no-JWT → seguir con el check de usuario */ }
+    }
     if (!authorized && token) {
       const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
       const authClient = createClient(supabaseUrl, anonKey, {
