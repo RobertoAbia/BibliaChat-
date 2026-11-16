@@ -292,7 +292,7 @@ const Map<String, List<_Verse>> _versesByMotive = {
   ],
   'understand_bible': [
     _Verse('Salmos 119:105',
-        'Tu palabra es un calzado para mis pies y una luz en mi camino.'),
+        'Tu palabra es una lámpara a mis pies y una luz en mi camino.'),
     _Verse('2 Timoteo 3:16-17',
         'Toda la Escritura es inspirada por Dios y útil para enseñar.'),
     _Verse('Juan 8:32', 'Conocerán la verdad, y la verdad los hará libres.'),

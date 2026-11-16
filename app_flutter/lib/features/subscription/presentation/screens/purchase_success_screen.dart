@@ -39,6 +39,17 @@ class _PurchaseSuccessScreenState extends State<PurchaseSuccessScreen>
       curve: Curves.easeOut,
     );
     _controller.forward();
+
+    // Programar el recordatorio de fin de trial YA (best-effort): si el
+    // usuario abandona esta pantalla sin pulsar "Continuar" (background,
+    // kill), el aviso prometido antes del cobro se perdía para siempre.
+    // scheduleTrialReminder es no-op sin permiso de notificaciones; el
+    // reintento de _continue (tras el priming de permiso) cubre ese caso.
+    if (widget.isTrialStart) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        NotificationService().scheduleTrialReminder();
+      });
+    }
   }
 
   @override

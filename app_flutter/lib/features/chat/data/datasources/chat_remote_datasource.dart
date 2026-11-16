@@ -31,6 +31,20 @@ abstract class ChatRemoteDatasource {
   Future<String> createChatWithTitle(String title, {String? topicKey});
 }
 
+/// Error de envío que puede traer el chat_id que el servidor creó antes de
+/// fallar (p.ej. OpenAI caído). El caller lo adopta para que el reintento
+/// reutilice ese chat (y la deduplicación por client_message_id funcione)
+/// en vez de crear un chat huérfano duplicado.
+class ChatSendException implements Exception {
+  final String message;
+  final String? chatId;
+
+  ChatSendException(this.message, {this.chatId});
+
+  @override
+  String toString() => message;
+}
+
 class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
   final SupabaseClient _supabase;
 
@@ -44,8 +58,16 @@ class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
     String? systemMessage,
     String? clientMessageId,
   }) async {
+    final now = DateTime.now();
     final body = <String, dynamic>{
       'user_message': userMessage,
+      // Fecha local del dispositivo: el servidor incrementa el contador
+      // diario en esta fecha (la misma con la que la app lo lee). Sin esto,
+      // con un timezone de perfil desfasado contador y lectura usarían
+      // filas distintas de daily_activity.
+      'local_date': '${now.year.toString().padLeft(4, '0')}-'
+          '${now.month.toString().padLeft(2, '0')}-'
+          '${now.day.toString().padLeft(2, '0')}',
     };
 
     // Idempotencia de reintentos: mismo id → el servidor no duplica el
@@ -69,16 +91,34 @@ class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
       body['system_message'] = systemMessage;
     }
 
-    final response = await _supabase.functions.invoke(
-      'chat-send-message',
-      body: body,
-    );
-
-    if (response.status != 200) {
-      throw Exception('Failed to send message: ${response.data}');
+    Map<String, dynamic>? data;
+    int status;
+    try {
+      final response = await _supabase.functions.invoke(
+        'chat-send-message',
+        body: body,
+      );
+      status = response.status;
+      data = response.data is Map<String, dynamic>
+          ? response.data as Map<String, dynamic>
+          : null;
+    } on FunctionException catch (e) {
+      // supabase_flutter lanza en respuestas no-2xx; el body del error viene
+      // en details y puede traer el chat_id creado antes de fallar
+      status = e.status;
+      data = e.details is Map<String, dynamic>
+          ? e.details as Map<String, dynamic>
+          : null;
     }
 
-    return response.data as Map<String, dynamic>;
+    if (status != 200 || data == null) {
+      throw ChatSendException(
+        'Failed to send message (HTTP $status): ${data ?? ''}',
+        chatId: data?['chat_id'] as String?,
+      );
+    }
+
+    return data;
   }
 
   @override

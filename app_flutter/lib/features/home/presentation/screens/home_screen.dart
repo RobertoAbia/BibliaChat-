@@ -29,6 +29,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   /// Día seleccionado en el calendario (por defecto hoy).
   DateTime _selectedDate = DateTime.now();
 
+  /// true solo si el usuario tocó un día del calendario explícitamente.
+  /// Permite distinguir una selección real de un _selectedDate rancio
+  /// (p.ej. pasó la medianoche) y re-anclar a hoy en ese caso.
+  bool _dateSelectedByUser = false;
+
   /// Guard: esperar a que los providers tengan datos antes de renderizar.
   /// _forceReady es safety net: si algo falla, mostramos la UI igual tras 150ms.
   bool _forceReady = false;
@@ -63,7 +68,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // mostraban contenido viejo y un usuario free entraba por la rama de
     // "día pasado" saltándose el paywall de recuperación.
     if (state == AppLifecycleState.resumed && !_isViewingToday) {
-      setState(() => _selectedDate = DateTime.now());
+      setState(() {
+        _selectedDate = DateTime.now();
+        _dateSelectedByUser = false;
+      });
     }
   }
 
@@ -77,6 +85,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    // Medianoche con la app en PRIMER PLANO (no hay evento resumed): si
+    // nadie seleccionó un día explícitamente y _selectedDate quedó en
+    // "ayer", re-anclar a hoy — si no, las cards muestran contenido viejo y
+    // un free entraría a la rama de día pasado sin paywall.
+    if (!_dateSelectedByUser && !_isViewingToday) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && !_dateSelectedByUser && !_isViewingToday) {
+          setState(() => _selectedDate = DateTime.now());
+        }
+      });
+    }
+
     // Guard: no renderizar hasta que los providers críticos tengan datos.
     // _forceReady (150ms) es safety net para que la UI nunca se quede bloqueada.
     if (!_forceReady) {
@@ -301,9 +321,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             final VoidCallback? onTap;
             switch (dayState) {
               case _DayState.today:
-                onTap = () => setState(() => _selectedDate = today);
+                onTap = () => setState(() {
+                      _selectedDate = today;
+                      _dateSelectedByUser = true;
+                    });
               case _DayState.pastCompleted:
-                onTap = () => setState(() => _selectedDate = dayOnly);
+                onTap = () => setState(() {
+                      _selectedDate = dayOnly;
+                      _dateSelectedByUser = true;
+                    });
               case _DayState.pastLocked:
                 onTap = () => _onLockedDayTapped(dayOnly);
               case _DayState.future:
@@ -548,7 +574,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   void _onLockedDayTapped(DateTime date) {
     final isPremium = ref.read(isPremiumProvider);
     if (isPremium) {
-      setState(() => _selectedDate = date);
+      setState(() {
+        _selectedDate = date;
+        _dateSelectedByUser = true;
+      });
     } else {
       context.push('${RouteConstants.paywall}?source=home');
     }

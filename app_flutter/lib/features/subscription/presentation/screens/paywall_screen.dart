@@ -63,7 +63,12 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   }
 
   void _closePaywall() {
-    AnalyticsService().logPaywallDismissed(source: widget.source);
+    // La válvula de escape del gate (planes sin cargar) NO es un dismiss
+    // real: contarlo ensuciaría el embudo con salidas por fallo de
+    // infraestructura indistinguibles de rechazos genuinos
+    if (!widget.gate) {
+      AnalyticsService().logPaywallDismissed(source: widget.source);
+    }
     if (context.canPop()) {
       context.pop();
     } else {
@@ -234,12 +239,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   void _initSelection(Package? monthly, Package? annual) {
     if (_selectionInitialized || (monthly == null && annual == null)) return;
     _selectionInitialized = true;
+    // Nunca seleccionar un plan cuyo paquete no cargó (offerings a medias):
+    // dejaría la card "—" seleccionada y el CTA en bucle de reintento
     switch (RemoteConfigService().paywallDefaultPlan) {
       case 'annual':
-        _selected = _Plan.annual;
+        _selected = annual != null ? _Plan.annual : _Plan.monthly;
         return;
       case 'monthly':
-        _selected = _Plan.monthly;
+        _selected = monthly != null ? _Plan.monthly : _Plan.annual;
         return;
     }
     if (_isEligibleForTrial) {
@@ -252,7 +259,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
         return;
       }
     }
-    _selected = _Plan.annual;
+    _selected = annual != null ? _Plan.annual : _Plan.monthly;
   }
 
   @override

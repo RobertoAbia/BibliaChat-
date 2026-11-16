@@ -105,7 +105,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         // Hard paywall: solo los premium entran a la app; el resto va al
         // paywall-puerta. Leemos el premium cacheado en SharedPreferences
         // (instantáneo; RevenueCat lo refresca en background tras navegar).
-        final isPremium = prefs.getBool('is_premium') ?? false;
+        final isPremium =
+            prefs.getBool(RevenueCatService.premiumCacheKey) ?? false;
         if (!mounted) return;
         if (isPremium) {
           // Precargar datos de Home (con timeout, splash nativa cubre la espera)
@@ -116,7 +117,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           // Sembrar la elegibilidad de trial persistida para que el paywall-puerta
           // no parpadee en cold start (no pasa por pre-paywall).
           RevenueCatService.instance
-              .seedTrialEligibility(prefs.getBool('trial_eligible'));
+              .seedTrialEligibility(
+                  prefs.getBool(RevenueCatService.trialEligibleCacheKey));
           context.go('${RouteConstants.paywall}?gate=true');
         }
         FlutterNativeSplash.remove();

@@ -446,6 +446,7 @@ interface ChatRequest {
   chat_id?: string;
   system_message?: string;  // Contenido de Story - se guarda como mensaje 'system' en BD
   client_message_id?: string;  // UUID del cliente para reintentos idempotentes (migr. 00037)
+  local_date?: string;  // Fecha local del DISPOSITIVO (YYYY-MM-DD) para el contador diario
 }
 
 interface UserProfile {
@@ -924,6 +925,12 @@ serve(async (req) => {
     return new Response("ok", { headers: corsHeaders });
   }
 
+  // Para incluirlo en la respuesta de ERROR: si esta request creó un chat
+  // nuevo y luego falló (p.ej. OpenAI), el cliente debe aprender el chat_id
+  // o su reintento crearía un SEGUNDO chat huérfano (el UNIQUE de
+  // client_message_id no deduplica entre chats distintos).
+  let chatIdForError: string | null = null;
+
   try {
     // Obtener variables de entorno
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -1005,6 +1012,18 @@ serve(async (req) => {
     } catch {
       localDate = new Date().toISOString().split("T")[0];
     }
+    // La app envía la fecha local del DISPOSITIVO: es la misma con la que
+    // luego LEE el contador (badge de restantes y límite free). Si difiere
+    // del timezone del perfil (viaje, perfil desactualizado), contador y
+    // lectura usarían filas distintas. Clamp a ±1 día del cálculo del
+    // servidor: una llamada directa no puede rotar fechas para estrenar
+    // contador en cada request.
+    const clientDate = body.local_date;
+    if (typeof clientDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(clientDate)) {
+      const diffDays = Math.abs(
+        (Date.parse(clientDate) - Date.parse(localDate)) / 86400000);
+      if (diffDays <= 1) localDate = clientDate;
+    }
     const { data: dailyCount, error: limitError } = await supabase.rpc(
       "increment_daily_messages",
       { p_activity_date: localDate },
@@ -1036,6 +1055,7 @@ serve(async (req) => {
     // 2. Obtener o crear chat (topic_key puede ser null para chats libres)
     console.log("Step 2: Getting/creating chat...");
     const chat = await getOrCreateChat(supabase, userId, topic_key, chat_id);
+    chatIdForError = chat.id;
     console.log("Step 2: Done - chat_id:", chat.id);
 
     // (Paso 3 eliminado: los mensajes recientes se obtienen en el paso 7,
@@ -1055,8 +1075,23 @@ serve(async (req) => {
     );
     console.log("Step 4: Done - prompt length:", systemPrompt.length);
 
+    // ¿Reintento? Si el mensaje del usuario ya quedó guardado con este
+    // client_message_id en un intento anterior, NO re-guardar el
+    // system_message (contenido de Story/plan): se duplicaría en el
+    // historial y en el prompt.
+    let isRetry = false;
+    if (client_message_id && system_message) {
+      const { data: existingMsg } = await supabase
+        .from("chat_messages")
+        .select("id")
+        .eq("chat_id", chat.id)
+        .eq("client_message_id", client_message_id)
+        .maybeSingle();
+      isRetry = !!existingMsg;
+    }
+
     // 5. Si hay system_message (contenido de Story), guardarlo primero como mensaje 'assistant'
-    if (system_message) {
+    if (system_message && !isRetry) {
       console.log("Step 5a: Saving system_message (Story content) as assistant...");
       await saveMessage(supabase, chat.id, "assistant", system_message);
       console.log("Step 5a: Done - story content saved as assistant message");
@@ -1149,7 +1184,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: false,
-        error: error instanceof Error ? error.message : "Unknown error"
+        error: error instanceof Error ? error.message : "Unknown error",
+        // El cliente lo adopta para que el reintento reuse el chat creado
+        chat_id: chatIdForError,
       }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

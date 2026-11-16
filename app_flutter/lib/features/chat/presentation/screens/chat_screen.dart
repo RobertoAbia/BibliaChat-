@@ -775,7 +775,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen>
           ),
         ],
       ),
-    ).then((_) => controller.dispose());
+    ).then((_) {
+      // Tras el pop, el TextField sigue montado durante la animación de
+      // salida (~150ms): disponer el controller en caliente lanza
+      // "used after being disposed"
+      Future.delayed(const Duration(milliseconds: 400), controller.dispose);
+    });
   }
 
   void _showDeleteDialog(ChatState chatState) {

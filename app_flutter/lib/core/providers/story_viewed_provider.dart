@@ -58,18 +58,8 @@ final viewedSlidesForDateProvider = FutureProvider.family<Set<int>, DateTime>((r
   return completedDates.contains(dateStr) ? _allSlidesViewed : localSlides;
 });
 
-/// Provider family to mark a specific slide as viewed.
-/// Usage: ref.read(markSlideViewedProvider(slideIndex))
-final markSlideViewedProvider = FutureProvider.family<void, int>((ref, slideIndex) async {
-  final userId = ref.watch(currentUserIdProvider);
-  final gospelAsync = ref.watch(dailyGospelProvider);
-  final service = ref.watch(storyViewedServiceProvider);
-
-  if (userId == null) return;
-
-  final gospel = gospelAsync.valueOrNull;
-  if (gospel == null) return;
-
-  // Misma clave que viewedSlidesProvider: la fecha de HOY (ver nota arriba)
-  await service.markSlideAsViewed(userId, DateTime.now(), slideIndex);
-});
+// NOTA: el marcado de slides vistos se hace directamente vía
+// StoryViewedService desde home_screen (callback onSlideViewed), con la
+// fecha del flujo como clave. No hay provider de escritura: tener la regla
+// de la clave duplicada en dos sitios reintrodujo en su día el desajuste
+// gospel.date vs hoy.

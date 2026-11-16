@@ -337,6 +337,12 @@ class ChatNotifier extends StateNotifier<ChatState> {
       // Guardar el id para que el reintento del mismo texto sea idempotente
       _failedClientMessageId = clientMessageId;
       _failedContent = content;
+      // Si el servidor creó el chat antes de fallar, adoptar su id: el
+      // reintento debe reutilizar ESE chat (donde ya puede estar guardado
+      // el mensaje) en vez de crear uno duplicado
+      if (e is ChatSendException && e.chatId != null && state.chatId == null) {
+        state = state.copyWith(chatId: e.chatId);
+      }
       // Retirar el mensaje optimista: dejarlo pintado haría creer al usuario
       // que se envió, cuando no está en BD y desaparecería al recargar.
       state = state.copyWith(

@@ -38,7 +38,10 @@ class RevenueCatService {
   /// Elegibilidad de trial (null = desconocida). Se cachea en memoria y se
   /// persiste en disco para tenerla disponible al instante en cold start.
   bool? _trialEligible;
-  static const String _kTrialEligibleKey = 'trial_eligible';
+
+  /// Clave de la caché de elegibilidad de trial (la lee el splash para
+  /// sembrar el paywall-puerta sin parpadeo en cold start).
+  static const String trialEligibleCacheKey = 'trial_eligible';
 
   /// Atributos de cliente pendientes de enviar (si se fijan antes de que el
   /// SDK termine de inicializarse, se envían al acabar `init`).
@@ -194,7 +197,7 @@ class RevenueCatService {
   Future<void> _persistEligibility(bool value) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_kTrialEligibleKey, value);
+      await prefs.setBool(trialEligibleCacheKey, value);
     } catch (_) {}
   }
 
@@ -295,7 +298,7 @@ class RevenueCatService {
     _trialEligible = null;
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.remove(_kTrialEligibleKey);
+      await prefs.remove(trialEligibleCacheKey);
       await prefs.remove(premiumCacheKey);
     } catch (_) {}
   }
