@@ -6,7 +6,7 @@
 **Propuesta de valor:** "La app cristiana hecha para ti. Que entiende tu fe, tu idioma, tu cultura."
 
 ## Stack Tecnológico
-- **Frontend:** Flutter (iOS 14.5+ / Android 6.0+)
+- **Frontend:** Flutter (iOS 15.0+ / Android 6.0+) — mínimo iOS subido a 15.0 el 16 nov 2026 (lo exige el SDK de Facebook/Meta)
 - **Backend/DB/Auth:** Supabase (PostgreSQL + Auth + RLS + Edge Functions)
 - **IA:** OpenAI GPT-5.2 (usa `role: "developer"` y `max_completion_tokens`)
 - **Pagos:** RevenueCat + In-App Purchases
