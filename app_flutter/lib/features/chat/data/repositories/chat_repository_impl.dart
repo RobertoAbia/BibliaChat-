@@ -39,12 +39,14 @@ class ChatRepositoryImpl implements ChatRepository {
     required String userMessage,
     String? chatId,
     String? systemMessage,
+    String? clientMessageId,
   }) async {
     final response = await _remoteDatasource.sendMessage(
       topicKey: topicKey,
       userMessage: userMessage,
       chatId: chatId,
       systemMessage: systemMessage,
+      clientMessageId: clientMessageId,
     );
 
     // La Edge Function devuelve el mensaje del asistente y opcionalmente el título

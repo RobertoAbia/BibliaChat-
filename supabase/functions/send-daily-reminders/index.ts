@@ -185,23 +185,67 @@ function getLocalDate(timezone: string, daysOffset = 0): string {
   }
 }
 
+// Pagina user_devices: PostgREST corta en 1000 filas por request — a partir
+// de ~1000 dispositivos, los usuarios siguientes dejaban de recibir pushes
+// en silencio, sin ningún error.
 async function getUserIdsWithToken(supabase: SupabaseClient): Promise<Set<string>> {
-  const { data } = await supabase.from('user_devices').select('user_id');
-  return new Set((data || []).map(d => d.user_id));
+  const ids = new Set<string>();
+  const pageSize = 1000;
+  for (let from = 0; ; from += pageSize) {
+    const { data, error } = await supabase
+      .from('user_devices')
+      .select('user_id')
+      .range(from, from + pageSize - 1);
+    if (error) {
+      console.error('getUserIdsWithToken:', error.message);
+      break;
+    }
+    const rows = data || [];
+    for (const d of rows) ids.add(d.user_id);
+    if (rows.length < pageSize) break;
+  }
+  return ids;
+}
+
+// .in() con miles de ids genera URLs gigantes que PostgREST rechaza:
+// trocear la lista y concatenar resultados.
+async function selectInChunks<T>(
+  buildQuery: (chunk: string[]) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+  ids: string[],
+  chunkSize = 200,
+): Promise<T[]> {
+  const all: T[] = [];
+  for (let i = 0; i < ids.length; i += chunkSize) {
+    const { data, error } = await buildQuery(ids.slice(i, i + chunkSize));
+    if (error) {
+      console.error('selectInChunks:', error.message);
+      continue;
+    }
+    all.push(...(data || []));
+  }
+  return all;
+}
+
+// Perfiles (user_id + timezone) de todos los usuarios con token FCM
+async function getProfilesWithToken(
+  supabase: SupabaseClient,
+): Promise<{ user_id: string; timezone: string | null }[]> {
+  const userIdsWithToken = await getUserIdsWithToken(supabase);
+  if (userIdsWithToken.size === 0) return [];
+  return selectInChunks(
+    (chunk) =>
+      supabase.from('user_profiles').select('user_id, timezone').in('user_id', chunk),
+    Array.from(userIdsWithToken),
+  );
 }
 
 async function getUsersWhoMissedStories(
   supabase: SupabaseClient, targetHour: number
 ): Promise<UserToNotify[]> {
-  const userIdsWithToken = await getUserIdsWithToken(supabase);
-  if (userIdsWithToken.size === 0) return [];
-
-  const { data: profiles } = await supabase
-    .from('user_profiles').select('user_id, timezone')
-    .in('user_id', Array.from(userIdsWithToken));
+  const profiles = await getProfilesWithToken(supabase);
 
   // Candidatos: usuarios en la hora local objetivo
-  const candidates = (profiles || []).filter(u =>
+  const candidates = profiles.filter(u =>
     getLocalHour(u.timezone || 'America/New_York') === targetHour);
   if (candidates.length === 0) return [];
 
@@ -209,15 +253,20 @@ async function getUsersWhoMissedStories(
   // escribe la app en daily_activity)
   const todayByUser = new Map(candidates.map(u =>
     [u.user_id, getLocalDate(u.timezone || 'America/New_York')]));
+  const todayDates = [...new Set(todayByUser.values())];
 
-  const { data: completedRows } = await supabase
-    .from('daily_activity').select('user_id, activity_date')
-    .eq('completed', true)
-    .in('user_id', candidates.map(u => u.user_id))
-    .in('activity_date', [...new Set(todayByUser.values())]);
+  const completedRows = await selectInChunks<{ user_id: string; activity_date: string }>(
+    (chunk) =>
+      supabase
+        .from('daily_activity').select('user_id, activity_date')
+        .eq('completed', true)
+        .in('user_id', chunk)
+        .in('activity_date', todayDates),
+    candidates.map(u => u.user_id),
+  );
 
   const completedKey = new Set(
-    (completedRows || []).map(r => `${r.user_id}:${r.activity_date}`));
+    completedRows.map(r => `${r.user_id}:${r.activity_date}`));
 
   return candidates
     .filter(u => !completedKey.has(`${u.user_id}:${todayByUser.get(u.user_id)}`))
@@ -233,15 +282,14 @@ async function getUsersForDailyReminder(supabase: SupabaseClient): Promise<UserT
   const userIdsWithToken = await getUserIdsWithToken(supabase);
   if (userIdsWithToken.size === 0) return [];
 
-  const { data: users, error } = await supabase
-    .from('user_profiles').select('user_id, timezone, reminder_time')
-    .eq('reminder_enabled', true).not('reminder_time', 'is', null)
-    .in('user_id', Array.from(userIdsWithToken));
-
-  if (error || !users) {
-    console.error('Error getting users for daily reminder:', error);
-    return [];
-  }
+  const users = await selectInChunks<{ user_id: string; timezone: string | null; reminder_time: string | null }>(
+    (chunk) =>
+      supabase
+        .from('user_profiles').select('user_id, timezone, reminder_time')
+        .eq('reminder_enabled', true).not('reminder_time', 'is', null)
+        .in('user_id', chunk),
+    Array.from(userIdsWithToken),
+  );
 
   return users
     .filter(u => {
@@ -266,20 +314,27 @@ async function getUsersWithAbandonedPlans(
   const userIdsWithToken = await getUserIdsWithToken(supabase);
   if (userIdsWithToken.size === 0) return [];
 
-  const { data: plans, error } = await supabase
-    .from('user_plans').select('user_id, updated_at, plan_id')
-    .eq('status', 'in_progress').lt('updated_at', threeDaysAgo.toISOString())
-    .in('user_id', Array.from(userIdsWithToken));
-
-  if (error || !plans || plans.length === 0) return [];
+  const plans = await selectInChunks<{ user_id: string; updated_at: string; plan_id: string }>(
+    (chunk) =>
+      supabase
+        .from('user_plans').select('user_id, updated_at, plan_id')
+        .eq('status', 'in_progress').lt('updated_at', threeDaysAgo.toISOString())
+        .in('user_id', chunk),
+    Array.from(userIdsWithToken),
+  );
+  if (plans.length === 0) return [];
 
   const planIds = [...new Set(plans.map(p => p.plan_id))];
   const { data: planData } = await supabase.from('plans').select('id, name').in('id', planIds);
   const planNames = new Map((planData || []).map(p => [p.id, p.name]));
 
   const userIds = [...new Set(plans.map(p => p.user_id))];
-  const { data: profiles } = await supabase.from('user_profiles').select('user_id, timezone').in('user_id', userIds);
-  const tzMap = new Map((profiles || []).map(p => [p.user_id, p.timezone || 'America/New_York']));
+  const profiles = await selectInChunks<{ user_id: string; timezone: string | null }>(
+    (chunk) =>
+      supabase.from('user_profiles').select('user_id, timezone').in('user_id', chunk),
+    userIds,
+  );
+  const tzMap = new Map(profiles.map(p => [p.user_id, p.timezone || 'America/New_York']));
 
   return plans
     .filter(p => getLocalHour(tzMap.get(p.user_id) || 'America/New_York') === targetHour)
@@ -294,15 +349,10 @@ async function getUsersWithAbandonedPlans(
 async function getUsersWhoLostStreak(
   supabase: SupabaseClient, targetHour: number
 ): Promise<UserToNotify[]> {
-  const userIdsWithToken = await getUserIdsWithToken(supabase);
-  if (userIdsWithToken.size === 0) return [];
-
-  const { data: profiles } = await supabase
-    .from('user_profiles').select('user_id, timezone')
-    .in('user_id', Array.from(userIdsWithToken));
+  const profiles = await getProfilesWithToken(supabase);
 
   // Candidatos: usuarios en la hora local objetivo
-  const candidates = (profiles || []).filter(p =>
+  const candidates = profiles.filter(p =>
     getLocalHour(p.timezone || 'America/New_York') === targetHour);
   if (candidates.length === 0) return [];
 
@@ -318,14 +368,18 @@ async function getUsersWhoLostStreak(
   const allDates = [...new Set(
     [...datesByUser.values()].flatMap(d => [d.yesterday, d.twoDaysAgo]))];
 
-  const { data: activityRows } = await supabase
-    .from('daily_activity').select('user_id, activity_date')
-    .eq('completed', true)
-    .in('user_id', candidates.map(c => c.user_id))
-    .in('activity_date', allDates);
+  const activityRows = await selectInChunks<{ user_id: string; activity_date: string }>(
+    (chunk) =>
+      supabase
+        .from('daily_activity').select('user_id, activity_date')
+        .eq('completed', true)
+        .in('user_id', chunk)
+        .in('activity_date', allDates),
+    candidates.map(c => c.user_id),
+  );
 
   const completedKey = new Set(
-    (activityRows || []).map(r => `${r.user_id}:${r.activity_date}`));
+    activityRows.map(r => `${r.user_id}:${r.activity_date}`));
 
   return candidates
     .filter(p => {

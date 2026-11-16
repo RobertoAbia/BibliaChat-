@@ -238,11 +238,17 @@ class _ShareImageScreenState extends State<ShareImageScreen> {
     try {
       final imageBytes = await _captureImage();
       if (imageBytes == null) throw Exception('No se pudo capturar');
+      // Guard tras los await: usar context/findRenderObject en un element
+      // desmontado lanza
+      if (!mounted) return;
 
       final directory = await getTemporaryDirectory();
-      final imagePath = '${directory.path}/reflexion_${DateTime.now().millisecondsSinceEpoch}.png';
+      // Nombre fijo: cada share sobrescribe el anterior en vez de acumular
+      // un reflexion_<timestamp>.png por cada uso en el directorio temporal
+      final imagePath = '${directory.path}/reflexion_compartida.png';
       final file = File(imagePath);
       await file.writeAsBytes(imageBytes);
+      if (!mounted) return;
 
       final box = context.findRenderObject() as RenderBox?;
       await Share.shareXFiles(
@@ -272,11 +278,17 @@ class _ShareImageScreenState extends State<ShareImageScreen> {
       if (imageBytes == null) throw Exception('No se pudo capturar');
 
       final directory = await getTemporaryDirectory();
-      final imagePath = '${directory.path}/reflexion_${DateTime.now().millisecondsSinceEpoch}.png';
+      // Nombre fijo (ver _executeShare): no acumular PNGs en el temporal
+      final imagePath = '${directory.path}/reflexion_compartida.png';
       final file = File(imagePath);
       await file.writeAsBytes(imageBytes);
 
       await Gal.putImage(imagePath);
+
+      // La imagen ya está en la galería: el temporal no hace falta
+      try {
+        await file.delete();
+      } catch (_) {}
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

@@ -251,6 +251,11 @@ class _MainShellState extends ConsumerState<MainShell> {
   PageController? _pageController;
   bool _isSyncing = false;
 
+  /// Animación de tab en curso: el sync-guard del build no debe hacer
+  /// jumpToPage mientras tanto (cancelaba el animateToPage en el primer
+  /// frame y el cambio de tab siempre saltaba en seco).
+  bool _isTabAnimating = false;
+
   static const _mainRoutes = [
     RouteConstants.home,
     RouteConstants.chatList,
@@ -292,11 +297,14 @@ class _MainShellState extends ConsumerState<MainShell> {
       return;
     }
 
-    _pageController?.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 150),
-      curve: Curves.easeOutCubic,
-    );
+    _isTabAnimating = true;
+    _pageController
+        ?.animateToPage(
+          index,
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOutCubic,
+        )
+        .whenComplete(() => _isTabAnimating = false);
     context.go(_mainRoutes[index]);
   }
 
@@ -325,9 +333,9 @@ class _MainShellState extends ConsumerState<MainShell> {
 
     if (isMainRoute && _pageController!.hasClients) {
       final currentPage = _pageController!.page?.round() ?? 0;
-      if (currentPage != selectedIndex) {
+      if (currentPage != selectedIndex && !_isTabAnimating) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_pageController!.hasClients && mounted) {
+          if (_pageController!.hasClients && mounted && !_isTabAnimating) {
             _isSyncing = true;
             _pageController!.jumpToPage(selectedIndex);
             _isSyncing = false;

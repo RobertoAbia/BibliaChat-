@@ -445,6 +445,7 @@ interface ChatRequest {
   user_message: string;
   chat_id?: string;
   system_message?: string;  // Contenido de Story - se guarda como mensaje 'system' en BD
+  client_message_id?: string;  // UUID del cliente para reintentos idempotentes (migr. 00037)
 }
 
 interface UserProfile {
@@ -612,19 +613,35 @@ async function saveMessage(
   supabase: SupabaseClient,
   chatId: string,
   role: "user" | "assistant",
-  content: string
+  content: string,
+  clientMessageId?: string
 ): Promise<string> {
+  const row: Record<string, unknown> = {
+    chat_id: chatId,
+    role: role,
+    content: content,
+  };
+  if (clientMessageId) row.client_message_id = clientMessageId;
+
   const { data, error } = await supabase
     .from("chat_messages")
-    .insert({
-      chat_id: chatId,
-      role: role,
-      content: content,
-    })
+    .insert(row)
     .select("id")
     .single();
 
   if (error) {
+    // Reintento idempotente: el mensaje ya se guardó en un intento anterior
+    // que falló más adelante (p.ej. OpenAI caído). El UNIQUE de la migración
+    // 00037 lo detecta — reutilizar el existente en vez de duplicarlo.
+    if (clientMessageId && error.code === "23505") {
+      const { data: existing } = await supabase
+        .from("chat_messages")
+        .select("id")
+        .eq("chat_id", chatId)
+        .eq("client_message_id", clientMessageId)
+        .single();
+      if (existing) return existing.id;
+    }
     throw new Error(`Failed to save message: ${error.message}`);
   }
 
@@ -944,7 +961,7 @@ serve(async (req) => {
 
     // Parsear body del request
     const body: ChatRequest = await req.json();
-    const { topic_key, user_message, chat_id, system_message } = body;
+    const { topic_key, user_message, chat_id, system_message, client_message_id } = body;
 
     // Solo user_message es obligatorio (topic_key es opcional para chats libres)
     if (!user_message) {
@@ -1045,9 +1062,9 @@ serve(async (req) => {
       console.log("Step 5a: Done - story content saved as assistant message");
     }
 
-    // 6. Guardar mensaje del usuario
+    // 6. Guardar mensaje del usuario (idempotente si llega client_message_id)
     console.log("Step 6: Saving user message...");
-    await saveMessage(supabase, chat.id, "user", user_message);
+    await saveMessage(supabase, chat.id, "user", user_message, client_message_id);
     console.log("Step 6: Done");
 
     // 7. Obtener mensajes actualizados (incluyendo el system_message recién guardado)

@@ -29,7 +29,11 @@ final viewedSlidesProvider = FutureProvider<Set<int>>((ref) async {
     return <int>{};
   }
 
-  final localSlides = await service.getViewedSlides(userId, gospel.date);
+  // Clave = fecha de HOY, no gospel.date: si el cron falló y se sirve el
+  // evangelio de ayer como fallback, gospel.date apuntaría al progreso de
+  // ayer (100% instantáneo y completación de hoy con un solo slide).
+  final today = DateTime.now();
+  final localSlides = await service.getViewedSlides(userId, today);
   if (localSlides.isNotEmpty) return localSlides;
 
   // Fallback: if local is empty, check Supabase
@@ -66,5 +70,6 @@ final markSlideViewedProvider = FutureProvider.family<void, int>((ref, slideInde
   final gospel = gospelAsync.valueOrNull;
   if (gospel == null) return;
 
-  await service.markSlideAsViewed(userId, gospel.date, slideIndex);
+  // Misma clave que viewedSlidesProvider: la fecha de HOY (ver nota arriba)
+  await service.markSlideAsViewed(userId, DateTime.now(), slideIndex);
 });

@@ -8,6 +8,7 @@ abstract class ChatRemoteDatasource {
     required String userMessage,
     String? chatId,
     String? systemMessage,  // Contenido de Story (se guarda como mensaje 'system' en BD)
+    String? clientMessageId,  // Idempotencia de reintentos
   });
 
   Future<List<ChatMessageModel>> getMessages(String chatId);
@@ -41,10 +42,17 @@ class ChatRemoteDatasourceImpl implements ChatRemoteDatasource {
     required String userMessage,
     String? chatId,
     String? systemMessage,
+    String? clientMessageId,
   }) async {
     final body = <String, dynamic>{
       'user_message': userMessage,
     };
+
+    // Idempotencia de reintentos: mismo id → el servidor no duplica el
+    // mensaje si ya lo guardó en un intento que falló después
+    if (clientMessageId != null) {
+      body['client_message_id'] = clientMessageId;
+    }
 
     // Solo incluir topic_key si no es null
     if (topicKey != null) {

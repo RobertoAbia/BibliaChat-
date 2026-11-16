@@ -916,7 +916,22 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
     }
   }
 
+  bool _restoring = false;
+
   Future<void> _handleRestore() async {
+    // Guard de taps repetidos: restaurar/comprar en paralelo lanza llamadas
+    // concurrentes a RevenueCat y duplica snackbars/navegaciones
+    final state = ref.read(subscriptionProvider);
+    if (_restoring || state.isPurchasing || state.isLoading) return;
+    _restoring = true;
+    try {
+      await _doRestore();
+    } finally {
+      _restoring = false;
+    }
+  }
+
+  Future<void> _doRestore() async {
     await ref.read(subscriptionProvider.notifier).restorePurchases();
     if (!mounted) return;
     final isPremium = ref.read(subscriptionProvider).isPremium;

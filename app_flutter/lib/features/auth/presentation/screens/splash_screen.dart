@@ -62,7 +62,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       return;
     }
 
-    // 2. Hay sesión — verificar email pendiente (check local, sin red)
+    // 2. Hay sesión — verificar email pendiente (check local, sin red).
+    // DELIBERADO: solo aplica a user.email (registro directo con email).
+    // Un anónimo que vinculó email tiene el pendiente en user.newEmail y NO
+    // se le redirige aquí: la vinculación es opcional y forzar la pantalla
+    // de verificación en cada arranque lo dejaría fuera de la app; Settings
+    // ya muestra el estado "Verificar tu email / Pendiente".
     final user = session.user;
     if (user.email != null &&
         user.email!.isNotEmpty &&

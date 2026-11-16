@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/services/analytics_service.dart';
 import '../../../profile/presentation/providers/user_profile_provider.dart';
@@ -142,6 +143,12 @@ class ChatNotifier extends StateNotifier<ChatState> {
   final ChatIdentifier _identifier;
   final Ref _ref;
 
+  /// Id idempotente del último envío FALLIDO: si el usuario reintenta el
+  /// mismo contenido, se reutiliza para que el servidor no duplique el
+  /// mensaje (quedó guardado si el fallo fue después de persistirlo).
+  String? _failedClientMessageId;
+  String? _failedContent;
+
   ChatNotifier(this._repository, this._identifier, this._ref)
       : super(ChatState(
           topicKey: _identifier.topicKey,
@@ -254,6 +261,13 @@ class ChatNotifier extends StateNotifier<ChatState> {
       error: null,
     );
 
+    // Reutilizar el id del intento fallido si es el mismo contenido
+    // (idempotencia server-side, migración 00037)
+    final clientMessageId =
+        (_failedContent == content && _failedClientMessageId != null)
+            ? _failedClientMessageId!
+            : const Uuid().v4();
+
     try {
       // Enviar mensaje a la Edge Function y obtener respuesta + título
       // El systemMessage (contenido de Story) se guarda como mensaje 'system' en BD
@@ -263,7 +277,10 @@ class ChatNotifier extends StateNotifier<ChatState> {
         userMessage: content,
         chatId: state.chatId,
         systemMessage: systemMessage,
+        clientMessageId: clientMessageId,
       );
+      _failedClientMessageId = null;
+      _failedContent = null;
 
       final assistantMessage = result.message;
       final generatedTitle = result.title;
@@ -317,6 +334,9 @@ class ChatNotifier extends StateNotifier<ChatState> {
       );
       return true;
     } catch (e) {
+      // Guardar el id para que el reintento del mismo texto sea idempotente
+      _failedClientMessageId = clientMessageId;
+      _failedContent = content;
       // Retirar el mensaje optimista: dejarlo pintado haría creer al usuario
       // que se envió, cuando no está en BD y desaparecería al recargar.
       state = state.copyWith(

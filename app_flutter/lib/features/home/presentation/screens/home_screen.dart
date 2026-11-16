@@ -680,6 +680,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final isCatholic = profileAsync.valueOrNull?.denomination == Denomination.catolica;
     final topicKey = isCatholic ? 'evangelio_del_dia' : 'lectura_del_dia';
 
+    // Clave del PROGRESO: la fecha del flujo, no la del contenido. En el
+    // flujo "hoy", gospel.date puede ser AYER (fallback cuando el cron
+    // falla): usar gospel.date mezclaba el progreso de ayer con el de hoy
+    // (100% instantáneo, completación de hoy con un solo slide).
+    final progressDate = forDate ?? DateTime.now();
+
     // Open Stories at the specified slide using GoRouter
     await context.push(
       '/home/stories',
@@ -690,7 +696,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         'singleSlideIndex': slideIndex,
         'onSlideViewed': (int index) async {
           // Mark slide as viewed (with user ID)
-          await service.markSlideAsViewed(userId, gospel.date, index);
+          await service.markSlideAsViewed(userId, progressDate, index);
         },
       },
     );
@@ -702,7 +708,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
 
     // Read directly from SharedPreferences to check completion
-    final viewedSlides = await service.getViewedSlides(userId, gospel.date);
+    final viewedSlides = await service.getViewedSlides(userId, progressDate);
     debugPrint('After Stories: viewedSlides = $viewedSlides (length=${viewedSlides.length})');
 
     if (viewedSlides.length >= 3) {
