@@ -12,9 +12,9 @@
 12. [2 Samuel 22:31] El camino de Dios es perfecto; la palabra del Señor es probada.
 13. [1 Reyes 8:56] De todas las promesas que hizo el Señor, ni una sola ha fallado.
 14. [Nehemías 8:10] No estés triste. La alegría del Señor es tu fortaleza.
-15. [Job 11:18] Ten confianza porque hay esperanza; mira a tu alrededor y agradece.
+15. [Job 11:18] Ten confianza porque hay esperanza; mira a tu alrededor y descansa seguro.
 16. [Job 19:25] Yo sé que mi Redentor vive y que se levantará sobre la tierra.
-17. [Salmos 1:1] Dichoso el que se deleita ante la ley del Señor y en ella medita día y noche.
+17. [Salmos 1:1-2] Dichoso el que se deleita en la ley del Señor y en ella medita día y noche.
 18. [Salmos 4:8] En paz me acuesto y me duermo, porque solo tú, Señor, me haces vivir confiado.
 19. [Salmos 5:3] Por la mañana, Señor, escucha mi voz.
 20. [Salmos 9:9] El Señor es refugio para el oprimido. Él es refugio en tiempos de angustia.
@@ -54,7 +54,7 @@
 54. [Salmos 42:1] Como el ciervo anhela los ríos, así te anhela mi alma, oh Dios.
 55. [Salmos 42:11] ¿Por qué estás abatida, alma mía? Pon tu esperanza en Dios.
 56. [Salmos 46:1] Dios es nuestro refugio y nuestra fuerza.
-57. [Salmos 46:5] Dios está en medio de tu alma; no caerá. Dios la ayudará al amanecer.
+57. [Salmos 46:5] Dios está en medio de su ciudad; no caerá. Dios la ayudará al amanecer.
 58. [Salmos 46:10] Quédense quietos y sepan que yo soy Dios.
 59. [Salmos 51:10] Crea en mí, oh Dios, un corazón limpio.
 60. [Salmos 51:12] Devuélveme la alegría de tu salvación y sostenme con un espíritu dispuesto.
@@ -67,7 +67,7 @@
 67. [Salmos 63:3] Tu amor es mejor que la vida; por eso mis labios te alaban.
 68. [Salmos 68:19] Bendito sea el Señor que día tras día lleva nuestras cargas.
 69. [Salmos 73:26] Mi cuerpo y mi corazón pueden fallar, pero Dios es mi fortaleza eterna.
-70. [Salmos 84:11] El Señor es sol y escudo; él me da da gracia y gloria.
+70. [Salmos 84:11] El Señor es sol y escudo; él me da gracia y gloria.
 71. [Salmos 86:5] Tú, Señor, eres bueno y perdonas.
 72. [Salmos 86:15] Pero tú, Señor, eres Dios compasivo y misericordioso.
 73. [Salmos 90:12] Enséñanos a contar nuestros días, para que adquiramos un corazón sabio.
@@ -86,7 +86,7 @@
 86. [Salmos 107:9] Él sacia al alma sedienta y llena de bien al alma hambrienta.
 87. [Salmos 118:6] El Señor está conmigo; no tengo miedo. ¿Qué mal puede hacerme otro hombre?
 88. [Salmos 118:24] Hoy es un regalo del Señor; regocijémonos y alegrémonos en él.
-89. [Salmos 119:105] Tu palabra es un calzado para mis pies y una luz en mi camino.
+89. [Salmos 119:105] Tu palabra es una lámpara a mis pies y una luz en mi camino.
 90. [Salmos 119:114] Tú eres mi refugio y mi escudo; en tu palabra he puesto mi esperanza.
 91. [Salmos 119:165] Los que aman tu ley disfrutan de gran paz. Nada los hace tropezar.
 92. [Salmos 121:1-2] Alzo mis ojos al cielo. ¿De dónde vendrá mi ayuda? Mi ayuda viene del Señor.
@@ -103,7 +103,7 @@
 103. [Salmos 145:9] El Señor es bueno con todos; él se compadece de toda su creación.
 104. [Salmos 145:18] El Señor está cerca de todos los que lo invocan.
 105. [Salmos 147:3] Él sana y venda las heridas de todos los que tienen el corazón roto.
-106. [Proverbios 1:7] La llamada del Señor es el principio de la sabiduría.
+106. [Proverbios 1:7] El temor del Señor es el principio de la sabiduría.
 107. [Proverbios 2:6] El Señor da la sabiduría.
 108. [Proverbios 3:3] Que nunca te abandonen ni el amor ni la verdad.
 109. [Proverbios 3:5] Confía en el Señor con todo tu corazón.
@@ -113,8 +113,8 @@
 113. [Proverbios 10:12] El odio despierta conflictos, pero el amor cubre todas las faltas.
 114. [Proverbios 11:25] El alma generosa siempre es correspondida; el que da también recibirá.
 115. [Proverbios 12:25] La ansiedad puede deprimir al corazón, pero una palabra amable lo alegra.
-116. [Proverbios 13:12] La esperanza es el árbol de vida.
-117. [Proverbios 14:26] En el amor del Señor hay seguridad y confianza; Él será refugio para tus hijos.
+116. [Proverbios 13:12] La esperanza que tarda aflige al corazón, pero el deseo cumplido es un árbol de vida.
+117. [Proverbios 14:26] En el temor del Señor hay plena seguridad; Él será refugio para tus hijos.
 118. [Proverbios 15:1] Una respuesta amable puede calmar un enfado, pero una palabra hiriente lo enciende.
 119. [Proverbios 15:13] Un corazón alegre se ilumina el rostro; un corazón triste apaga el espíritu.
 120. [Proverbios 16:3] Pon en manos del Señor todo lo que haces y tus planes tendrán éxito.
@@ -122,20 +122,20 @@
 122. [Proverbios 16:24] Las palabras amables son como la miel. Naturalmente dulces.
 123. [Proverbios 17:17] Un amigo ama en todo momento. Un hermano ayuda en la adversidad.
 124. [Proverbios 17:22] Un corazón alegre es buena medicina. Un espíritu decaído seca los huesos.
-125. [Proverbios 18:10] El Señor es tu faro; el hombre justo corre a ella y está a salvo.
+125. [Proverbios 18:10] El nombre del Señor es una torre fuerte; el justo corre a ella y está a salvo.
 126. [Proverbios 18:24] Hay amigos que te llevan a la ruina, pero hay amigos que valen como un hermano.
 127. [Proverbios 19:21] Muchos son los planes del hombre, pero el propósito del Señor prevalece.
 128. [Proverbios 22:6] Educa a un niño en el camino correcto y aun cuando sea anciano no se apartará.
 129. [Proverbios 27:1] No presumas del día de mañana porque no sabes con certeza lo que el día deparará.
 130. [Proverbios 27:17] El hierro se afila con el hierro. El hombre se afina con el trato del hombre.
 131. [Proverbios 31:25] Vístete con fuerza y dignidad. Mira al futuro con alegría.
-132. [Proverbios 31:30] La mujer que ama al Señor es digna de alabanza.
+132. [Proverbios 31:30] La mujer que honra y teme al Señor es digna de alabanza.
 133. [Eclesiastés 3:1] Todo tiene su momento en los planes de Dios.
 134. [Eclesiastés 3:11] Dios hizo todo hermoso.
 135. [Eclesiastés 4:9] Más valen dos que uno. Siempre obtendrán más fruto de su esfuerzo.
 136. [Eclesiastés 4:12] Uno solo puede ser vencido, pero dos podrán resistir.
-137. [Isaías 1:18] Dedica tiempo a reflexionar sobre tus pensamientos, dice el Señor.
-138. [Isaías 9:6] No nos ha nacido un niño, se nos ha dado un hijo.
+137. [Isaías 1:18] Vengan y pongamos las cosas en claro, dice el Señor: aunque sus pecados sean rojos como la grana, quedarán blancos como la nieve.
+138. [Isaías 9:6] Porque nos ha nacido un niño, se nos ha dado un hijo.
 139. [Isaías 25:1] Señor, tú eres mi Dios; exaltaré y alabaré tu nombre.
 140. [Isaías 26:3] Tú guardarás en perfecta paz a aquel cuyo pensamiento en ti persevera.
 141. [Isaías 30:15] En la quietud y en la confianza está tu fuerza.
@@ -153,8 +153,8 @@
 153. [Isaías 53:5] Por sus heridas fuimos sanados.
 154. [Isaías 54:10] Aunque los montes se muevan, mi amor por ti no cambiará, dice el Señor.
 155. [Isaías 55:8] Mis pensamientos no son los tuyos, ni tus caminos son los míos.
-156. [Isaías 55:11] Cada palabra que sale de mi boca nunca volverá a mí.
-157. [Isaías 58:11] El Señor te guiará siempre. El señor te saciará en tierras secas.
+156. [Isaías 55:11] Mi palabra no volverá a mí vacía; cumplirá todo lo que yo quiero.
+157. [Isaías 58:11] El Señor te guiará siempre. El Señor te saciará en tierras secas.
 158. [Isaías 61:1] El Espíritu del Señor está sobre mí.
 159. [Isaías 61:3] Me han enviado a darles una corona en vez de cenizas.
 160. [Isaías 65:24] Antes de que me llamen, yo ya estaré ahí.
@@ -165,7 +165,7 @@
 165. [Jeremías 29:12] Me invocarán y vendrán a rogarme, y yo los escucharé.
 166. [Jeremías 29:13] Me buscarán y me encontrarán cuando me busquen de todo corazón.
 167. [Jeremías 31:3] Con amor eterno te he amado; por eso te sigo con bondad.
-168. [Jeremías 33:3] Clamame y te responderé. Te mostraré la verdad.
+168. [Jeremías 33:3] Clámame y te responderé. Te mostraré cosas grandes que no conoces.
 169. [Lamentaciones 3:22-23] El amor del Señor nunca se acaba; sus misericordias jamás terminan.
 170. [Lamentaciones 3:25] Bueno es el Señor con aquellos que lo buscan.
 171. [Daniel 2:20] Alabado sea el nombre de Dios por los siglos de los siglos.
@@ -176,7 +176,7 @@
 176. [Habacuc 3:19] El Señor es mi fuerza; hace mis pasos más firmes.
 177. [Sofonías 3:17] El Señor tu Dios está en ti como un guerrero victorioso.
 178. [Zacarías 4:6] No será por la fuerza ni por poder, será por mi Espíritu.
-179. [Malaquías 3:6] Yo soy el Señor y siempre os protegeré.
+179. [Malaquías 3:6] Yo soy el Señor y no cambio; por eso ustedes no han sido destruidos.
 180. [Mateo 5:3] Bienaventurados los pobres en espíritu; de ellos es el reino de los cielos.
 181. [Mateo 5:4] Bienaventurados los que lloran, porque ellos serán consolados.
 182. [Mateo 5:6] Bienaventurados los que tienen hambre de justicia, porque serán saciados.
@@ -186,7 +186,7 @@
 186. [Mateo 5:16] Haced brillar vuestra luz delante de todos.
 187. [Mateo 6:25] No se preocupen por su vida. Su Padre celestial sabe lo que necesitan.
 188. [Mateo 6:26] Miren las aves del cielo: no siembran ni cosechan, y el Padre las alimenta.
-189. [Mateo 6:33] Priemos busquen el reino de Dios y su justicia.
+189. [Mateo 6:33] Busquen primero el reino de Dios y su justicia.
 190. [Mateo 6:34] No se preocupen por el mañana; cada día tiene sus propios desafíos.
 191. [Mateo 7:7] Pidan y se les dará; busquen y encontrarán; llamen y se les abrirá la puerta.
 192. [Mateo 7:8] Porque todo el que pide, recibe; el que busca, encuentra.
@@ -210,7 +210,7 @@
 210. [Lucas 12:7] Hasta los cabellos de su cabeza están contados. No tengan miedo.
 211. [Lucas 12:32] No tengan miedo, pequeño rebaño, porque su Padre ha decidido darles el reino.
 212. [Juan 1:5] La luz brilla en las tinieblas, y las tinieblas no han podido apagarla.
-213. [Juan 3:16] Tanto amó Dios al mundo, que nos dió a su úinco Hijo.
+213. [Juan 3:16] Tanto amó Dios al mundo, que nos dio a su único Hijo.
 214. [Juan 3:17] Dios no envió a su Hijo para condenar al mundo, sino para salvarlo.
 215. [Juan 4:14] El que beba del agua que yo le dé no volverá a tener sed jamás.
 216. [Juan 6:35] Yo soy el pan de vida. El que viene a mí nunca tendrá hambre.
@@ -229,12 +229,12 @@
 229. [Juan 15:12] Este es mi mandamiento: amaos los unos a otros, como yo los he amado.
 230. [Juan 15:13] Nadie tiene amor más grande que el que da la vida por sus amigos.
 231. [Juan 16:33] En el mundo tendrán aflicción; pero confíen, yo he vencido al mundo.
-232. [Hechos 2:28] Te he dado a conocer los caminos de la vida.
+232. [Hechos 2:28] Me diste a conocer los caminos de la vida; me llenarás de alegría con tu presencia.
 233. [Hechos 17:28] Porque en Él vivimos, nos movemos y existimos.
 234. [Hechos 20:35] Hay más dicha en dar que en recibir.
-235. [Romanos 1:16] La bibilia es la palabra de Dios para la salvación.
+235. [Romanos 1:16] No me avergüenzo del evangelio: es poder de Dios para la salvación de todo el que cree.
 236. [Romanos 5:1] Justificados por la fe tenemos paz con Dios por medio de Cristo.
-237. [Romanos 5:3-4] Glorifícate en el sufrimiento porque el sufrimiento produce perseverancia.
+237. [Romanos 5:3-4] Alégrate incluso en el sufrimiento, porque el sufrimiento produce perseverancia.
 238. [Romanos 5:5] Tened esperanza, Dios ha derramado su amor en nosotros.
 239. [Romanos 5:8] Dios demuestra su amor: siendo aún pecadores, Cristo murió por nosotros.
 240. [Romanos 6:23] El regalo de Dios es vida eterna en Cristo Jesús, nuestro Señor.
@@ -246,7 +246,7 @@
 246. [Romanos 8:37] En este mundo somos más que vencedores por medio de aquel que nos amó.
 247. [Romanos 8:38-39] Nada nos podrá separar del amor de Dios.
 248. [Romanos 10:17] Así que la fe viene como resultado de escuchar la palabra de Dios.
-249. [Romanos 12:2] No se amolden al mundo; sed transformados por vuestra Fe.
+249. [Romanos 12:2] No se amolden al mundo; sean transformados mediante la renovación de su mente.
 250. [Romanos 12:9] El amor debe ser sincero. Aborrezcan el mal; aférrense al bien.
 251. [Romanos 12:12] Alégrense en la esperanza, muestren paciencia en el sufrimiento.
 252. [Romanos 12:21] No te dejes vencer por el mal; al contrario, vence el mal con el bien.
@@ -258,13 +258,13 @@
 258. [1 Corintios 13:7] El amor todo lo disculpa, todo lo cree, todo lo espera, todo lo soporta.
 259. [1 Corintios 13:8] El amor jamás se extingue.
 260. [1 Corintios 13:13] Permanece en estas tres virtudes: la fe, la esperanza y el amor.
-261. [1 Corintios 15:57] ¡Gracias a Dios, que nos das la paz por medio de nuestro Señor Jesús!
+261. [1 Corintios 15:57] ¡Gracias a Dios, que nos da la victoria por medio de nuestro Señor Jesucristo!
 262. [1 Corintios 16:13] Manténganse firmes en la fe, sean valientes y fuertes.
 263. [2 Corintios 1:3-4] Bendito sea Dios, Padre de misericordias y Dios de toda consolación.
 264. [2 Corintios 4:16] No nos desanimamos. Aunque por fuera nos desgastemos, por dentro nos renovamos.
 265. [2 Corintios 4:17] Nuestros sufrimientos ligeros producen una incomparable gloria eterna.
 266. [2 Corintios 4:18] No nos fijamos en lo visible, sino en lo invisible.
-267. [2 Corintios 5:7] Vivimos por fe, no por certezas.
+267. [2 Corintios 5:7] Vivimos por fe, no por lo que vemos.
 268. [2 Corintios 5:17] Si alguno está en Cristo, es una nueva creación.
 269. [2 Corintios 9:7] Cada uno debe dar lo que haya decidido en su corazón.
 270. [2 Corintios 12:9] Mi gracia es todo lo que necesitas; mi fortaleza se perfecciona en la debilidad.
@@ -280,12 +280,12 @@
 280. [Efesios 4:2] Sean siempre humildes y amables.
 281. [Efesios 4:32] Sean bondadosos y compasivos unos con otros. Perdónense mutuamente.
 282. [Efesios 6:10] Fortalézcanse con el gran poder del Señor.
-283. [Filipenses 1:6] El que comenzó la buena obra la completará hasta el fin de sus días.
+283. [Filipenses 1:6] El que comenzó en ustedes la buena obra la irá perfeccionando hasta el día de Cristo Jesús.
 284. [Filipenses 2:3] No hagan nada por egoísmo o vanidad.
 285. [Filipenses 2:13] Dios es quien produce en ustedes tanto el querer como el hacer.
 286. [Filipenses 3:13-14] Olvida lo que quedó atrás y esfuérzate por alcanzar lo que está adelante.
 287. [Filipenses 4:4] Alégrense siempre en el Señor. Insisto: ¡Alégrense!
-288. [Filipenses 4:6] No se preocupen por nada; simplemente oración y ruego.
+288. [Filipenses 4:6] No se preocupen por nada; preséntenselo todo a Dios en oración.
 289. [Filipenses 4:7] La paz de Dios, que sobrepasa todo entendimiento, guardará sus corazones.
 290. [Filipenses 4:8] Piensen en todo lo que es verdadero, noble, justo y puro.
 291. [Filipenses 4:11] He aprendido a estar satisfecho en cualquier situación en que me encuentre.
@@ -330,12 +330,12 @@
 330. [1 Juan 4:19] Nosotros amamos porque él nos amó primero.
 331. [1 Juan 5:4] Todo el que ha nacido de Dios vence al mundo.
 332. [1 Juan 5:14] Si pedimos conforme a su voluntad, él nos oye.
-333. [Judas 1:24] Dios cuida del necesitado para que no caiga en desgracia.
+333. [Judas 1:24] Dios es poderoso para cuidarte, evitar que caigas y presentarte sin mancha delante de su gloria.
 334. [Apocalipsis 3:20] Yo estoy a la puerta y llamo. Si alguien abre, entraré y cenaré con él.
 335. [Apocalipsis 21:4] Él les enjugará toda lágrima de los ojos.
-336. [Apocalipsis 21:5] El que estaba sentado en el trono dijo: Yo crearé el mundo.
-337. [Apocalipsis 22:20] El señor está con nosotros. Amén.
-338. [Génesis 9:13] He puesto un arco iris en las nubes como señal de paz en la tierra.
+336. [Apocalipsis 21:5] El que estaba sentado en el trono dijo: Yo hago nuevas todas las cosas.
+337. [Apocalipsis 22:20] Ciertamente vengo pronto, dice el Señor. Amén. ¡Ven, Señor Jesús!
+338. [Génesis 9:13] He puesto mi arco iris en las nubes como señal de mi pacto con la tierra.
 339. [Génesis 12:2] Haré de ti una gran nación, te bendeciré y engrandeceré tu nombre.
 340. [Génesis 15:1] No temas, yo soy tu escudo. Tu recompensa será muy grande.
 341. [Génesis 18:14] ¿Acaso hay algo imposible para el Señor?
@@ -343,7 +343,7 @@
 343. [Éxodo 33:14] Mi presencia irá contigo y yo te daré descanso.
 344. [Levítico 19:18] Ama a tu prójimo como a ti mismo.
 345. [Números 6:24-26] Que el Señor te bendiga y te guarde.
-346. [Deuteronomio 7:9] El Señor e fiel, cumple su pacto por mil generaciones.
+346. [Deuteronomio 7:9] El Señor es fiel, cumple su pacto por mil generaciones.
 347. [Deuteronomio 33:27] El Dios eterno es tu refugio; siempre te sostiene en sus brazos.
 348. [Josué 1:5] Nadie podrá hacerte frente durante todos los días de tu vida.
 349. [Josué 24:15] Elijan hoy a quiénes van a servir. Mi familia y yo serviremos al Señor.
@@ -359,7 +359,7 @@
 359. [Nehemías 9:17] Tú eres un Dios que perdona, clemente y compasivo.
 360. [Job 5:9] Él hace cosas grandes y maravillosas.
 361. [Job 12:10] En su mano está la vida de todo ser viviente y el aliento de toda la humanidad.
-362. [Job 23:10] Él conoce el camino que escojo; cuando haya probado mi valía, mi confianza en mi aumentará.
+362. [Job 23:10] Él conoce mi camino; cuando me haya puesto a prueba, saldré como el oro.
 363. [Job 37:5] Dios hace cosas maravillosas que no podemos comprender.
 364. [Salmos 8:1] ¡Oh Señor, cuán glorioso es tu nombre en toda la tierra!
 365. [Salmos 17:8] Cuídame como a la niña de tus ojos; escóndeme bajo la sombra de tus alas.
@@ -400,7 +400,7 @@
 400. [Jeremías 24:7] Les daré un corazón para que me conozcan, para que sepan que yo soy el Señor.
 401. [Ezequiel 36:26] Les daré un corazón nuevo y pondré en ustedes un espíritu puro.
 402. [Daniel 3:17] Si nos arrojan al horno en llamas, el Dios al que servimos puede librarnos.
-403. [Joel 2:25] Ustedes comerán hasta saciarse y yo haré maravillas entre todos vosotros. 
+403. [Joel 2:26] Ustedes comerán hasta saciarse y alabarán al Señor, que ha hecho maravillas con ustedes.
 404. [Miqueas 7:18] ¿Quién es un Dios como tú, que perdona el pecado y olvida la rebeldía?
 405. [Habacuc 3:17-18] Aunque la higuera no florezca, yo me alegraré en el Señor.
 406. [Malaquías 3:10] Tráiganme sus diezmos y pónganme a prueba, dice el Señor.
@@ -416,11 +416,11 @@
 416. [Juan 1:12] A los que creen en su nombre les dio el derecho de ser hijos de Dios.
 417. [Juan 7:38] El que cree en mí, de su interior correrán ríos de agua viva.
 418. [Juan 16:22] Ustedes ahora están tristes pero volveré algún día y se alegrarán.
-419. [Juan 17:3] Él es la vida eterna, el único Dios verdadero.
+419. [Juan 17:3] Esta es la vida eterna: que te conozcan a ti, el único Dios verdadero, y a Jesucristo.
 420. [Hechos 1:8] Recibirán poder cuando el Espíritu Santo venga sobre ustedes.
-421. [Hechos 4:12] En ningún otro Dios hay salvación; no hay otro nombre bajo el cielo.
+421. [Hechos 4:12] En ningún otro hay salvación; no hay bajo el cielo otro nombre por el que podamos ser salvos.
 422. [Romanos 11:33] ¡Qué profundas son las riquezas de la sabiduría y del conocimiento de Dios!
-423. [Romanos 15:4] Todo lo que se escribió en el pasado se escribió para enseñarnos en eñ futuro.
+423. [Romanos 15:4] Todo lo que se escribió en el pasado se escribió para enseñarnos en el futuro.
 424. [1 Corintios 1:9] Fiel es Dios por quien fueron llamados a tener comunión con su Hijo.
 425. [1 Corintios 16:14] Hagan todo con amor.
 426. [2 Corintios 3:17] Donde está el Espíritu del Señor, allí hay libertad.
@@ -434,10 +434,10 @@
 434. [Filipenses 2:14-15] Háganlo todo sin quejas ni discusiones para que sean intachables y puros.
 435. [1 Tesalonicenses 5:11] Anímense unos a otros y edifíquense mutuamente.
 436. [2 Tesalonicenses 3:3] El Señor es fiel y Él los fortalecerá y los protegerá del maligno.
-437. [2 Timoteo 2:15] Esfuérzate por presentarte a Dios apobado.
+437. [2 Timoteo 2:15] Esfuérzate por presentarte a Dios aprobado.
 438. [2 Timoteo 3:16-17] Toda la Escritura es inspirada por Dios y útil para enseñar.
 439. [2 Timoteo 4:7] He peleado la batalla, he terminado la carrera, he mantenido la fe.
-440. [Hebreos 4:12] La palabra de Dios esta viva.
+440. [Hebreos 4:12] La palabra de Dios está viva.
 441. [Hebreos 10:36] Perseveren para que, al cumplir la voluntad de Dios, reciban lo prometido.
 442. [Santiago 5:16] La oración del justo es poderosa y eficaz.
 443. [1 Pedro 1:3] Bendito sea el Dios y Padre de nuestro Señor Jesucristo.
@@ -469,7 +469,7 @@
 469. [Salmos 104:24] ¡Cuántas son tus obras, Señor! Todas las hiciste con sabiduría.
 470. [Salmos 112:7] No temerás recibir malas noticias; tu corazón está firme y confiado en el Señor.
 471. [Salmos 113:3] Desde donde sale el sol hasta donde se pone, sea alabado el nombre del Señor.
-472. [Salmos 128:1] Dichosos todos los que rezan al Señor y siguen su caminos.
+472. [Salmos 128:1] Dichosos todos los que temen al Señor y siguen sus caminos.
 473. [Salmos 138:8] El Señor cumplirá su propósito en mí.
 474. [Salmos 139:7-8] ¿A dónde iré lejos de tu Espíritu? Tu presencia me rodea en todo lugar.
 475. [Salmos 144:15] Dichoso el pueblo cuyo Dios es el Señor.

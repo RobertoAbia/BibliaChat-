@@ -270,7 +270,7 @@ const Map<String, List<_Verse>> _versesByMotive = {
   ],
   'spiritual_growth': [
     _Verse('Filipenses 1:6',
-        'El que comenzó la buena obra la completará hasta el fin de sus días.'),
+        'El que comenzó en ti la buena obra la irá perfeccionando hasta el día de Cristo.'),
     _Verse('Jeremías 29:13',
         'Me buscarán y me encontrarán cuando me busquen de todo corazón.'),
     _Verse('Santiago 1:5',
