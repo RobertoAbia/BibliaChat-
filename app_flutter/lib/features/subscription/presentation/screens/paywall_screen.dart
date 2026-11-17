@@ -211,6 +211,15 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
       ref.read(subscriptionProvider.notifier).refresh();
     }
     _startPlansTimer();
+    // Si el provider ya sabe que es premium al montar el gate (carrera entre
+    // la decisión del splash y la actualización de RevenueCat tras logIn),
+    // pasar directo — el ref.listen del build solo ve cambios posteriores.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !widget.gate) return;
+      if (ref.read(subscriptionProvider).isPremium) {
+        context.go(RouteConstants.home);
+      }
+    });
   }
 
   @override
@@ -264,6 +273,21 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Auto-pase del gate: tras un login o reinstalación el splash no tiene el
+    // caché premium local y manda aquí, pero RevenueCat reconoce al usuario en
+    // background (logIn + stream). En cuanto llegue ese estado, entrar a Home
+    // sin obligar a descubrir "Restaurar". Se excluyen las transiciones que
+    // vienen de una compra (prev.isPurchasing) o restauración explícita
+    // (_restoring): esas navegan ellas mismas a purchase-success.
+    ref.listen<SubscriptionState>(subscriptionProvider, (prev, next) {
+      if (!widget.gate || !mounted) return;
+      if (!next.isPremium || (prev?.isPremium ?? false)) return;
+      if ((prev?.isPurchasing ?? false) || next.isPurchasing || _restoring) {
+        return;
+      }
+      context.go(RouteConstants.home);
+    });
+
     final subscriptionState = ref.watch(subscriptionProvider);
     final monthlyPackage = ref.watch(monthlyPackageProvider);
     final annualPackage = ref.watch(annualPackageProvider);
