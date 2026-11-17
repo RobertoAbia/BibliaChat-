@@ -241,7 +241,10 @@ class RevenueCatService {
   Future<bool> restorePurchases() async {
     if (!isAvailable) return false;
     try {
-      await Purchases.restorePurchases();
+      final customerInfo = await Purchases.restorePurchases();
+      // Mismo motivo que en logIn: no depender de que el listener del SDK
+      // notifique — propagar el estado restaurado a los suscriptores ya.
+      _customerInfoController.add(customerInfo);
       return true;
     } catch (e) {
       debugPrint('RevenueCat: restorePurchases error - $e');
@@ -268,7 +271,11 @@ class RevenueCatService {
   Future<void> logIn(String userId) async {
     if (!isAvailable) return;
     try {
-      await Purchases.logIn(userId);
+      final result = await Purchases.logIn(userId);
+      // Empujar el CustomerInfo del nuevo usuario al stream a mano: el
+      // listener del SDK no siempre notifica tras un logIn, y de este evento
+      // depende el auto-pase del paywall-puerta tras iniciar sesión.
+      _customerInfoController.add(result.customerInfo);
       debugPrint('RevenueCat: logIn successful for $userId');
     } catch (e) {
       debugPrint('RevenueCat: logIn error - $e');
