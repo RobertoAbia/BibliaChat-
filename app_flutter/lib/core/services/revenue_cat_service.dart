@@ -193,6 +193,29 @@ class RevenueCatService {
     }
   }
 
+  /// Precalienta la elegibilidad del trial consultando los offerings y
+  /// preguntando a Apple. Pensado para llamarse varias pantallas antes del
+  /// pre-paywall (p.ej. durante "Analizando tus respuestas"), de modo que
+  /// cuando el usuario llegue allí `trialEligible` ya esté cacheado y no haya
+  /// ningún parpadeo. Fire-and-forget y no-crítico: si falla, el pre-paywall
+  /// repite la comprobación.
+  Future<void> prewarmTrialEligibility() async {
+    if (!isAvailable || _trialEligible != null) return;
+    try {
+      final offerings = await getOfferings();
+      final current = offerings?.current;
+      final productIds = [current?.monthly, current?.annual]
+          .whereType<Package>()
+          .map((p) => p.storeProduct.identifier)
+          .toList();
+      if (productIds.isNotEmpty) {
+        await isEligibleForTrial(productIds);
+      }
+    } catch (e) {
+      if (kDebugMode) debugPrint('RevenueCat: prewarm eligibility failed - $e');
+    }
+  }
+
   /// Persiste la elegibilidad en disco (fire-and-forget, no-crítico).
   Future<void> _persistEligibility(bool value) async {
     try {

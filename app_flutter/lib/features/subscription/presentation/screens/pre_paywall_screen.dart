@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:purchases_flutter/purchases_flutter.dart';
 
 import '../../../../core/constants/route_constants.dart';
 import '../../../../core/services/revenue_cat_service.dart';
@@ -21,6 +20,10 @@ class PrePaywallScreen extends ConsumerStatefulWidget {
 }
 
 class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
+  /// true mientras se decide/ejecuta el salto al paywall por falta de trial:
+  /// en ese estado se pinta solo el fondo (ni un frame del timeline falso).
+  bool _skipping = false;
+
   @override
   void initState() {
     super.initState();
@@ -31,37 +34,29 @@ class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
     // Toda esta pantalla es una promesa de "3 días gratis": si ya se sabe que
     // el usuario NO es elegible (trial consumido), mostrarla sería mentirle
     // (Apple cobraría al instante) — saltar directo al paywall, que ya pinta
-    // el copy sin trial.
+    // el copy sin trial. La elegibilidad se precalienta en la pantalla de
+    // "Analizando", así que normalmente aquí ya está cacheada.
     if (RevenueCatService.instance.trialEligible == false) {
+      _skipping = true;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _continue();
       });
       return;
     }
-    // Prewarm también la elegibilidad del trial para que el paywall sepa desde el
-    // primer frame si mostrar el toggle (evita el parpadeo del toggle).
+    // Si aún no se conoce (prewarm del Analizando no terminó o falló),
+    // repetir la comprobación aquí como respaldo.
     _prewarmTrialEligibility();
   }
 
-  /// Carga offerings y cachea la elegibilidad del trial (mensual y anual), para
-  /// que el paywall la lea de forma síncrona y no parpadee. No-crítico.
+  /// Respaldo: cachea la elegibilidad del trial para que el paywall la lea de
+  /// forma síncrona y no parpadee. No-crítico.
   Future<void> _prewarmTrialEligibility() async {
-    try {
-      final offerings = await RevenueCatService.instance.getOfferings();
-      final current = offerings?.current;
-      final productIds = [current?.monthly, current?.annual]
-          .whereType<Package>()
-          .map((p) => p.storeProduct.identifier)
-          .toList();
-      if (productIds.isNotEmpty) {
-        final eligible =
-            await RevenueCatService.instance.isEligibleForTrial(productIds);
-        // Resultado fresco: sin elegibilidad, el timeline de 3 días que el
-        // usuario tiene delante es falso — pasar al paywall.
-        if (!eligible && mounted) _continue();
-      }
-    } catch (_) {
-      // No-crítico: si falla, el paywall hace la comprobación asíncrona.
+    await RevenueCatService.instance.prewarmTrialEligibility();
+    // Resultado fresco: sin elegibilidad, el timeline de 3 días que el
+    // usuario tiene delante es falso — pasar al paywall.
+    if (RevenueCatService.instance.trialEligible == false && mounted) {
+      setState(() => _skipping = true);
+      _continue();
     }
   }
 
@@ -71,6 +66,17 @@ class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Saltando al paywall: solo el fondo, para que la transición sea invisible.
+    if (_skipping) {
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: AppTheme.backgroundGradient,
+          ),
+        ),
+      );
+    }
+
     final profile = ref.watch(currentUserProfileProvider).valueOrNull;
     final name = profile?.name;
     final objective = PaywallPricing.objectivePhrase(profile?.motive);

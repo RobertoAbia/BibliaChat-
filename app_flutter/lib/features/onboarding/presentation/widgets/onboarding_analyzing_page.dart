@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
+import '../../../../core/services/revenue_cat_service.dart';
 import '../../../../core/theme/app_theme.dart';
 
 class OnboardingAnalyzingPage extends StatefulWidget {
@@ -37,6 +38,11 @@ class _OnboardingAnalyzingPageState extends State<OnboardingAnalyzingPage>
   @override
   void initState() {
     super.initState();
+    // Aprovechar los ~4s de "análisis" para preguntar a Apple si el usuario
+    // es elegible para el trial: así el pre-paywall ya sabe al llegar si debe
+    // saltarse la pantalla de "3 días gratis" (sin parpadeo) y el paywall
+    // pinta el copy correcto desde el primer frame.
+    RevenueCatService.instance.prewarmTrialEligibility();
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
