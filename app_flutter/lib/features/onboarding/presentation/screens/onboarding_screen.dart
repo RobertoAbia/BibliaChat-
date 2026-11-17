@@ -349,14 +349,16 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               verseReference: 'Salmo 139:14',
               title: 'Dios nos creó única y maravillosamente.',
               subtitle: '¿Cuál es tu género?',
-              subtitleHint: 'Opcional — puedes saltar este paso',
               options: const [
                 SelectionOption(key: 'male', label: 'Hombre'),
                 SelectionOption(key: 'female', label: 'Mujer'),
               ],
               selectedKey: state.gender,
               onSelect: (key) => notifier.setGender(key),
-              onNext: _nextPage,
+              // Misma dinámica que Nombre y Edad: Continuar requiere
+              // selección y el paso opcional se salta con el enlace "Saltar"
+              onNext: state.gender != null ? _nextPage : null,
+              onSkip: _nextPage,
             );
           },
         );

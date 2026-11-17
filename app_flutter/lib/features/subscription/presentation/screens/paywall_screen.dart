@@ -393,12 +393,7 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                               'Tu momento de paz cada mañana',
                             ),
 
-                            const SizedBox(height: 22),
-
-                            // Prueba social
-                            _buildSocialProof(),
-
-                            const SizedBox(height: 24),
+                            const SizedBox(height: 16),
                           ],
                         ),
                       ),
@@ -414,6 +409,12 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    // Prueba social — en el bloque fijo: dentro del scroll
+                    // quedaba cortada por el límite del área scrolleable en
+                    // pantallas pequeñas
+                    _buildSocialProof(),
+                    const SizedBox(height: 12),
+
                     // Toggle trial — solo si hay un plan con trial. Colapso
                     // suave para que no "parpadee" cuando RC confirma que no
                     // es elegible.
@@ -441,10 +442,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                             ? 'Prueba gratuita de $annualTrialDays días'
                             : 'Acceso Anual',
                         subtitle: annualTrialDays != null
-                            ? 'Después, $annualPrice al año. Sin cobros ahora'
-                            : monthlyEquivalent != null
-                                ? '$annualPrice al año, solo $monthlyEquivalent al mes'
-                                : '$annualPrice al año',
+                            ? 'Después, $annualPrice al año · Sin cobros ahora'
+                            : 'Suscribiéndote por $annualPrice al año',
+                        priceValue: monthlyEquivalent ?? annualPrice,
+                        priceUnit: monthlyEquivalent != null ? '/mes' : '/año',
                         badge:
                             savingsPct != null ? 'AHORRA $savingsPct%' : null,
                       ),
@@ -454,8 +455,10 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
                             ? 'Prueba gratuita de $monthlyTrialDays días'
                             : 'Acceso Mensual',
                         subtitle: monthlyTrialDays != null
-                            ? 'Después, $monthlyPrice al mes. Sin cobros ahora'
-                            : '$monthlyPrice al mes',
+                            ? 'Después, $monthlyPrice al mes · Sin cobros ahora'
+                            : null,
+                        priceValue: monthlyPrice,
+                        priceUnit: '/mes',
                       ),
                     ),
 
@@ -712,13 +715,14 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
 
   Widget _buildSocialProof() {
     return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         ...List.generate(
           5,
           (_) => const Icon(Icons.star_rounded, size: 18, color: Color(0xFFF5B301)),
         ),
         const SizedBox(width: 8),
-        const Expanded(
+        const Flexible(
           child: Text(
             '«$_socialProofQuote»',
             style: TextStyle(
@@ -819,7 +823,9 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
   Widget _buildPlanCard({
     required _Plan plan,
     required String title,
-    required String subtitle,
+    String? subtitle,
+    required String priceValue,
+    String priceUnit = '/mes',
     String? badge,
   }) {
     final isSelected = _selected == plan;
@@ -845,44 +851,74 @@ class _PaywallScreenState extends ConsumerState<PaywallScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                    ),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          title,
+                          style: const TextStyle(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.textPrimary,
+                          ),
+                        ),
+                      ),
+                      if (badge != null) ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: AppTheme.errorColor,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            badge,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.textSecondary,
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
-            if (badge != null) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppTheme.errorColor,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  badge,
+            const SizedBox(width: 12),
+            // Precio protagonista a la derecha
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  priceValue,
                   style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimary,
                   ),
                 ),
-              ),
-            ],
+                Text(
+                  priceUnit,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppTheme.textSecondary,
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),

@@ -48,8 +48,21 @@ class RemoteConfigService {
       // Aplica los últimos valores fetchados (cacheados en disco) sin red.
       await rc.activate();
       _rc = rc;
-      // Fetch en background para que la próxima apertura tenga lo último.
-      unawaited(rc.fetchAndActivate());
+
+      if (rc.lastFetchStatus == RemoteConfigFetchStatus.noFetchYet) {
+        // PRIMERA apertura tras instalar: no hay valores descargados y el
+        // onboarding ocurre justo ahora — sin esta espera, la ocultación de
+        // pasos nunca aplicaría a usuarios nuevos (que son exactamente a
+        // quienes va dirigida). Timeout corto: si no llega, defaults.
+        await rc
+            .fetchAndActivate()
+            .timeout(const Duration(seconds: 4))
+            .catchError((_) => false);
+      } else {
+        // Ya hay valores de una sesión anterior: fetch en background para
+        // que la próxima apertura tenga lo último, sin bloquear esta.
+        unawaited(rc.fetchAndActivate());
+      }
     } catch (_) {
       // No-crítico: si falla, se aplican los defaults (nada oculto).
     }
