@@ -28,6 +28,16 @@ class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
     // a cargar los offerings mientras el usuario lee esta pantalla. Así el paywall
     // aparece con los precios reales al instante, no con placeholders.
     ref.read(subscriptionProvider);
+    // Toda esta pantalla es una promesa de "3 días gratis": si ya se sabe que
+    // el usuario NO es elegible (trial consumido), mostrarla sería mentirle
+    // (Apple cobraría al instante) — saltar directo al paywall, que ya pinta
+    // el copy sin trial.
+    if (RevenueCatService.instance.trialEligible == false) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _continue();
+      });
+      return;
+    }
     // Prewarm también la elegibilidad del trial para que el paywall sepa desde el
     // primer frame si mostrar el toggle (evita el parpadeo del toggle).
     _prewarmTrialEligibility();
@@ -44,7 +54,11 @@ class _PrePaywallScreenState extends ConsumerState<PrePaywallScreen> {
           .map((p) => p.storeProduct.identifier)
           .toList();
       if (productIds.isNotEmpty) {
-        await RevenueCatService.instance.isEligibleForTrial(productIds);
+        final eligible =
+            await RevenueCatService.instance.isEligibleForTrial(productIds);
+        // Resultado fresco: sin elegibilidad, el timeline de 3 días que el
+        // usuario tiene delante es falso — pasar al paywall.
+        if (!eligible && mounted) _continue();
       }
     } catch (_) {
       // No-crítico: si falla, el paywall hace la comprobación asíncrona.
