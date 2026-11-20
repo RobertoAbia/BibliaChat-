@@ -1019,36 +1019,46 @@ serve(async (req) => {
     // servidor: una llamada directa no puede rotar fechas para estrenar
     // contador en cada request.
     const clientDate = body.local_date;
-    if (typeof clientDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(clientDate)) {
+    const clientSentLocalDate = typeof clientDate === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(clientDate);
+    if (clientSentLocalDate) {
       const diffDays = Math.abs(
         (Date.parse(clientDate) - Date.parse(localDate)) / 86400000);
       if (diffDays <= 1) localDate = clientDate;
     }
-    const { data: dailyCount, error: limitError } = await supabase.rpc(
-      "increment_daily_messages",
-      { p_activity_date: localDate },
-    );
-    if (limitError) {
-      // Fail-open con log: no romper el chat si la migración 00035 aún no
-      // está aplicada o el RPC falla puntualmente.
-      console.error("increment_daily_messages failed:", limitError.message);
-    } else if (typeof dailyCount === "number" && dailyCount > 150) {
-      // Margen de 48h sobre expires_at: las renovaciones llegan por webhook
-      // con algo de retraso y no queremos cortar a un premium real.
-      const { data: entitlement } = await supabase
-        .from("user_entitlements")
-        .select("is_premium, expires_at")
-        .eq("user_id", userId)
-        .maybeSingle();
-      const isPremiumServer = !!entitlement?.is_premium &&
-        (!entitlement.expires_at ||
-          new Date(entitlement.expires_at).getTime() >
-            Date.now() - 48 * 3600 * 1000);
-      if (!isPremiumServer) {
-        return new Response(
-          JSON.stringify({ error: "daily_limit_reached", messages_sent_today: dailyCount }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+    // `local_date` lo envían SOLO las builds >= 1.2.0, que son también las
+    // que dejaron de incrementar el contador en el cliente. Una petición sin
+    // ese campo viene de una build anterior (1.1.0), que sigue incrementando
+    // ella misma: contar aquí también dejaría su límite free en 3 mensajes de
+    // los 5 reales. Este guard se puede quitar —junto con bajar el tope de
+    // 150— cuando ya no queden instalaciones de la build vieja.
+    if (clientSentLocalDate) {
+      const { data: dailyCount, error: limitError } = await supabase.rpc(
+        "increment_daily_messages",
+        { p_activity_date: localDate },
+      );
+      if (limitError) {
+        // Fail-open con log: no romper el chat si la migración 00035 aún no
+        // está aplicada o el RPC falla puntualmente.
+        console.error("increment_daily_messages failed:", limitError.message);
+      } else if (typeof dailyCount === "number" && dailyCount > 150) {
+        // Margen de 48h sobre expires_at: las renovaciones llegan por webhook
+        // con algo de retraso y no queremos cortar a un premium real.
+        const { data: entitlement } = await supabase
+          .from("user_entitlements")
+          .select("is_premium, expires_at")
+          .eq("user_id", userId)
+          .maybeSingle();
+        const isPremiumServer = !!entitlement?.is_premium &&
+          (!entitlement.expires_at ||
+            new Date(entitlement.expires_at).getTime() >
+              Date.now() - 48 * 3600 * 1000);
+        if (!isPremiumServer) {
+          return new Response(
+            JSON.stringify({ error: "daily_limit_reached", messages_sent_today: dailyCount }),
+            { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
     }
 
